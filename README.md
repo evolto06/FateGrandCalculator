@@ -1,3 +1,4 @@
+
 # FateGrandCalculator
 
 An unofficial Fate/Grand Order damage calculator, built in Rust for both native desktop and web browsers.
