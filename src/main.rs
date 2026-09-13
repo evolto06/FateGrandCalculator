@@ -1,19 +1,18 @@
-use fate_grand_calculator::damage::{CardType, DamageInput, calculate};
+mod app;
+mod ui;
 
-fn main() {
-    let result = calculate(DamageInput {
-        attack: 12_000,
-        card_type: CardType::Buster,
-        attack_buff: 0.20,
-        card_buff: 0.30,
-        enemy_defense: 0.10,
-        class_multiplier: 2.0,
-        attribute_multiplier: 1.0,
-    });
+use app::CalculatorApp;
+use eframe::egui;
 
-    println!("FateGrandCalculator");
-    println!(
-        "Damage range: {}–{} (before random: {:.2})",
-        result.minimum_damage, result.maximum_damage, result.damage_before_random
-    );
+fn main() -> eframe::Result<()> {
+    eframe::run_native(
+        "FateGrandCalculator",
+        eframe::NativeOptions {
+            viewport: egui::ViewportBuilder::default()
+                .with_inner_size([960.0, 650.0])
+                .with_min_inner_size([760.0, 560.0]),
+            ..Default::default()
+        },
+        Box::new(|_| Ok(Box::new(CalculatorApp::default()))),
+    )
 }
