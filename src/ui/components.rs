@@ -47,6 +47,9 @@ pub fn attack_panel(
     ui: &mut egui::Ui,
     data: &GameData,
     selected_servant_id: &mut u32,
+    portrait: Option<&egui::TextureHandle>,
+    portrait_message: &str,
+    portrait_error: Option<&str>,
     card_type: &mut CardType,
     attack_buff_percent: &mut f64,
     card_buff_percent: &mut f64,
@@ -57,7 +60,14 @@ pub fn attack_panel(
         ui.label(RichText::new("One non-critical first command card.").color(TEXT_MUTED));
         ui.add_space(14.0);
 
-        servant_selector(ui, data, selected_servant_id);
+        servant_selector(
+            ui,
+            data,
+            selected_servant_id,
+            portrait,
+            portrait_message,
+            portrait_error,
+        );
         ui.add_space(12.0);
 
         card_selector(ui, card_type);
@@ -160,14 +170,21 @@ fn percent_input(ui: &mut egui::Ui, label: &str, value: &mut f64) {
     );
 }
 
-fn servant_selector(ui: &mut egui::Ui, data: &GameData, selected_id: &mut u32) {
+fn servant_selector(
+    ui: &mut egui::Ui,
+    data: &GameData,
+    selected_id: &mut u32,
+    portrait: Option<&egui::TextureHandle>,
+    portrait_message: &str,
+    portrait_error: Option<&str>,
+) {
     let selected = data.servant(*selected_id).or_else(|| data.servants.first());
     let selected_name = selected.map_or("No servants loaded", |servant| servant.name.as_str());
 
     ui.label(RichText::new("SERVANT").size(11.0).color(TEXT_MUTED));
     ui.add_space(6.0);
     ui.horizontal_top(|ui| {
-        portrait_placeholder(ui);
+        portrait_window(ui, portrait, portrait_message, portrait_error);
         ui.vertical(|ui| {
             egui::ComboBox::from_id_salt("servant_selector")
                 .selected_text(selected_name)
@@ -199,23 +216,43 @@ fn servant_selector(ui: &mut egui::Ui, data: &GameData, selected_id: &mut u32) {
     });
 }
 
-fn portrait_placeholder(ui: &mut egui::Ui) {
-    let size = egui::vec2(82.0, 108.0);
-    let (rect, _) = ui.allocate_exact_size(size, egui::Sense::hover());
+fn portrait_window(
+    ui: &mut egui::Ui,
+    portrait: Option<&egui::TextureHandle>,
+    message: &str,
+    error: Option<&str>,
+) {
+    let size = egui::vec2(100.0, 136.0);
+    let (rect, response) = ui.allocate_exact_size(size, egui::Sense::hover());
     ui.painter().rect_filled(rect, 8.0, PANEL_MUTED);
+    if let Some(texture) = portrait {
+        let source_size = texture.size_vec2();
+        let scale = (size.x / source_size.x).min(size.y / source_size.y);
+        let image_rect = egui::Rect::from_center_size(rect.center(), source_size * scale);
+        ui.painter().image(
+            texture.id(),
+            image_rect,
+            egui::Rect::from_min_max(egui::Pos2::ZERO, egui::pos2(1.0, 1.0)),
+            Color32::WHITE,
+        );
+    } else {
+        ui.painter().text(
+            rect.center(),
+            egui::Align2::CENTER_CENTER,
+            message,
+            egui::FontId::proportional(11.0),
+            TEXT_MUTED,
+        );
+    }
     ui.painter().rect_stroke(
         rect,
         8.0,
         egui::Stroke::new(1.0, Color32::from_rgb(59, 69, 91)),
         egui::StrokeKind::Inside,
     );
-    ui.painter().text(
-        rect.center(),
-        egui::Align2::CENTER_CENTER,
-        "No portrait\navailable yet",
-        egui::FontId::proportional(11.0),
-        TEXT_MUTED,
-    );
+    if let Some(error) = error {
+        response.on_hover_text(error);
+    }
 }
 
 fn class_selector(ui: &mut egui::Ui, label: &str, selected: &mut ClassType) {

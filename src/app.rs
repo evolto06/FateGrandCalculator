@@ -7,6 +7,8 @@ use fate_grand_calculator::servant_data::{ServantDataService, UpdateReport};
 #[cfg(not(target_arch = "wasm32"))]
 use std::sync::mpsc::{self, Receiver, Sender};
 
+#[cfg(not(target_arch = "wasm32"))]
+use crate::portrait::PortraitStream;
 use crate::ui;
 
 pub struct CalculatorApp {
@@ -19,6 +21,8 @@ pub struct CalculatorApp {
     enemy_class: ClassType,
     enemy_attribute: AttributeType,
     data_status: String,
+    #[cfg(not(target_arch = "wasm32"))]
+    portrait: PortraitStream,
     #[cfg(not(target_arch = "wasm32"))]
     update_in_progress: bool,
     #[cfg(not(target_arch = "wasm32"))]
@@ -61,6 +65,8 @@ impl Default for CalculatorApp {
             enemy_attribute: AttributeType::Sky,
             data_status,
             #[cfg(not(target_arch = "wasm32"))]
+            portrait: PortraitStream::default(),
+            #[cfg(not(target_arch = "wasm32"))]
             update_in_progress: false,
             #[cfg(not(target_arch = "wasm32"))]
             update_sender,
@@ -74,6 +80,21 @@ impl eframe::App for CalculatorApp {
     fn ui(&mut self, ui: &mut egui::Ui, _: &mut eframe::Frame) {
         #[cfg(not(target_arch = "wasm32"))]
         self.poll_update_result();
+
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            let selection = self.game_data.as_ref().ok().and_then(|data| {
+                data.servant(self.selected_servant_id)
+                    .or_else(|| data.servants.first())
+                    .map(|servant| (data.region.clone(), servant.id))
+            });
+            self.portrait.sync_selection(
+                selection
+                    .as_ref()
+                    .map(|(region, id)| (region.as_str(), *id)),
+                ui.ctx(),
+            );
+        }
 
         ui::apply_canvas(ui);
 
@@ -120,6 +141,19 @@ impl eframe::App for CalculatorApp {
                             return;
                         }
                     };
+                    #[cfg(not(target_arch = "wasm32"))]
+                    let (portrait_texture, portrait_message, portrait_error) = (
+                        self.portrait.texture(),
+                        self.portrait.message(),
+                        self.portrait.error(),
+                    );
+                    #[cfg(target_arch = "wasm32")]
+                    let (portrait_texture, portrait_message, portrait_error): (
+                        Option<&egui::TextureHandle>,
+                        &str,
+                        Option<&str>,
+                    ) = (None, "No portrait\navailable", None);
+
                     let selected_servant_id = &mut self.selected_servant_id;
                     let card_type = &mut self.card_type;
                     let attack_buff_percent = &mut self.attack_buff_percent;
@@ -134,6 +168,9 @@ impl eframe::App for CalculatorApp {
                                 &mut columns[0],
                                 data,
                                 selected_servant_id,
+                                portrait_texture,
+                                portrait_message,
+                                portrait_error,
                                 card_type,
                                 attack_buff_percent,
                                 card_buff_percent,
@@ -161,6 +198,9 @@ impl eframe::App for CalculatorApp {
                             ui,
                             data,
                             selected_servant_id,
+                            portrait_texture,
+                            portrait_message,
+                            portrait_error,
                             card_type,
                             attack_buff_percent,
                             card_buff_percent,

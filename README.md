@@ -27,7 +27,7 @@ Atlas Academy export -- user-triggered import --> local servant snapshot
                                               eframe/egui        WebAssembly
 ```
 
-The calculation core has no GUI, network, or platform-specific dependencies. It accepts the attack inputs and returns each multiplier with the damage range. The desktop client loads the last locally saved servant snapshot, falling back to a bundled seed. Servant data updates happen only when the user chooses **Update servant data**.
+The calculation core has no GUI, network, or platform-specific dependencies. It accepts the attack inputs and returns each multiplier with the damage range. The desktop client loads the last locally saved servant snapshot, falling back to a bundled seed. Servant data updates happen only when the user chooses **Update servant data**. The selected servant's portrait streams separately from Atlas Academy.
 
 ```rust
 pub fn calculate(input: DamageInput) -> DamageResult;
@@ -49,7 +49,9 @@ The update reports unsupported or incomplete entries and keeps the rest of the v
 
 Atlas Academy recommends its static exports or `/basic` endpoints for indexing; this app uses the [NA basic servant export](https://api.atlasacademy.io/export/NA/basic_servant.json).
 
-Please respect the data source's terms, licensing, `robots.txt`, and rate limits. The app uses Atlas Academy's official data URLs.
+The desktop UI requests the selected servant's first ascension portrait from Atlas Academy's `extraAssets.charaGraph.ascension["1"]` URL. It decodes the image in memory and keeps only the currently selected texture. Changing servants releases the previous texture; portraits and portrait URLs are never saved to disk. The portrait window shows a fallback message when the network or artwork is unavailable. No generated images are used.
+
+Please respect the data source's terms, licensing, `robots.txt`, and rate limits. The app uses Atlas Academy's official data and artwork URLs.
 
 ## Project status
 
