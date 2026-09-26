@@ -35,7 +35,7 @@ pub fn header(ui: &mut egui::Ui) {
         });
         ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
             ui.label(
-                RichText::new("NORMAL CARD · EARLY BUILD")
+                RichText::new("FIRST CARD · EARLY BUILD")
                     .size(10.0)
                     .color(ACCENT),
             );
@@ -54,7 +54,7 @@ pub fn attack_panel(
 ) {
     section_frame(ui, |ui| {
         ui.heading(RichText::new("Attack setup").size(18.0));
-        ui.label(RichText::new("Choose a servant and command card.").color(TEXT_MUTED));
+        ui.label(RichText::new("One non-critical first command card.").color(TEXT_MUTED));
         ui.add_space(14.0);
 
         servant_selector(ui, data, selected_servant_id);
@@ -65,6 +65,7 @@ pub fn attack_panel(
         ui.separator();
         ui.add_space(8.0);
         ui.label(RichText::new("BUFFS & TARGET").size(11.0).color(TEXT_MUTED));
+        ui.small("Enter 20 for a 20% buff or defense value.");
         ui.add_space(4.0);
         percent_input(ui, "Attack buff", attack_buff_percent);
         percent_input(ui, "Card buff", card_buff_percent);
@@ -90,8 +91,8 @@ pub fn matchup_panel(
 
 pub fn result_panel(ui: &mut egui::Ui, result: DamageResult) {
     section_frame(ui, |ui| {
-        ui.heading(RichText::new("Result").size(18.0));
-        ui.label(RichText::new("Live calculation preview.").color(TEXT_MUTED));
+        ui.heading(RichText::new("First card result").size(18.0));
+        ui.label(RichText::new("No critical hit or chain bonus.").color(TEXT_MUTED));
         ui.add_space(14.0);
 
         damage_result(ui, result);
@@ -277,16 +278,33 @@ fn breakdown(ui: &mut egui::Ui, result: DamageResult) {
             .num_columns(2)
             .spacing([40.0, 8.0])
             .show(ui, |ui| {
-                for (label, multiplier) in [
-                    ("Base card", result.base_card_multiplier),
-                    ("Attack", result.attack_multiplier),
-                    ("Card buff", result.card_buff_multiplier),
-                    ("Defense", result.defense_multiplier),
-                    ("Class", result.class_multiplier),
-                    ("Attribute", result.attribute_multiplier),
+                for (label, value) in [
+                    ("Base card", format!("×{:.2}", result.base_card_multiplier)),
+                    ("Card buff", format!("×{:.2}", result.card_buff_multiplier)),
+                    (
+                        "First card bonus",
+                        format!("+{:.2}", result.first_card_bonus),
+                    ),
+                    (
+                        "Card total",
+                        format!("×{:.2}", result.card_damage_multiplier),
+                    ),
+                    (
+                        "Class attack",
+                        format!("×{:.2}", result.class_attack_multiplier),
+                    ),
+                    ("Class affinity", format!("×{:.2}", result.class_multiplier)),
+                    (
+                        "Attribute affinity",
+                        format!("×{:.2}", result.attribute_multiplier),
+                    ),
+                    (
+                        "Attack − defense",
+                        format!("×{:.2}", result.attack_defense_multiplier),
+                    ),
                 ] {
                     ui.label(RichText::new(label).color(TEXT_MUTED));
-                    ui.label(format!("×{multiplier:.2}"));
+                    ui.label(value);
                     ui.end_row();
                 }
             });

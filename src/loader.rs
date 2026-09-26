@@ -40,6 +40,7 @@ impl ServantRecord {
         DamageInput {
             attack: self.attack,
             card_type,
+            attacker_class: self.class,
             attack_buff,
             card_buff,
             enemy_defense,

@@ -20,6 +20,6 @@ fn bundled_servant_data_drives_the_expected_damage_result() {
     assert_eq!(input.attack, 11_221);
     assert_eq!(result.class_multiplier, 2.0);
     assert_eq!(result.attribute_multiplier, 0.9);
-    assert_eq!(result.minimum_damage, 27_267);
-    assert_eq!(result.maximum_damage, 33_326);
+    assert_eq!(result.minimum_damage, 8_361);
+    assert_eq!(result.maximum_damage, 10_210);
 }

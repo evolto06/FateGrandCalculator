@@ -1,5 +1,5 @@
 use eframe::egui;
-use fate_grand_calculator::damage::calculate;
+use fate_grand_calculator::damage::{calculate, percent_to_modifier};
 use fate_grand_calculator::loader::GameData;
 use fate_grand_calculator::model::{AttributeType, CardType, ClassType};
 
@@ -68,18 +68,6 @@ impl eframe::App for CalculatorApp {
                     let enemy_class = &mut self.enemy_class;
                     let enemy_attribute = &mut self.enemy_attribute;
 
-                    let result = data.servant(*selected_servant_id).map(|servant| {
-                        let input = servant.normal_card_input(
-                            *card_type,
-                            *attack_buff_percent,
-                            *card_buff_percent,
-                            *enemy_defense_percent,
-                            *enemy_class,
-                            *enemy_attribute,
-                        );
-                        calculate(input)
-                    });
-
                     if ui.available_width() >= 820.0 {
                         ui.columns(2, |columns| {
                             ui::attack_panel(
@@ -95,7 +83,17 @@ impl eframe::App for CalculatorApp {
                             columns[1].vertical(|ui| {
                                 ui::matchup_panel(ui, enemy_class, enemy_attribute);
                                 ui.add_space(10.0);
-                                show_result(ui, result);
+                                show_result(
+                                    ui,
+                                    data,
+                                    *selected_servant_id,
+                                    *card_type,
+                                    *attack_buff_percent,
+                                    *card_buff_percent,
+                                    *enemy_defense_percent,
+                                    *enemy_class,
+                                    *enemy_attribute,
+                                );
                             });
                         });
                     } else {
@@ -111,16 +109,44 @@ impl eframe::App for CalculatorApp {
                         ui.add_space(10.0);
                         ui::matchup_panel(ui, enemy_class, enemy_attribute);
                         ui.add_space(10.0);
-                        show_result(ui, result);
+                        show_result(
+                            ui,
+                            data,
+                            *selected_servant_id,
+                            *card_type,
+                            *attack_buff_percent,
+                            *card_buff_percent,
+                            *enemy_defense_percent,
+                            *enemy_class,
+                            *enemy_attribute,
+                        );
                     }
                 });
             });
     }
 }
 
-fn show_result(ui: &mut egui::Ui, result: Option<fate_grand_calculator::damage::DamageResult>) {
-    if let Some(result) = result {
-        ui::result_panel(ui, result);
+fn show_result(
+    ui: &mut egui::Ui,
+    data: &GameData,
+    servant_id: u32,
+    card_type: CardType,
+    attack_buff_percent: f64,
+    card_buff_percent: f64,
+    enemy_defense_percent: f64,
+    enemy_class: ClassType,
+    enemy_attribute: AttributeType,
+) {
+    if let Some(servant) = data.servant(servant_id) {
+        let input = servant.normal_card_input(
+            card_type,
+            percent_to_modifier(attack_buff_percent),
+            percent_to_modifier(card_buff_percent),
+            percent_to_modifier(enemy_defense_percent),
+            enemy_class,
+            enemy_attribute,
+        );
+        ui::result_panel(ui, calculate(input));
     } else {
         ui.colored_label(
             egui::Color32::LIGHT_RED,

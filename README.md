@@ -37,6 +37,10 @@ pub fn calculate(input: DamageInput) -> DamageResult;
 
 The first release will cover normal-card damage, attack/card buffs, class affinity, attribute affinity, enemy defense, and the random damage range. Noble Phantasms, critical hits, chains, trait-based bonuses, and conditional effects will follow incrementally, each with regression tests.
 
+The current calculator estimates one non-critical card in the first command-card position. Enter buffs and enemy defense as whole percentages: `20` means 20%. The calculation includes the 0.23 attack factor, first-card bonus, class attack rate, class and attribute affinity, and the combined attack/defense modifier. Its random range uses 90.0% through 109.9%.
+
+Card chains, later card positions, Noble Phantasms, and special damage effects are outside this screen's current scope. These terms follow [Atlas Academy's damage formula](https://apps.atlasacademy.io/fgo-docs/deeper/battle/damage.html), [card values](https://api.atlasacademy.io/export/JP/NiceCard.json), and [random modifier range](https://apps.atlasacademy.io/fgo-docs/).
+
 ## Data
 
 The current bundled snapshot is in `data/game_data.json`. It contains a small NA servant list with max-level attack, class, and attribute, along with a version, source, and retrieval date. Class and attribute affinity tables are based on Atlas Academy's published FGO game data. A future offline importer can update this normalized snapshot.
@@ -61,7 +65,7 @@ Run the calculation tests:
 cargo test
 ```
 
-Integration tests are grouped by purpose in `tests/`: face-card damage, class affinity, attribute affinity, game-data loading, servant damage, and servant model construction.
+Integration tests are grouped by purpose in `tests/`: face-card damage, class affinity, attribute affinity, game-data loading, percent input, servant damage, and servant model construction.
 
 ## License
 

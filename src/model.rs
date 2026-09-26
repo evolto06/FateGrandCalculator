@@ -10,13 +10,21 @@ pub enum CardType {
 }
 
 impl CardType {
-    /// Base card multiplier used by this early calculator model.
+    /// Damage multiplier for the first card in a command chain.
     pub const fn base_multiplier(self) -> f64 {
         match self {
             Self::Buster => 1.5,
             Self::Arts => 1.0,
             Self::Quick => 0.8,
             Self::Extra => 1.0,
+        }
+    }
+
+    /// A first-position Buster card adds 0.5 outside the card buff multiplier.
+    pub const fn first_card_bonus(self) -> f64 {
+        match self {
+            Self::Buster => 0.5,
+            _ => 0.0,
         }
     }
 }
