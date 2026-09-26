@@ -1,13 +1,13 @@
 use std::collections::HashSet;
 
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 use crate::damage::DamageInput;
 use crate::model::{AttributeType, CardType, ClassType};
 
 const BUNDLED_GAME_DATA: &str = include_str!("../data/game_data.json");
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct GameData {
     pub version: String,
     pub region: String,
@@ -16,11 +16,11 @@ pub struct GameData {
     pub servants: Vec<ServantRecord>,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct ServantRecord {
     pub id: u32,
     pub name: String,
-    pub level: u32,
+    pub level: Option<u32>,
     pub attack: u32,
     pub class: ClassType,
     pub attribute: AttributeType,
@@ -58,11 +58,18 @@ impl GameData {
         Ok(data)
     }
 
+    pub fn from_json(json: &str) -> Result<Self, String> {
+        let data: Self = serde_json::from_str(json)
+            .map_err(|error| format!("Could not read servant snapshot: {error}"))?;
+        data.validate()?;
+        Ok(data)
+    }
+
     pub fn servant(&self, id: u32) -> Option<&ServantRecord> {
         self.servants.iter().find(|servant| servant.id == id)
     }
 
-    fn validate(&self) -> Result<(), String> {
+    pub fn validate(&self) -> Result<(), String> {
         if self.version.trim().is_empty()
             || self.region.trim().is_empty()
             || self.retrieved_at.trim().is_empty()
@@ -83,7 +90,7 @@ impl GameData {
             {
                 return Err("Game data contains a servant with missing required values.".into());
             }
-            if servant.level == 0 {
+            if servant.level == Some(0) {
                 return Err(format!(
                     "{} has an invalid level in game data.",
                     servant.name

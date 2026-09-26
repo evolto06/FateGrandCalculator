@@ -2,6 +2,10 @@ use eframe::egui;
 use fate_grand_calculator::damage::{calculate, percent_to_modifier};
 use fate_grand_calculator::loader::GameData;
 use fate_grand_calculator::model::{AttributeType, CardType, ClassType};
+#[cfg(not(target_arch = "wasm32"))]
+use fate_grand_calculator::servant_data::{ServantDataService, UpdateReport};
+#[cfg(not(target_arch = "wasm32"))]
+use std::sync::mpsc::{self, Receiver, Sender};
 
 use crate::ui;
 
@@ -14,16 +18,37 @@ pub struct CalculatorApp {
     enemy_defense_percent: f64,
     enemy_class: ClassType,
     enemy_attribute: AttributeType,
+    data_status: String,
+    #[cfg(not(target_arch = "wasm32"))]
+    update_in_progress: bool,
+    #[cfg(not(target_arch = "wasm32"))]
+    update_sender: Sender<Result<UpdateReport, String>>,
+    #[cfg(not(target_arch = "wasm32"))]
+    update_receiver: Receiver<Result<UpdateReport, String>>,
 }
 
 impl Default for CalculatorApp {
     fn default() -> Self {
-        let game_data = GameData::bundled();
+        #[cfg(not(target_arch = "wasm32"))]
+        let startup = ServantDataService::load_local_or_bundled();
+        #[cfg(target_arch = "wasm32")]
+        let startup = (
+            GameData::bundled(),
+            "Using bundled servant data.".to_owned(),
+        );
+
+        #[cfg(not(target_arch = "wasm32"))]
+        let (game_data, data_status) = (startup.game_data, startup.status);
+        #[cfg(target_arch = "wasm32")]
+        let (game_data, data_status) = startup;
+
         let selected_servant_id = game_data
             .as_ref()
             .ok()
             .and_then(|data| data.servants.first())
             .map_or(0, |servant| servant.id);
+        #[cfg(not(target_arch = "wasm32"))]
+        let (update_sender, update_receiver) = mpsc::channel();
 
         Self {
             game_data,
@@ -34,12 +59,22 @@ impl Default for CalculatorApp {
             enemy_defense_percent: 0.0,
             enemy_class: ClassType::Lancer,
             enemy_attribute: AttributeType::Sky,
+            data_status,
+            #[cfg(not(target_arch = "wasm32"))]
+            update_in_progress: false,
+            #[cfg(not(target_arch = "wasm32"))]
+            update_sender,
+            #[cfg(not(target_arch = "wasm32"))]
+            update_receiver,
         }
     }
 }
 
 impl eframe::App for CalculatorApp {
     fn ui(&mut self, ui: &mut egui::Ui, _: &mut eframe::Frame) {
+        #[cfg(not(target_arch = "wasm32"))]
+        self.poll_update_result();
+
         ui::apply_canvas(ui);
 
         egui::ScrollArea::vertical()
@@ -49,6 +84,31 @@ impl eframe::App for CalculatorApp {
                 ui.vertical(|ui| {
                     ui::header(ui);
                     ui.add_space(16.0);
+
+                    #[cfg(not(target_arch = "wasm32"))]
+                    {
+                        let update_clicked = ui.horizontal_wrapped(|ui| {
+                            let clicked = ui
+                                .add_enabled(
+                                    !self.update_in_progress,
+                                    egui::Button::new(if self.update_in_progress {
+                                        "Updating servant data…"
+                                    } else {
+                                        "Update servant data"
+                                    }),
+                                )
+                                .clicked();
+                            ui.label(&self.data_status);
+                            clicked
+                        });
+                        if update_clicked.inner {
+                            self.start_update(ui.ctx());
+                        }
+                        ui.add_space(8.0);
+                    }
+
+                    #[cfg(target_arch = "wasm32")]
+                    ui.label(&self.data_status);
 
                     let data = match &self.game_data {
                         Ok(data) => data,
@@ -126,6 +186,69 @@ impl eframe::App for CalculatorApp {
     }
 }
 
+#[cfg(not(target_arch = "wasm32"))]
+impl CalculatorApp {
+    fn start_update(&mut self, context: &egui::Context) {
+        self.update_in_progress = true;
+        self.data_status = "Contacting Atlas Academy…".into();
+
+        let sender = self.update_sender.clone();
+        let context = context.clone();
+        let worker = std::thread::Builder::new()
+            .name("servant-data-update".into())
+            .spawn(move || {
+                let result =
+                    std::panic::catch_unwind(ServantDataService::update).unwrap_or_else(|_| {
+                        Err(
+                            "The servant data updater stopped unexpectedly; current data was kept."
+                                .into(),
+                        )
+                    });
+                let _ = sender.send(result);
+                context.request_repaint();
+            });
+
+        if let Err(error) = worker {
+            self.update_in_progress = false;
+            self.data_status = format!("Could not start the update: {error}");
+        }
+    }
+
+    fn poll_update_result(&mut self) {
+        match self.update_receiver.try_recv() {
+            Ok(Ok(report)) => {
+                if report.game_data.servant(self.selected_servant_id).is_none() {
+                    self.selected_servant_id = report
+                        .game_data
+                        .servants
+                        .first()
+                        .map_or(0, |servant| servant.id);
+                }
+                let total = report.game_data.servants.len();
+                let skipped = report.skipped_rows;
+                self.game_data = Ok(report.game_data);
+                self.update_in_progress = false;
+                self.data_status = if skipped == 0 {
+                    format!("Updated {total} servants from Atlas Academy and saved them locally.")
+                } else {
+                    format!(
+                        "Updated {total} servants. Skipped {skipped} unsupported or incomplete entries."
+                    )
+                };
+            }
+            Ok(Err(error)) => {
+                self.update_in_progress = false;
+                self.data_status = format!("Update failed; current data was kept. {error}");
+            }
+            Err(mpsc::TryRecvError::Empty) => {}
+            Err(mpsc::TryRecvError::Disconnected) => {
+                self.update_in_progress = false;
+                self.data_status = "The servant data updater stopped unexpectedly.".into();
+            }
+        }
+    }
+}
+
 fn show_result(
     ui: &mut egui::Ui,
     data: &GameData,
@@ -150,7 +273,7 @@ fn show_result(
     } else {
         ui.colored_label(
             egui::Color32::LIGHT_RED,
-            "The selected servant is missing from the bundled data.",
+            "The selected servant is missing from the loaded servant data.",
         );
     }
 }

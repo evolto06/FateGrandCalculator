@@ -21,13 +21,13 @@ FateGrandCalculator is intended to make damage calculations understandable as we
 ## Architecture
 
 ```text
-wiki importer --> versioned game data --> shared Rust core
-                                          |          |
-                                   desktop client  web client
-                                     eframe/egui   WebAssembly
+Atlas Academy export -- user-triggered import --> local servant snapshot
+                                                   |                 |
+                                            desktop client      web client
+                                              eframe/egui        WebAssembly
 ```
 
-The calculation core has no GUI, network, or platform-specific dependencies. It accepts the attack inputs and returns each multiplier with the damage range. The desktop client loads a bundled, versioned servant snapshot; it does not contact the data source at runtime.
+The calculation core has no GUI, network, or platform-specific dependencies. It accepts the attack inputs and returns each multiplier with the damage range. The desktop client loads the last locally saved servant snapshot, falling back to a bundled seed. Servant data updates happen only when the user chooses **Update servant data**.
 
 ```rust
 pub fn calculate(input: DamageInput) -> DamageResult;
@@ -43,13 +43,17 @@ Card chains, later card positions, Noble Phantasms, and special damage effects a
 
 ## Data
 
-The current bundled snapshot is in `data/game_data.json`. It contains a small NA servant list with max-level attack, class, and attribute, along with a version, source, and retrieval date. Class and attribute affinity tables are based on Atlas Academy's published FGO game data. A future offline importer can update this normalized snapshot.
+The bundled seed is in `data/game_data.json`. After an explicit update, the app downloads Atlas Academy's lightweight NA servant export, keeps only the fields used by the calculator, maps Atlas attributes and class names to the local model, and validates the complete result before saving it in the operating system's application data directory. The snapshot is staged and atomically replaced; an unavailable network, invalid response, or failed write leaves the previous snapshot in place.
 
-Please respect the data source's terms, licensing, `robots.txt`, and rate limits. The app never scrapes from users' devices or browsers.
+The update reports unsupported or incomplete entries and keeps the rest of the valid playable servant list when no more than one in five rows must be skipped. A malformed export, empty usable result, duplicate servant ID, or higher skip ratio rejects the whole update. The data request has bounded retries, timeouts, and a response-size limit.
+
+Atlas Academy recommends its static exports or `/basic` endpoints for indexing; this app uses the [NA basic servant export](https://api.atlasacademy.io/export/NA/basic_servant.json).
+
+Please respect the data source's terms, licensing, `robots.txt`, and rate limits. The app uses Atlas Academy's official data URLs.
 
 ## Project status
 
-The first desktop milestone supports normal-card damage for selected servants against selectable enemy classes and attributes. Noble Phantasms, critical hits, chains, traits, and a data importer remain future work.
+The first desktop milestone supports normal-card damage for selected servants against selectable enemy classes and attributes. Noble Phantasms, critical hits, chains, and traits remain future work.
 
 ## Development
 

@@ -1,6 +1,6 @@
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum CardType {
     Buster,
@@ -44,7 +44,7 @@ pub struct Servant {
     skill_2: SkillType,
     skill_3: SkillType,
 }
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum AttributeType {
     Earth,
@@ -150,7 +150,7 @@ pub struct SkillType {
     effect: String,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ClassType {
     Saber,

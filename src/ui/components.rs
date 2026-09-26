@@ -180,11 +180,11 @@ fn servant_selector(ui: &mut egui::Ui, data: &GameData, selected_id: &mut u32) {
 
             if let Some(servant) = selected {
                 ui.add_space(4.0);
-                ui.label(
-                    RichText::new(format!("Level {} · {} ATK", servant.level, servant.attack))
-                        .size(12.0)
-                        .color(TEXT_MUTED),
+                let attack_label = servant.level.map_or_else(
+                    || format!("Maximum ATK {}", servant.attack),
+                    |level| format!("Level {level} · {} ATK", servant.attack),
                 );
+                ui.label(RichText::new(attack_label).size(12.0).color(TEXT_MUTED));
                 ui.label(
                     RichText::new(format!(
                         "{} · {}",
