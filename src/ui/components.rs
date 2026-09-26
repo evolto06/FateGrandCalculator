@@ -10,13 +10,23 @@ use super::theme::{
 pub fn apply_canvas(ui: &mut egui::Ui) {
     ui.painter().rect_filled(ui.max_rect(), 0.0, BACKGROUND);
     ui.spacing_mut().item_spacing = egui::vec2(10.0, 10.0);
+    ui.spacing_mut().interact_size = egui::vec2(44.0, 44.0);
 }
 
 pub fn header(ui: &mut egui::Ui) {
     ui.add_space(14.0);
-    ui.horizontal(|ui| {
+    ui.horizontal_wrapped(|ui| {
         ui.vertical(|ui| {
-            ui.heading(RichText::new("FateGrandCalculator").size(27.0).strong());
+            let title_size = if ui.available_width() >= 420.0 {
+                27.0
+            } else {
+                22.0
+            };
+            ui.heading(
+                RichText::new("FateGrandCalculator")
+                    .size(title_size)
+                    .strong(),
+            );
             ui.label(
                 RichText::new("Unofficial FGO damage calculator")
                     .size(13.0)
@@ -41,12 +51,10 @@ pub fn attack_panel(
     attack_buff_percent: &mut f64,
     card_buff_percent: &mut f64,
     enemy_defense_percent: &mut f64,
-    enemy_class: &mut ClassType,
-    enemy_attribute: &mut AttributeType,
 ) {
     section_frame(ui, |ui| {
         ui.heading(RichText::new("Attack setup").size(18.0));
-        ui.label(RichText::new("Choose a servant, card, and enemy.").color(TEXT_MUTED));
+        ui.label(RichText::new("Choose a servant and command card.").color(TEXT_MUTED));
         ui.add_space(14.0);
 
         servant_selector(ui, data, selected_servant_id);
@@ -61,11 +69,19 @@ pub fn attack_panel(
         percent_input(ui, "Attack buff", attack_buff_percent);
         percent_input(ui, "Card buff", card_buff_percent);
         percent_input(ui, "Enemy defense", enemy_defense_percent);
-        ui.add_space(12.0);
-        ui.separator();
-        ui.add_space(8.0);
-        ui.label(RichText::new("MATCHUPS").size(11.0).color(TEXT_MUTED));
-        ui.add_space(4.0);
+    });
+}
+
+pub fn matchup_panel(
+    ui: &mut egui::Ui,
+    enemy_class: &mut ClassType,
+    enemy_attribute: &mut AttributeType,
+) {
+    section_frame(ui, |ui| {
+        ui.heading(RichText::new("Matchup").size(18.0));
+        ui.label(RichText::new("Set the enemy's class and attribute.").color(TEXT_MUTED));
+        ui.add_space(14.0);
+
         class_selector(ui, "Enemy class", enemy_class);
         ui.small("Beast class affinity depends on the specific encounter.");
         attribute_selector(ui, "Enemy attribute", enemy_attribute);
@@ -90,14 +106,18 @@ fn section_frame(ui: &mut egui::Ui, add_contents: impl FnOnce(&mut egui::Ui)) {
     egui::Frame::new()
         .fill(PANEL)
         .corner_radius(12)
-        .inner_margin(18)
-        .show(ui, add_contents);
+        .inner_margin(16)
+        .show(ui, |ui| {
+            ui.set_width(ui.available_width());
+            add_contents(ui);
+        });
 }
 
 fn card_selector(ui: &mut egui::Ui, card_type: &mut CardType) {
     ui.label(RichText::new("COMMAND CARD").size(11.0).color(TEXT_MUTED));
     ui.add_space(6.0);
-    ui.horizontal(|ui| {
+    ui.horizontal_wrapped(|ui| {
+        let button_width = ((ui.available_width() - 20.0) / 3.0).max(68.0);
         for (candidate, label, color) in [
             (CardType::Buster, "Buster", BUSTER),
             (CardType::Arts, "Arts", ARTS),
@@ -120,7 +140,7 @@ fn card_selector(ui: &mut egui::Ui, card_type: &mut CardType) {
             ))
             .corner_radius(7);
 
-            if ui.add_sized([84.0, 34.0], button).clicked() {
+            if ui.add_sized([button_width, 44.0], button).clicked() {
                 *card_type = candidate;
             }
         }
@@ -129,8 +149,9 @@ fn card_selector(ui: &mut egui::Ui, card_type: &mut CardType) {
 
 fn percent_input(ui: &mut egui::Ui, label: &str, value: &mut f64) {
     ui.label(RichText::new(label).size(12.0).color(TEXT_MUTED));
+    let input_width = ui.available_width().min(190.0);
     ui.add_sized(
-        [150.0, 28.0],
+        [input_width, 44.0],
         egui::DragValue::new(value)
             .speed(0.5)
             .range(-100.0..=999.0)
@@ -143,35 +164,64 @@ fn servant_selector(ui: &mut egui::Ui, data: &GameData, selected_id: &mut u32) {
     let selected_name = selected.map_or("No servants loaded", |servant| servant.name.as_str());
 
     ui.label(RichText::new("SERVANT").size(11.0).color(TEXT_MUTED));
-    egui::ComboBox::from_id_salt("servant_selector")
-        .selected_text(selected_name)
-        .width(220.0)
-        .show_ui(ui, |ui| {
-            for servant in &data.servants {
-                ui.selectable_value(selected_id, servant.id, &servant.name);
+    ui.add_space(6.0);
+    ui.horizontal_top(|ui| {
+        portrait_placeholder(ui);
+        ui.vertical(|ui| {
+            egui::ComboBox::from_id_salt("servant_selector")
+                .selected_text(selected_name)
+                .width(ui.available_width())
+                .show_ui(ui, |ui| {
+                    for servant in &data.servants {
+                        ui.selectable_value(selected_id, servant.id, &servant.name);
+                    }
+                });
+
+            if let Some(servant) = selected {
+                ui.add_space(4.0);
+                ui.label(
+                    RichText::new(format!("Level {} · {} ATK", servant.level, servant.attack))
+                        .size(12.0)
+                        .color(TEXT_MUTED),
+                );
+                ui.label(
+                    RichText::new(format!(
+                        "{} · {}",
+                        servant.class.label(),
+                        servant.attribute.label()
+                    ))
+                    .size(12.0)
+                    .color(TEXT_MUTED),
+                );
             }
         });
+    });
+}
 
-    if let Some(servant) = selected {
-        ui.label(
-            RichText::new(format!(
-                "Level {} · {} ATK · {} · {}",
-                servant.level,
-                servant.attack,
-                servant.class.label(),
-                servant.attribute.label()
-            ))
-            .size(12.0)
-            .color(TEXT_MUTED),
-        );
-    }
+fn portrait_placeholder(ui: &mut egui::Ui) {
+    let size = egui::vec2(82.0, 108.0);
+    let (rect, _) = ui.allocate_exact_size(size, egui::Sense::hover());
+    ui.painter().rect_filled(rect, 8.0, PANEL_MUTED);
+    ui.painter().rect_stroke(
+        rect,
+        8.0,
+        egui::Stroke::new(1.0, Color32::from_rgb(59, 69, 91)),
+        egui::StrokeKind::Inside,
+    );
+    ui.painter().text(
+        rect.center(),
+        egui::Align2::CENTER_CENTER,
+        "No portrait\navailable yet",
+        egui::FontId::proportional(11.0),
+        TEXT_MUTED,
+    );
 }
 
 fn class_selector(ui: &mut egui::Ui, label: &str, selected: &mut ClassType) {
     ui.label(RichText::new(label).size(12.0).color(TEXT_MUTED));
     egui::ComboBox::from_id_salt(label)
         .selected_text(selected.label())
-        .width(180.0)
+        .width(ui.available_width().min(220.0))
         .show_ui(ui, |ui| {
             for class in ClassType::SELECTABLE {
                 ui.selectable_value(selected, class, class.label());
@@ -183,7 +233,7 @@ fn attribute_selector(ui: &mut egui::Ui, label: &str, selected: &mut AttributeTy
     ui.label(RichText::new(label).size(12.0).color(TEXT_MUTED));
     egui::ComboBox::from_id_salt(label)
         .selected_text(selected.label())
-        .width(180.0)
+        .width(ui.available_width().min(220.0))
         .show_ui(ui, |ui| {
             for attribute in AttributeType::ALL {
                 ui.selectable_value(selected, attribute, attribute.label());
@@ -205,7 +255,7 @@ fn damage_result(ui: &mut egui::Ui, result: DamageResult) {
                     "{}–{}",
                     result.minimum_damage, result.maximum_damage
                 ))
-                .size(32.0)
+                .size((ui.available_width() / 8.5).clamp(24.0, 32.0))
                 .strong()
                 .color(Color32::WHITE),
             );

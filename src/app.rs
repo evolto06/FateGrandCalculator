@@ -68,38 +68,63 @@ impl eframe::App for CalculatorApp {
                     let enemy_class = &mut self.enemy_class;
                     let enemy_attribute = &mut self.enemy_attribute;
 
-                    ui.columns(2, |columns| {
+                    let result = data.servant(*selected_servant_id).map(|servant| {
+                        let input = servant.normal_card_input(
+                            *card_type,
+                            *attack_buff_percent,
+                            *card_buff_percent,
+                            *enemy_defense_percent,
+                            *enemy_class,
+                            *enemy_attribute,
+                        );
+                        calculate(input)
+                    });
+
+                    if ui.available_width() >= 820.0 {
+                        ui.columns(2, |columns| {
+                            ui::attack_panel(
+                                &mut columns[0],
+                                data,
+                                selected_servant_id,
+                                card_type,
+                                attack_buff_percent,
+                                card_buff_percent,
+                                enemy_defense_percent,
+                            );
+
+                            columns[1].vertical(|ui| {
+                                ui::matchup_panel(ui, enemy_class, enemy_attribute);
+                                ui.add_space(10.0);
+                                show_result(ui, result);
+                            });
+                        });
+                    } else {
                         ui::attack_panel(
-                            &mut columns[0],
+                            ui,
                             data,
                             selected_servant_id,
                             card_type,
                             attack_buff_percent,
                             card_buff_percent,
                             enemy_defense_percent,
-                            enemy_class,
-                            enemy_attribute,
                         );
-
-                        if let Some(servant) = data.servant(*selected_servant_id) {
-                            let input = servant.normal_card_input(
-                                *card_type,
-                                *attack_buff_percent,
-                                *card_buff_percent,
-                                *enemy_defense_percent,
-                                *enemy_class,
-                                *enemy_attribute,
-                            );
-                            let result = calculate(input);
-                            ui::result_panel(&mut columns[1], result);
-                        } else {
-                            columns[1].colored_label(
-                                egui::Color32::LIGHT_RED,
-                                "The selected servant is missing from the bundled data.",
-                            );
-                        }
-                    });
+                        ui.add_space(10.0);
+                        ui::matchup_panel(ui, enemy_class, enemy_attribute);
+                        ui.add_space(10.0);
+                        show_result(ui, result);
+                    }
                 });
             });
+    }
+}
+
+fn show_result(ui: &mut egui::Ui, result: Option<fate_grand_calculator::damage::DamageResult>) {
+    if let Some(result) = result {
+        ui::result_panel(ui, result);
+    } else {
+        ui.colored_label(
+            egui::Color32::LIGHT_RED,
+            "The selected servant is missing from the bundled data.",
+        );
     }
 }
