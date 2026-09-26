@@ -1,5 +1,6 @@
 use eframe::egui;
-use fate_grand_calculator::damage::{CardType, DamageInput, calculate};
+use fate_grand_calculator::damage::{DamageInput, calculate};
+use fate_grand_calculator::model::CardType;
 
 use crate::ui;
 
@@ -53,7 +54,6 @@ impl eframe::App for CalculatorApp {
                     ui::header(ui);
                     ui.add_space(16.0);
 
-                    let result = calculate(self.damage_input());
                     ui.columns(2, |columns| {
                         ui::attack_panel(
                             &mut columns[0],
@@ -62,13 +62,11 @@ impl eframe::App for CalculatorApp {
                             &mut self.attack_buff_percent,
                             &mut self.card_buff_percent,
                             &mut self.enemy_defense_percent,
-                        );
-                        ui::result_panel(
-                            &mut columns[1],
-                            result,
                             &mut self.class_multiplier,
                             &mut self.attribute_multiplier,
                         );
+                        let result = calculate(self.damage_input());
+                        ui::result_panel(&mut columns[1], result);
                     });
                 });
             });

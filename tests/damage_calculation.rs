@@ -1,4 +1,5 @@
-use fate_grand_calculator::damage::{CardType, DamageInput, calculate};
+use fate_grand_calculator::damage::{DamageInput, calculate};
+use fate_grand_calculator::model::CardType;
 
 fn neutral_input(card_type: CardType) -> DamageInput {
     DamageInput {

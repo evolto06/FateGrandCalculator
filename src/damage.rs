@@ -2,25 +2,7 @@
 //!
 //! This module deliberately implements only a small, documented starting point.
 //! Extend the input and calculation stages as FGO-specific rules are verified.
-
-/// The type of command card used for an attack.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum CardType {
-    Buster,
-    Arts,
-    Quick,
-}
-
-impl CardType {
-    /// Base card multiplier used by this early calculator model.
-    pub const fn base_multiplier(self) -> f64 {
-        match self {
-            Self::Buster => 1.5,
-            Self::Arts => 1.0,
-            Self::Quick => 0.8,
-        }
-    }
-}
+use crate::model::CardType;
 
 /// All values needed for one basic, non-critical normal-card calculation.
 #[derive(Debug, Clone, Copy)]

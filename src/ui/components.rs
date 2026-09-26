@@ -1,5 +1,6 @@
 use eframe::egui::{self, Color32, RichText};
-use fate_grand_calculator::damage::{CardType, DamageResult};
+use fate_grand_calculator::damage::DamageResult;
+use fate_grand_calculator::model::CardType;
 
 use super::theme::{
     ACCENT, ARTS, BACKGROUND, BUSTER, PANEL, PANEL_MUTED, QUICK, RESULT_PANEL, TEXT_MUTED,
@@ -38,6 +39,8 @@ pub fn attack_panel(
     attack_buff_percent: &mut f64,
     card_buff_percent: &mut f64,
     enemy_defense_percent: &mut f64,
+    class_multiplier: &mut f64,
+    attribute_multiplier: &mut f64,
 ) {
     section_frame(ui, |ui| {
         ui.heading(RichText::new("Attack setup").size(18.0));
@@ -63,15 +66,17 @@ pub fn attack_panel(
         percent_input(ui, "Attack buff", attack_buff_percent);
         percent_input(ui, "Card buff", card_buff_percent);
         percent_input(ui, "Enemy defense", enemy_defense_percent);
+        ui.add_space(12.0);
+        ui.separator();
+        ui.add_space(8.0);
+        ui.label(RichText::new("MATCHUPS").size(11.0).color(TEXT_MUTED));
+        ui.add_space(4.0);
+        multiplier_input(ui, "Class multiplier", class_multiplier);
+        multiplier_input(ui, "Attribute multiplier", attribute_multiplier);
     });
 }
 
-pub fn result_panel(
-    ui: &mut egui::Ui,
-    result: DamageResult,
-    class_multiplier: &mut f64,
-    attribute_multiplier: &mut f64,
-) {
+pub fn result_panel(ui: &mut egui::Ui, result: DamageResult) {
     section_frame(ui, |ui| {
         ui.heading(RichText::new("Result").size(18.0));
         ui.label(RichText::new("Live calculation preview.").color(TEXT_MUTED));
@@ -79,13 +84,6 @@ pub fn result_panel(
 
         damage_result(ui, result);
         ui.add_space(16.0);
-        ui.separator();
-        ui.add_space(8.0);
-        ui.label(RichText::new("MATCHUPS").size(11.0).color(TEXT_MUTED));
-        ui.add_space(4.0);
-        multiplier_input(ui, "Class multiplier", class_multiplier);
-        multiplier_input(ui, "Attribute multiplier", attribute_multiplier);
-        ui.add_space(12.0);
         ui.separator();
         ui.add_space(8.0);
         breakdown(ui, result);
