@@ -18,7 +18,7 @@ FateGrandCalculator is intended to make damage calculations understandable as we
 - Versioned game data so saved calculations remain reproducible.
 - Local-first operation: neither client needs to scrape a wiki at runtime.
 
-## Planned architecture
+## Architecture
 
 ```text
 wiki importer --> versioned game data --> shared Rust core
@@ -27,10 +27,10 @@ wiki importer --> versioned game data --> shared Rust core
                                      eframe/egui   WebAssembly
 ```
 
-The calculation core will have no GUI, network, or platform-specific dependencies. It will accept a complete calculation input and a game-data snapshot, then return a result with all intermediate values.
+The calculation core has no GUI, network, or platform-specific dependencies. It accepts the attack inputs and returns each multiplier with the damage range. The desktop client loads a bundled, versioned servant snapshot; it does not contact the data source at runtime.
 
 ```rust
-pub fn calculate(input: &DamageInput, data: &GameData) -> DamageResult;
+pub fn calculate(input: DamageInput) -> DamageResult;
 ```
 
 ## Scope
@@ -39,13 +39,13 @@ The first release will cover normal-card damage, attack/card buffs, class affini
 
 ## Data
 
-Game data is imported offline from publicly available community-wiki pages through their structured API where permitted. The importer caches raw responses, normalizes only the fields required for calculation, and records a source URL, retrieval date, and dataset version for each update.
+The current bundled snapshot is in `data/game_data.json`. It contains a small NA servant list with max-level attack, class, and attribute, along with a version, source, and retrieval date. Class and attribute affinity tables are based on Atlas Academy's published FGO game data. A future offline importer can update this normalized snapshot.
 
 Please respect the data source's terms, licensing, `robots.txt`, and rate limits. The app never scrapes from users' devices or browsers.
 
 ## Project status
 
-Early planning. The first milestone is a small, fully tested damage engine paired with one basic calculator screen and a minimal local data set.
+The first desktop milestone supports normal-card damage for selected servants against selectable enemy classes and attributes. Noble Phantasms, critical hits, chains, traits, and a data importer remain future work.
 
 ## Development
 

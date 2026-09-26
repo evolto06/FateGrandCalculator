@@ -1,6 +1,7 @@
 use eframe::egui::{self, Color32, RichText};
 use fate_grand_calculator::damage::DamageResult;
-use fate_grand_calculator::model::CardType;
+use fate_grand_calculator::loader::GameData;
+use fate_grand_calculator::model::{AttributeType, CardType, ClassType};
 
 use super::theme::{
     ACCENT, ARTS, BACKGROUND, BUSTER, PANEL, PANEL_MUTED, QUICK, RESULT_PANEL, TEXT_MUTED,
@@ -34,27 +35,21 @@ pub fn header(ui: &mut egui::Ui) {
 
 pub fn attack_panel(
     ui: &mut egui::Ui,
-    attack: &mut u32,
+    data: &GameData,
+    selected_servant_id: &mut u32,
     card_type: &mut CardType,
     attack_buff_percent: &mut f64,
     card_buff_percent: &mut f64,
     enemy_defense_percent: &mut f64,
-    class_multiplier: &mut f64,
-    attribute_multiplier: &mut f64,
+    enemy_class: &mut ClassType,
+    enemy_attribute: &mut AttributeType,
 ) {
     section_frame(ui, |ui| {
         ui.heading(RichText::new("Attack setup").size(18.0));
-        ui.label(RichText::new("Configure the attack and modifiers.").color(TEXT_MUTED));
+        ui.label(RichText::new("Choose a servant, card, and enemy.").color(TEXT_MUTED));
         ui.add_space(14.0);
 
-        ui.label(RichText::new("ATTACK").size(11.0).color(TEXT_MUTED));
-        ui.add_sized(
-            [180.0, 30.0],
-            egui::DragValue::new(attack)
-                .speed(100.0)
-                .range(0..=999_999)
-                .suffix(" ATK"),
-        );
+        servant_selector(ui, data, selected_servant_id);
         ui.add_space(12.0);
 
         card_selector(ui, card_type);
@@ -71,8 +66,9 @@ pub fn attack_panel(
         ui.add_space(8.0);
         ui.label(RichText::new("MATCHUPS").size(11.0).color(TEXT_MUTED));
         ui.add_space(4.0);
-        multiplier_input(ui, "Class multiplier", class_multiplier);
-        multiplier_input(ui, "Attribute multiplier", attribute_multiplier);
+        class_selector(ui, "Enemy class", enemy_class);
+        ui.small("Beast class affinity depends on the specific encounter.");
+        attribute_selector(ui, "Enemy attribute", enemy_attribute);
     });
 }
 
@@ -142,12 +138,57 @@ fn percent_input(ui: &mut egui::Ui, label: &str, value: &mut f64) {
     );
 }
 
-fn multiplier_input(ui: &mut egui::Ui, label: &str, value: &mut f64) {
+fn servant_selector(ui: &mut egui::Ui, data: &GameData, selected_id: &mut u32) {
+    let selected = data.servant(*selected_id).or_else(|| data.servants.first());
+    let selected_name = selected.map_or("No servants loaded", |servant| servant.name.as_str());
+
+    ui.label(RichText::new("SERVANT").size(11.0).color(TEXT_MUTED));
+    egui::ComboBox::from_id_salt("servant_selector")
+        .selected_text(selected_name)
+        .width(220.0)
+        .show_ui(ui, |ui| {
+            for servant in &data.servants {
+                ui.selectable_value(selected_id, servant.id, &servant.name);
+            }
+        });
+
+    if let Some(servant) = selected {
+        ui.label(
+            RichText::new(format!(
+                "Level {} · {} ATK · {} · {}",
+                servant.level,
+                servant.attack,
+                servant.class.label(),
+                servant.attribute.label()
+            ))
+            .size(12.0)
+            .color(TEXT_MUTED),
+        );
+    }
+}
+
+fn class_selector(ui: &mut egui::Ui, label: &str, selected: &mut ClassType) {
     ui.label(RichText::new(label).size(12.0).color(TEXT_MUTED));
-    ui.add_sized(
-        [150.0, 28.0],
-        egui::DragValue::new(value).speed(0.05).range(0.0..=10.0),
-    );
+    egui::ComboBox::from_id_salt(label)
+        .selected_text(selected.label())
+        .width(180.0)
+        .show_ui(ui, |ui| {
+            for class in ClassType::SELECTABLE {
+                ui.selectable_value(selected, class, class.label());
+            }
+        });
+}
+
+fn attribute_selector(ui: &mut egui::Ui, label: &str, selected: &mut AttributeType) {
+    ui.label(RichText::new(label).size(12.0).color(TEXT_MUTED));
+    egui::ComboBox::from_id_salt(label)
+        .selected_text(selected.label())
+        .width(180.0)
+        .show_ui(ui, |ui| {
+            for attribute in AttributeType::ALL {
+                ui.selectable_value(selected, attribute, attribute.label());
+            }
+        });
 }
 
 fn damage_result(ui: &mut egui::Ui, result: DamageResult) {

@@ -1,43 +1,39 @@
 use eframe::egui;
-use fate_grand_calculator::damage::{DamageInput, calculate};
-use fate_grand_calculator::model::CardType;
+use fate_grand_calculator::damage::calculate;
+use fate_grand_calculator::loader::GameData;
+use fate_grand_calculator::model::{AttributeType, CardType, ClassType};
 
 use crate::ui;
 
 pub struct CalculatorApp {
-    attack: u32,
+    game_data: Result<GameData, String>,
+    selected_servant_id: u32,
     card_type: CardType,
     attack_buff_percent: f64,
     card_buff_percent: f64,
     enemy_defense_percent: f64,
-    class_multiplier: f64,
-    attribute_multiplier: f64,
+    enemy_class: ClassType,
+    enemy_attribute: AttributeType,
 }
 
 impl Default for CalculatorApp {
     fn default() -> Self {
+        let game_data = GameData::bundled();
+        let selected_servant_id = game_data
+            .as_ref()
+            .ok()
+            .and_then(|data| data.servants.first())
+            .map_or(0, |servant| servant.id);
+
         Self {
-            attack: 12_000,
+            game_data,
+            selected_servant_id,
             card_type: CardType::Buster,
             attack_buff_percent: 0.0,
             card_buff_percent: 0.0,
             enemy_defense_percent: 0.0,
-            class_multiplier: 1.0,
-            attribute_multiplier: 1.0,
-        }
-    }
-}
-
-impl CalculatorApp {
-    fn damage_input(&self) -> DamageInput {
-        DamageInput {
-            attack: self.attack,
-            card_type: self.card_type,
-            attack_buff: self.attack_buff_percent / 100.0,
-            card_buff: self.card_buff_percent / 100.0,
-            enemy_defense: self.enemy_defense_percent / 100.0,
-            class_multiplier: self.class_multiplier,
-            attribute_multiplier: self.attribute_multiplier,
+            enemy_class: ClassType::Lancer,
+            enemy_attribute: AttributeType::Sky,
         }
     }
 }
@@ -54,19 +50,54 @@ impl eframe::App for CalculatorApp {
                     ui::header(ui);
                     ui.add_space(16.0);
 
+                    let data = match &self.game_data {
+                        Ok(data) => data,
+                        Err(error) => {
+                            ui.colored_label(
+                                egui::Color32::LIGHT_RED,
+                                format!("Game data could not be loaded: {error}"),
+                            );
+                            return;
+                        }
+                    };
+                    let selected_servant_id = &mut self.selected_servant_id;
+                    let card_type = &mut self.card_type;
+                    let attack_buff_percent = &mut self.attack_buff_percent;
+                    let card_buff_percent = &mut self.card_buff_percent;
+                    let enemy_defense_percent = &mut self.enemy_defense_percent;
+                    let enemy_class = &mut self.enemy_class;
+                    let enemy_attribute = &mut self.enemy_attribute;
+
                     ui.columns(2, |columns| {
                         ui::attack_panel(
                             &mut columns[0],
-                            &mut self.attack,
-                            &mut self.card_type,
-                            &mut self.attack_buff_percent,
-                            &mut self.card_buff_percent,
-                            &mut self.enemy_defense_percent,
-                            &mut self.class_multiplier,
-                            &mut self.attribute_multiplier,
+                            data,
+                            selected_servant_id,
+                            card_type,
+                            attack_buff_percent,
+                            card_buff_percent,
+                            enemy_defense_percent,
+                            enemy_class,
+                            enemy_attribute,
                         );
-                        let result = calculate(self.damage_input());
-                        ui::result_panel(&mut columns[1], result);
+
+                        if let Some(servant) = data.servant(*selected_servant_id) {
+                            let input = servant.normal_card_input(
+                                *card_type,
+                                *attack_buff_percent,
+                                *card_buff_percent,
+                                *enemy_defense_percent,
+                                *enemy_class,
+                                *enemy_attribute,
+                            );
+                            let result = calculate(input);
+                            ui::result_panel(&mut columns[1], result);
+                        } else {
+                            columns[1].colored_label(
+                                egui::Color32::LIGHT_RED,
+                                "The selected servant is missing from the bundled data.",
+                            );
+                        }
                     });
                 });
             });

@@ -1,4 +1,7 @@
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+use serde::Deserialize;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum CardType {
     Buster,
     Arts,
@@ -33,7 +36,8 @@ pub struct Servant {
     skill_2: SkillType,
     skill_3: SkillType,
 }
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum AttributeType {
     Earth,
     Sky,
@@ -43,13 +47,26 @@ pub enum AttributeType {
 }
 
 impl AttributeType {
-    pub const fn attribute_multiplier(self) -> f64 {
+    pub const ALL: [Self; 5] = [Self::Earth, Self::Sky, Self::Man, Self::Star, Self::Beast];
+
+    pub const fn label(self) -> &'static str {
         match self {
-            Self::Earth => 1.0,
-            Self::Sky => 1.0,
-            Self::Man => 1.0,
-            Self::Star => 1.0,
-            Self::Beast => 1.0,
+            Self::Earth => "Earth",
+            Self::Sky => "Sky",
+            Self::Man => "Man",
+            Self::Star => "Star",
+            Self::Beast => "Beast",
+        }
+    }
+
+    /// Returns FGO's attack-side attribute affinity against a target attribute.
+    pub const fn affinity_against(self, target: Self) -> f64 {
+        use AttributeType::*;
+
+        match (self, target) {
+            (Man, Sky) | (Sky, Earth) | (Earth, Man) | (Star, Beast) | (Beast, Star) => 1.1,
+            (Man, Earth) | (Earth, Sky) | (Sky, Man) => 0.9,
+            _ => 1.0,
         }
     }
 }
@@ -125,7 +142,8 @@ pub struct SkillType {
     effect: String,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum ClassType {
     Saber,
     Archer,
@@ -141,13 +159,130 @@ pub enum ClassType {
     Foreigner,
     Pretender,
     Beast,
+    Shielder,
 }
 
 impl ClassType {
+    pub const SELECTABLE: [Self; 14] = [
+        Self::Saber,
+        Self::Archer,
+        Self::Lancer,
+        Self::Rider,
+        Self::Caster,
+        Self::Assassin,
+        Self::Berserker,
+        Self::Shielder,
+        Self::Ruler,
+        Self::AlterEgo,
+        Self::Avenger,
+        Self::MoonCancer,
+        Self::Foreigner,
+        Self::Pretender,
+    ];
+
+    pub const fn label(self) -> &'static str {
+        match self {
+            Self::Saber => "Saber",
+            Self::Archer => "Archer",
+            Self::Lancer => "Lancer",
+            Self::Rider => "Rider",
+            Self::Caster => "Caster",
+            Self::Assassin => "Assassin",
+            Self::Berserker => "Berserker",
+            Self::Ruler => "Ruler",
+            Self::Avenger => "Avenger",
+            Self::MoonCancer => "Moon Cancer",
+            Self::AlterEgo => "Alter Ego",
+            Self::Foreigner => "Foreigner",
+            Self::Pretender => "Pretender",
+            Self::Beast => "Beast",
+            Self::Shielder => "Shielder",
+        }
+    }
+
+    /// Returns the directional class affinity multiplier from attacker to target.
+    /// The generic Beast class is intentionally neutral here because individual
+    /// Beast encounters use different rows in the source game data.
+    pub const fn affinity_against(self, target: Self) -> f64 {
+        const RELATIONS: [[u16; 14]; 14] = [
+            [
+                1000, 500, 2000, 1000, 1000, 1000, 2000, 1000, 500, 1000, 1000, 1000, 1000, 1000,
+            ],
+            [
+                2000, 1000, 500, 1000, 1000, 1000, 2000, 1000, 500, 1000, 1000, 1000, 1000, 1000,
+            ],
+            [
+                500, 2000, 1000, 1000, 1000, 1000, 2000, 1000, 500, 1000, 1000, 1000, 1000, 1000,
+            ],
+            [
+                1000, 1000, 1000, 1000, 2000, 500, 2000, 1000, 500, 1000, 1000, 1000, 1000, 1000,
+            ],
+            [
+                1000, 1000, 1000, 500, 1000, 2000, 2000, 1000, 500, 1000, 1000, 1000, 1000, 1000,
+            ],
+            [
+                1000, 1000, 1000, 2000, 500, 1000, 2000, 1000, 500, 1000, 1000, 1000, 1000, 1000,
+            ],
+            [
+                1500, 1500, 1500, 1500, 1500, 1500, 1500, 1000, 1500, 1500, 1500, 1500, 500, 1500,
+            ],
+            [
+                1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000,
+            ],
+            [
+                1000, 1000, 1000, 1000, 1000, 1000, 2000, 1000, 1000, 1000, 500, 2000, 1000, 1000,
+            ],
+            [
+                500, 500, 500, 1500, 1500, 1500, 2000, 1000, 1000, 1000, 1000, 1000, 2000, 500,
+            ],
+            [
+                1000, 1000, 1000, 1000, 1000, 1000, 2000, 1000, 2000, 1000, 1000, 500, 1000, 1000,
+            ],
+            [
+                1000, 1000, 1000, 1000, 1000, 1000, 2000, 1000, 500, 1000, 2000, 1000, 1000, 1000,
+            ],
+            [
+                1000, 1000, 1000, 1000, 1000, 1000, 2000, 1000, 1000, 500, 1000, 1000, 2000, 2000,
+            ],
+            [
+                1500, 1500, 1500, 500, 500, 500, 2000, 1000, 1000, 2000, 1000, 1000, 500, 1000,
+            ],
+        ];
+
+        let Some(attacker_index) = self.affinity_index() else {
+            return 1.0;
+        };
+        let Some(target_index) = target.affinity_index() else {
+            return 1.0;
+        };
+
+        RELATIONS[attacker_index][target_index] as f64 / 1000.0
+    }
+
+    const fn affinity_index(self) -> Option<usize> {
+        match self {
+            Self::Saber => Some(0),
+            Self::Archer => Some(1),
+            Self::Lancer => Some(2),
+            Self::Rider => Some(3),
+            Self::Caster => Some(4),
+            Self::Assassin => Some(5),
+            Self::Berserker => Some(6),
+            Self::Shielder => Some(7),
+            Self::Ruler => Some(8),
+            Self::AlterEgo => Some(9),
+            Self::Avenger => Some(10),
+            Self::MoonCancer => Some(11),
+            Self::Foreigner => Some(12),
+            Self::Pretender => Some(13),
+            Self::Beast => None,
+        }
+    }
+
     pub const fn class_default_multiplier(self) -> f64 {
         match self {
             Self::Saber => 1.0,
-            Self::Archer => 0.9,
+            Self::Archer => 0.95,
             Self::Lancer => 1.05,
             Self::Rider => 1.0,
             Self::Caster => 0.9,
@@ -160,6 +295,7 @@ impl ClassType {
             Self::Foreigner => 1.0,
             Self::Beast => 1.0,
             Self::Pretender => 1.0,
+            Self::Shielder => 1.0,
         }
     }
 }
