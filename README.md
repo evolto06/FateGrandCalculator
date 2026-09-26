@@ -61,7 +61,7 @@ Run the calculation tests:
 cargo test
 ```
 
-The standalone damage-engine tests live in `tests/damage_calculation.rs`.
+Integration tests are grouped by purpose in `tests/`: face-card damage, class affinity, attribute affinity, game-data loading, servant damage, and servant model construction.
 
 ## License
 

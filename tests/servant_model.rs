@@ -3,7 +3,7 @@ use fate_grand_calculator::model::{
 };
 
 #[test]
-fn a_loader_can_construct_a_servant_through_the_public_api() {
+fn public_api_constructs_a_servant_record() {
     let skill = || SkillType::new("Skill".into(), 1, "Attack up".into());
     let servant = Servant::new(
         "Example".into(),

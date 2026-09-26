@@ -14,7 +14,7 @@ fn neutral_input(card_type: CardType) -> DamageInput {
 }
 
 #[test]
-fn applies_every_basic_multiplier_to_buster_damage() {
+fn applies_all_supplied_modifiers_to_buster_damage() {
     let result = calculate(DamageInput {
         attack: 1_000,
         card_type: CardType::Buster,
@@ -59,7 +59,7 @@ fn random_range_is_applied_after_other_modifiers() {
 }
 
 #[test]
-fn excessive_defense_is_clamped_to_zero_damage() {
+fn excessive_enemy_defense_clamps_damage_to_zero() {
     let result = calculate(DamageInput {
         enemy_defense: 2.0,
         ..neutral_input(CardType::Arts)
