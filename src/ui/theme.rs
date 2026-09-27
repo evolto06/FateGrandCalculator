@@ -9,3 +9,4 @@ pub const ACCENT: Color32 = Color32::from_rgb(99, 194, 255);
 pub const BUSTER: Color32 = Color32::from_rgb(200, 75, 81);
 pub const ARTS: Color32 = Color32::from_rgb(61, 142, 218);
 pub const QUICK: Color32 = Color32::from_rgb(65, 177, 116);
+pub const ERROR: Color32 = Color32::from_rgb(255, 125, 125);

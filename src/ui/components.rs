@@ -4,13 +4,15 @@ use fate_grand_calculator::loader::GameData;
 use fate_grand_calculator::model::{AttributeType, CardType, ClassType};
 
 use super::theme::{
-    ACCENT, ARTS, BACKGROUND, BUSTER, PANEL, PANEL_MUTED, QUICK, RESULT_PANEL, TEXT_MUTED,
+    ACCENT, ARTS, BACKGROUND, BUSTER, ERROR, PANEL, PANEL_MUTED, QUICK, RESULT_PANEL, TEXT_MUTED,
 };
 
 pub fn apply_canvas(ui: &mut egui::Ui) {
     ui.painter().rect_filled(ui.max_rect(), 0.0, BACKGROUND);
     ui.spacing_mut().item_spacing = egui::vec2(10.0, 10.0);
     ui.spacing_mut().interact_size = egui::vec2(44.0, 44.0);
+    ui.visuals_mut().widgets.active.bg_stroke = egui::Stroke::new(2.0, ACCENT);
+    ui.visuals_mut().widgets.hovered.bg_stroke = egui::Stroke::new(1.5, ACCENT);
 }
 
 pub fn header(ui: &mut egui::Ui) {
@@ -29,17 +31,16 @@ pub fn header(ui: &mut egui::Ui) {
             );
             ui.label(
                 RichText::new("Unofficial FGO damage calculator")
-                    .size(13.0)
+                    .size(14.0)
                     .color(TEXT_MUTED),
             );
         });
-        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-            ui.label(
-                RichText::new("FIRST CARD · EARLY BUILD")
-                    .size(10.0)
-                    .color(ACCENT),
-            );
-        });
+        ui.add_space(12.0);
+        ui.label(
+            RichText::new("FIRST CARD · EARLY BUILD")
+                .size(12.0)
+                .color(ACCENT),
+        );
     });
 }
 
@@ -47,13 +48,14 @@ pub fn attack_panel(
     ui: &mut egui::Ui,
     data: &GameData,
     selected_servant_id: &mut u32,
+    servant_search: &mut String,
     portrait: Option<&egui::TextureHandle>,
     portrait_message: &str,
     portrait_error: Option<&str>,
     card_type: &mut CardType,
-    attack_buff_percent: &mut f64,
-    card_buff_percent: &mut f64,
-    enemy_defense_percent: &mut f64,
+    attack_buff_percent: &mut PercentInput,
+    card_buff_percent: &mut PercentInput,
+    enemy_defense_percent: &mut PercentInput,
 ) {
     section_frame(ui, |ui| {
         ui.heading(RichText::new("Attack setup").size(18.0));
@@ -64,22 +66,32 @@ pub fn attack_panel(
             ui,
             data,
             selected_servant_id,
+            servant_search,
             portrait,
             portrait_message,
             portrait_error,
         );
+        if portrait_error.is_some() {
+            let response =
+                ui.colored_label(ERROR, "Portrait unavailable. Change servant to try again.");
+            mark_live_status(ui.ctx(), response.id);
+        }
         ui.add_space(12.0);
 
         card_selector(ui, card_type);
         ui.add_space(14.0);
         ui.separator();
         ui.add_space(8.0);
-        ui.label(RichText::new("BUFFS & TARGET").size(11.0).color(TEXT_MUTED));
-        ui.small("Enter 20 for a 20% buff or defense value.");
+        ui.label(RichText::new("BUFFS & TARGET").size(13.0).color(TEXT_MUTED));
+        ui.label(
+            RichText::new("Enter 20 for a 20% value.")
+                .size(13.0)
+                .color(TEXT_MUTED),
+        );
         ui.add_space(4.0);
-        percent_input(ui, "Attack buff", attack_buff_percent);
-        percent_input(ui, "Card buff", card_buff_percent);
-        percent_input(ui, "Enemy defense", enemy_defense_percent);
+        percent_input(ui, "Attack buff (%)", attack_buff_percent);
+        percent_input(ui, "Card buff (%)", card_buff_percent);
+        percent_input(ui, "Enemy defense (%)", enemy_defense_percent);
     });
 }
 
@@ -94,22 +106,83 @@ pub fn matchup_panel(
         ui.add_space(14.0);
 
         class_selector(ui, "Enemy class", enemy_class);
-        ui.small("Beast class affinity depends on the specific encounter.");
+        if *enemy_class == ClassType::Beast {
+            ui.label(
+                RichText::new("Beast affinity depends on the specific encounter.")
+                    .size(13.0)
+                    .color(TEXT_MUTED),
+            );
+        }
         attribute_selector(ui, "Enemy attribute", enemy_attribute);
     });
 }
 
-pub fn result_panel(ui: &mut egui::Ui, result: DamageResult) {
+pub fn result_panel(ui: &mut egui::Ui, result: DamageResult, announce_result: bool) {
     section_frame(ui, |ui| {
         ui.heading(RichText::new("First card result").size(18.0));
         ui.label(RichText::new("No critical hit or chain bonus.").color(TEXT_MUTED));
         ui.add_space(14.0);
 
-        damage_result(ui, result);
+        damage_result(ui, result, announce_result);
         ui.add_space(16.0);
         ui.separator();
         ui.add_space(8.0);
         breakdown(ui, result);
+    });
+}
+
+#[derive(Debug, Clone)]
+pub struct PercentInput {
+    text: String,
+    value: f64,
+}
+
+impl Default for PercentInput {
+    fn default() -> Self {
+        Self {
+            text: "0".into(),
+            value: 0.0,
+        }
+    }
+}
+
+impl PercentInput {
+    pub fn value(&self) -> f64 {
+        self.value
+    }
+}
+
+pub fn status_message(ui: &mut egui::Ui, text: &str) {
+    let response = ui.label(text);
+    mark_live_status(ui.ctx(), response.id);
+}
+
+pub fn sticky_result_summary(ui: &mut egui::Ui, result: DamageResult) {
+    egui::Frame::new()
+        .fill(RESULT_PANEL)
+        .stroke(egui::Stroke::new(1.5, ACCENT))
+        .corner_radius(10)
+        .inner_margin(12)
+        .show(ui, |ui| {
+            ui.set_width(ui.available_width());
+            ui.horizontal_wrapped(|ui| {
+                ui.label(RichText::new("Estimated damage").size(14.0).color(ACCENT));
+                let response = ui.label(
+                    RichText::new(format_damage_range(result))
+                        .size(21.0)
+                        .strong()
+                        .color(Color32::WHITE),
+                );
+                mark_live_status(ui.ctx(), response.id);
+            });
+        });
+}
+
+fn mark_live_status(context: &egui::Context, id: egui::Id) {
+    context.accesskit_node_builder(id, |node| {
+        node.set_role(egui::accesskit::Role::Status);
+        node.set_live(egui::accesskit::Live::Polite);
+        node.set_live_atomic();
     });
 }
 
@@ -125,7 +198,7 @@ fn section_frame(ui: &mut egui::Ui, add_contents: impl FnOnce(&mut egui::Ui)) {
 }
 
 fn card_selector(ui: &mut egui::Ui, card_type: &mut CardType) {
-    ui.label(RichText::new("COMMAND CARD").size(11.0).color(TEXT_MUTED));
+    ui.label(RichText::new("COMMAND CARD").size(13.0).color(TEXT_MUTED));
     ui.add_space(6.0);
     ui.horizontal_wrapped(|ui| {
         let button_width = ((ui.available_width() - 20.0) / 3.0).max(68.0);
@@ -135,18 +208,30 @@ fn card_selector(ui: &mut egui::Ui, card_type: &mut CardType) {
             (CardType::Quick, "Quick", QUICK),
         ] {
             let selected = *card_type == candidate;
-            let button = egui::Button::new(RichText::new(label).strong().color(if selected {
-                Color32::WHITE
+            let label = if selected {
+                format!("[x] {label}")
             } else {
-                TEXT_MUTED
-            }))
-            .fill(if selected { color } else { PANEL_MUTED })
+                label.to_owned()
+            };
+            let button = egui::Button::selectable(
+                selected,
+                RichText::new(label).strong().color(if selected {
+                    Color32::WHITE
+                } else {
+                    TEXT_MUTED
+                }),
+            )
+            .fill(if selected {
+                color
+            } else {
+                Color32::from_rgb(43, 51, 69)
+            })
             .stroke(egui::Stroke::new(
                 1.0,
                 if selected {
                     color
                 } else {
-                    Color32::TRANSPARENT
+                    Color32::from_rgb(64, 75, 97)
                 },
             ))
             .corner_radius(7);
@@ -158,22 +243,53 @@ fn card_selector(ui: &mut egui::Ui, card_type: &mut CardType) {
     });
 }
 
-fn percent_input(ui: &mut egui::Ui, label: &str, value: &mut f64) {
-    ui.label(RichText::new(label).size(12.0).color(TEXT_MUTED));
-    let input_width = ui.available_width().min(190.0);
-    ui.add_sized(
+fn percent_input(ui: &mut egui::Ui, label: &str, value: &mut PercentInput) {
+    let label_response = ui.label(RichText::new(label).size(14.0).color(TEXT_MUTED));
+    let input_width = ui.available_width().min(220.0);
+    let response = ui.add_sized(
         [input_width, 44.0],
-        egui::DragValue::new(value)
-            .speed(0.5)
-            .range(-100.0..=999.0)
-            .suffix("%"),
+        egui::TextEdit::singleline(&mut value.text)
+            .id_salt(("percent_input", label))
+            .desired_width(input_width)
+            .hint_text("0")
+            .suffix("%")
+            .text_color(Color32::WHITE)
+            .frame(
+                egui::Frame::new()
+                    .fill(PANEL_MUTED)
+                    .stroke(egui::Stroke::new(1.0, Color32::from_rgb(64, 75, 97)))
+                    .corner_radius(6)
+                    .inner_margin(egui::Margin::symmetric(10, 6)),
+            ),
     );
+    let response = response.labelled_by(label_response.id);
+
+    let trimmed = value.text.trim();
+    let invalid = if trimmed.is_empty() {
+        value.value = 0.0;
+        false
+    } else {
+        match trimmed.parse::<f64>() {
+            Ok(parsed) if parsed.is_finite() => {
+                value.value = parsed.clamp(-100.0, 999.0);
+                if response.lost_focus() {
+                    value.text = value.value.to_string();
+                }
+                false
+            }
+            _ => true,
+        }
+    };
+    if invalid {
+        ui.colored_label(ERROR, "Enter a number from −100 to 999.");
+    }
 }
 
 fn servant_selector(
     ui: &mut egui::Ui,
     data: &GameData,
     selected_id: &mut u32,
+    search: &mut String,
     portrait: Option<&egui::TextureHandle>,
     portrait_message: &str,
     portrait_error: Option<&str>,
@@ -181,19 +297,50 @@ fn servant_selector(
     let selected = data.servant(*selected_id).or_else(|| data.servants.first());
     let selected_name = selected.map_or("No servants loaded", |servant| servant.name.as_str());
 
-    ui.label(RichText::new("SERVANT").size(11.0).color(TEXT_MUTED));
+    let servant_label = ui.label(RichText::new("SERVANT").size(13.0).color(TEXT_MUTED));
     ui.add_space(6.0);
     ui.horizontal_top(|ui| {
         portrait_window(ui, portrait, portrait_message, portrait_error);
         ui.vertical(|ui| {
-            egui::ComboBox::from_id_salt("servant_selector")
+            let combo = egui::ComboBox::from_id_salt("servant_selector")
                 .selected_text(selected_name)
                 .width(ui.available_width())
+                .close_behavior(egui::PopupCloseBehavior::CloseOnClickOutside)
                 .show_ui(ui, |ui| {
+                    let search_label = ui.label("Search servants");
+                    let search_width = ui.available_width();
+                    let search_response = ui.add(
+                        egui::TextEdit::singleline(search)
+                            .id_salt("servant_search")
+                            .desired_width(search_width)
+                            .hint_text("Type a servant name"),
+                    );
+                    search_response.labelled_by(search_label.id);
+                    ui.separator();
+
+                    let query = search.trim().to_lowercase();
+                    let mut matches = 0;
                     for servant in &data.servants {
-                        ui.selectable_value(selected_id, servant.id, &servant.name);
+                        if servant.name.to_lowercase().contains(&query) {
+                            matches += 1;
+                            if ui
+                                .selectable_value(selected_id, servant.id, &servant.name)
+                                .clicked()
+                            {
+                                search.clear();
+                                ui.close();
+                            }
+                        }
+                    }
+                    if matches == 0 {
+                        ui.label(if data.servants.is_empty() {
+                            "No servants are available."
+                        } else {
+                            "No servants match that search."
+                        });
                     }
                 });
+            combo.response.labelled_by(servant_label.id);
 
             if let Some(servant) = selected {
                 ui.add_space(4.0);
@@ -256,8 +403,8 @@ fn portrait_window(
 }
 
 fn class_selector(ui: &mut egui::Ui, label: &str, selected: &mut ClassType) {
-    ui.label(RichText::new(label).size(12.0).color(TEXT_MUTED));
-    egui::ComboBox::from_id_salt(label)
+    let label_response = ui.label(RichText::new(label).size(14.0).color(TEXT_MUTED));
+    let combo = egui::ComboBox::from_id_salt(label)
         .selected_text(selected.label())
         .width(ui.available_width().min(220.0))
         .show_ui(ui, |ui| {
@@ -265,11 +412,12 @@ fn class_selector(ui: &mut egui::Ui, label: &str, selected: &mut ClassType) {
                 ui.selectable_value(selected, class, class.label());
             }
         });
+    combo.response.labelled_by(label_response.id);
 }
 
 fn attribute_selector(ui: &mut egui::Ui, label: &str, selected: &mut AttributeType) {
-    ui.label(RichText::new(label).size(12.0).color(TEXT_MUTED));
-    egui::ComboBox::from_id_salt(label)
+    let label_response = ui.label(RichText::new(label).size(14.0).color(TEXT_MUTED));
+    let combo = egui::ComboBox::from_id_salt(label)
         .selected_text(selected.label())
         .width(ui.available_width().min(220.0))
         .show_ui(ui, |ui| {
@@ -277,35 +425,57 @@ fn attribute_selector(ui: &mut egui::Ui, label: &str, selected: &mut AttributeTy
                 ui.selectable_value(selected, attribute, attribute.label());
             }
         });
+    combo.response.labelled_by(label_response.id);
 }
 
-fn damage_result(ui: &mut egui::Ui, result: DamageResult) {
+fn damage_result(ui: &mut egui::Ui, result: DamageResult, announce_result: bool) {
     egui::Frame::new()
         .fill(RESULT_PANEL)
         .stroke(egui::Stroke::new(1.0, Color32::from_rgb(48, 95, 133)))
         .corner_radius(12)
         .inner_margin(18)
         .show(ui, |ui| {
-            ui.label(RichText::new("ESTIMATED DAMAGE").size(11.0).color(ACCENT));
+            ui.set_width(ui.available_width());
+            ui.label(RichText::new("ESTIMATED DAMAGE").size(13.0).color(ACCENT));
             ui.add_space(5.0);
-            ui.label(
-                RichText::new(format!(
-                    "{}–{}",
-                    result.minimum_damage, result.maximum_damage
-                ))
-                .size((ui.available_width() / 8.5).clamp(24.0, 32.0))
-                .strong()
-                .color(Color32::WHITE),
+            let damage_response = ui.label(
+                RichText::new(format_damage_range(result))
+                    .size((ui.available_width() / 8.0).clamp(28.0, 42.0))
+                    .strong()
+                    .color(Color32::WHITE),
             );
+            if announce_result {
+                mark_live_status(ui.ctx(), damage_response.id);
+            }
             ui.label(
                 RichText::new(format!(
-                    "Before random range: {:.0}",
-                    result.damage_before_random
+                    "Damage before random variance: {}",
+                    format_integer(result.damage_before_random.round() as u32)
                 ))
-                .size(12.0)
+                .size(13.0)
                 .color(TEXT_MUTED),
             );
         });
+}
+
+fn format_damage_range(result: DamageResult) -> String {
+    format!(
+        "{}–{}",
+        format_integer(result.minimum_damage),
+        format_integer(result.maximum_damage)
+    )
+}
+
+fn format_integer(value: u32) -> String {
+    let digits = value.to_string();
+    let mut grouped = String::with_capacity(digits.len() + digits.len() / 3);
+    for (index, character) in digits.chars().enumerate() {
+        if index > 0 && (digits.len() - index).is_multiple_of(3) {
+            grouped.push(',');
+        }
+        grouped.push(character);
+    }
+    grouped
 }
 
 fn breakdown(ui: &mut egui::Ui, result: DamageResult) {

@@ -1,9 +1,9 @@
 use eframe::egui;
-use fate_grand_calculator::damage::{calculate, percent_to_modifier};
+use fate_grand_calculator::damage::{DamageResult, calculate, percent_to_modifier};
 use fate_grand_calculator::loader::GameData;
 use fate_grand_calculator::model::{AttributeType, CardType, ClassType};
 #[cfg(not(target_arch = "wasm32"))]
-use fate_grand_calculator::servant_data::{ServantDataService, UpdateReport};
+use fate_grand_calculator::servant_data::{ServantDataService, UpdateReport, format_retrieved_at};
 #[cfg(not(target_arch = "wasm32"))]
 use std::sync::mpsc::{self, Receiver, Sender};
 
@@ -14,10 +14,11 @@ use crate::ui;
 pub struct CalculatorApp {
     game_data: Result<GameData, String>,
     selected_servant_id: u32,
+    servant_search: String,
     card_type: CardType,
-    attack_buff_percent: f64,
-    card_buff_percent: f64,
-    enemy_defense_percent: f64,
+    attack_buff_percent: ui::PercentInput,
+    card_buff_percent: ui::PercentInput,
+    enemy_defense_percent: ui::PercentInput,
     enemy_class: ClassType,
     enemy_attribute: AttributeType,
     data_status: String,
@@ -57,10 +58,11 @@ impl Default for CalculatorApp {
         Self {
             game_data,
             selected_servant_id,
+            servant_search: String::new(),
             card_type: CardType::Buster,
-            attack_buff_percent: 0.0,
-            card_buff_percent: 0.0,
-            enemy_defense_percent: 0.0,
+            attack_buff_percent: ui::PercentInput::default(),
+            card_buff_percent: ui::PercentInput::default(),
+            enemy_defense_percent: ui::PercentInput::default(),
             enemy_class: ClassType::Lancer,
             enemy_attribute: AttributeType::Sky,
             data_status,
@@ -101,128 +103,193 @@ impl eframe::App for CalculatorApp {
         egui::ScrollArea::vertical()
             .auto_shrink([false, false])
             .show(ui, |ui| {
-                ui.set_min_width(ui.available_width());
-                ui.vertical(|ui| {
-                    ui::header(ui);
-                    ui.add_space(16.0);
-
-                    #[cfg(not(target_arch = "wasm32"))]
-                    {
-                        let update_clicked = ui.horizontal_wrapped(|ui| {
-                            let clicked = ui
-                                .add_enabled(
-                                    !self.update_in_progress,
-                                    egui::Button::new(if self.update_in_progress {
-                                        "Updating servant data…"
-                                    } else {
-                                        "Update servant data"
-                                    }),
-                                )
-                                .clicked();
-                            ui.label(&self.data_status);
-                            clicked
-                        });
-                        if update_clicked.inner {
-                            self.start_update(ui.ctx());
-                        }
-                        ui.add_space(8.0);
+                let viewport_width = ui.available_width();
+                let content_width = viewport_width.min(1440.0);
+                let narrow_layout = content_width < 820.0;
+                ui.set_min_width(viewport_width);
+                ui.horizontal(|ui| {
+                    if viewport_width > content_width {
+                        let side_padding = (viewport_width - content_width) / 2.0;
+                        let layout_gap = ui.spacing().item_spacing.x;
+                        ui.add_space((side_padding - layout_gap).max(0.0));
                     }
+                    ui.allocate_ui_with_layout(
+                        egui::vec2(content_width, 0.0),
+                        egui::Layout::top_down(egui::Align::Min),
+                        |ui| {
+                            ui.set_width(content_width);
+                            ui.vertical(|ui| {
+                                ui::header(ui);
+                                ui.add_space(16.0);
 
-                    #[cfg(target_arch = "wasm32")]
-                    ui.label(&self.data_status);
+                                #[cfg(not(target_arch = "wasm32"))]
+                                {
+                                    let update_clicked = ui.horizontal_wrapped(|ui| {
+                                        let clicked = ui
+                                            .add_enabled(
+                                                !self.update_in_progress,
+                                                egui::Button::new(if self.update_in_progress {
+                                                    "Updating servant data…"
+                                                } else {
+                                                    "Update servant data"
+                                                }),
+                                            )
+                                            .clicked();
+                                        ui::status_message(ui, &self.data_status);
+                                        clicked
+                                    });
+                                    if update_clicked.inner {
+                                        self.start_update(ui.ctx());
+                                    }
+                                    ui.add_space(8.0);
+                                }
 
-                    let data = match &self.game_data {
-                        Ok(data) => data,
-                        Err(error) => {
-                            ui.colored_label(
-                                egui::Color32::LIGHT_RED,
-                                format!("Game data could not be loaded: {error}"),
-                            );
-                            return;
-                        }
-                    };
-                    #[cfg(not(target_arch = "wasm32"))]
-                    let (portrait_texture, portrait_message, portrait_error) = (
-                        self.portrait.texture(),
-                        self.portrait.message(),
-                        self.portrait.error(),
-                    );
-                    #[cfg(target_arch = "wasm32")]
+                                #[cfg(target_arch = "wasm32")]
+                                ui::status_message(ui, &self.data_status);
+
+                                let data = match &self.game_data {
+                                    Ok(data) => data,
+                                    Err(error) => {
+                                        ui.colored_label(
+                                            egui::Color32::LIGHT_RED,
+                                            format!("Game data could not be loaded: {error}"),
+                                        );
+                                        return;
+                                    }
+                                };
+                                #[cfg(not(target_arch = "wasm32"))]
+                                let (portrait_texture, portrait_message, portrait_error) = (
+                                    self.portrait.texture(),
+                                    self.portrait.message(),
+                                    self.portrait.error(),
+                                );
+                                #[cfg(target_arch = "wasm32")]
                     let (portrait_texture, portrait_message, portrait_error): (
                         Option<&egui::TextureHandle>,
                         &str,
                         Option<&str>,
                     ) = (None, "No portrait\navailable", None);
 
-                    let selected_servant_id = &mut self.selected_servant_id;
-                    let card_type = &mut self.card_type;
-                    let attack_buff_percent = &mut self.attack_buff_percent;
-                    let card_buff_percent = &mut self.card_buff_percent;
-                    let enemy_defense_percent = &mut self.enemy_defense_percent;
-                    let enemy_class = &mut self.enemy_class;
-                    let enemy_attribute = &mut self.enemy_attribute;
+                                let selected_servant_id = &mut self.selected_servant_id;
+                                let servant_search = &mut self.servant_search;
+                                let card_type = &mut self.card_type;
+                                let attack_buff_percent = &mut self.attack_buff_percent;
+                                let card_buff_percent = &mut self.card_buff_percent;
+                                let enemy_defense_percent = &mut self.enemy_defense_percent;
+                                let enemy_class = &mut self.enemy_class;
+                                let enemy_attribute = &mut self.enemy_attribute;
 
-                    if ui.available_width() >= 820.0 {
-                        ui.columns(2, |columns| {
-                            ui::attack_panel(
-                                &mut columns[0],
-                                data,
-                                selected_servant_id,
-                                portrait_texture,
-                                portrait_message,
-                                portrait_error,
-                                card_type,
-                                attack_buff_percent,
-                                card_buff_percent,
-                                enemy_defense_percent,
-                            );
-
-                            columns[1].vertical(|ui| {
-                                ui::matchup_panel(ui, enemy_class, enemy_attribute);
-                                ui.add_space(10.0);
-                                show_result(
-                                    ui,
-                                    data,
-                                    *selected_servant_id,
-                                    *card_type,
-                                    *attack_buff_percent,
-                                    *card_buff_percent,
-                                    *enemy_defense_percent,
-                                    *enemy_class,
-                                    *enemy_attribute,
-                                );
+                                if !narrow_layout {
+                                    let available_width = ui.available_width();
+                                    let column_gap = ui.spacing().item_spacing.x;
+                                    let columns_width = available_width - column_gap;
+                                    let attack_width = columns_width * 0.56;
+                                    let result_width = columns_width - attack_width;
+                                    ui.horizontal_top(|ui| {
+                                        ui.allocate_ui_with_layout(
+                                            egui::vec2(attack_width, 0.0),
+                                            egui::Layout::top_down(egui::Align::Min),
+                                            |ui| {
+                                                ui::attack_panel(
+                                                    ui,
+                                                    data,
+                                                    selected_servant_id,
+                                                    servant_search,
+                                                    portrait_texture,
+                                                    portrait_message,
+                                                    portrait_error,
+                                                    card_type,
+                                                    attack_buff_percent,
+                                                    card_buff_percent,
+                                                    enemy_defense_percent,
+                                                )
+                                            },
+                                        );
+                                        ui.allocate_ui_with_layout(
+                                            egui::vec2(result_width, 0.0),
+                                            egui::Layout::top_down(egui::Align::Min),
+                                            |ui| {
+                                                ui::matchup_panel(ui, enemy_class, enemy_attribute);
+                                                ui.add_space(10.0);
+                                                show_result(
+                                                    ui,
+                                                    data,
+                                                    *selected_servant_id,
+                                                    *card_type,
+                                                    attack_buff_percent.value(),
+                                                    card_buff_percent.value(),
+                                                    enemy_defense_percent.value(),
+                                                    *enemy_class,
+                                                    *enemy_attribute,
+                                                    !narrow_layout,
+                                                );
+                                            },
+                                        );
+                                    });
+                                } else {
+                                    ui::attack_panel(
+                                        ui,
+                                        data,
+                                        selected_servant_id,
+                                        servant_search,
+                                        portrait_texture,
+                                        portrait_message,
+                                        portrait_error,
+                                        card_type,
+                                        attack_buff_percent,
+                                        card_buff_percent,
+                                        enemy_defense_percent,
+                                    );
+                                    ui.add_space(10.0);
+                                    ui::matchup_panel(ui, enemy_class, enemy_attribute);
+                                    ui.add_space(10.0);
+                                    show_result(
+                                        ui,
+                                        data,
+                                        *selected_servant_id,
+                                        *card_type,
+                                        attack_buff_percent.value(),
+                                        card_buff_percent.value(),
+                                        enemy_defense_percent.value(),
+                                        *enemy_class,
+                                        *enemy_attribute,
+                                        !narrow_layout,
+                                    );
+                                }
+                                if narrow_layout {
+                                    ui.add_space(76.0);
+                                }
                             });
-                        });
-                    } else {
-                        ui::attack_panel(
-                            ui,
-                            data,
-                            selected_servant_id,
-                            portrait_texture,
-                            portrait_message,
-                            portrait_error,
-                            card_type,
-                            attack_buff_percent,
-                            card_buff_percent,
-                            enemy_defense_percent,
-                        );
-                        ui.add_space(10.0);
-                        ui::matchup_panel(ui, enemy_class, enemy_attribute);
-                        ui.add_space(10.0);
-                        show_result(
-                            ui,
-                            data,
-                            *selected_servant_id,
-                            *card_type,
-                            *attack_buff_percent,
-                            *card_buff_percent,
-                            *enemy_defense_percent,
-                            *enemy_class,
-                            *enemy_attribute,
-                        );
-                    }
+                        },
+                    );
                 });
             });
+
+        if ui.available_width() < 820.0 {
+            let result = self.game_data.as_ref().ok().and_then(|data| {
+                calculate_damage_result(
+                    data,
+                    self.selected_servant_id,
+                    self.card_type,
+                    self.attack_buff_percent.value(),
+                    self.card_buff_percent.value(),
+                    self.enemy_defense_percent.value(),
+                    self.enemy_class,
+                    self.enemy_attribute,
+                )
+            });
+            if let Some(result) = result {
+                let summary_width = (ui.ctx().content_rect().width() - 24.0).clamp(280.0, 520.0);
+                egui::Area::new(egui::Id::new("sticky_damage_summary"))
+                    .order(egui::Order::Foreground)
+                    .anchor(egui::Align2::CENTER_BOTTOM, egui::vec2(0.0, -8.0))
+                    .interactable(false)
+                    .show(ui.ctx(), |ui| {
+                        ui.set_width(summary_width);
+                        ui::sticky_result_summary(ui, result);
+                    });
+            }
+        }
     }
 }
 
@@ -266,13 +333,14 @@ impl CalculatorApp {
                 }
                 let total = report.game_data.servants.len();
                 let skipped = report.skipped_rows;
+                let updated_at = format_retrieved_at(&report.game_data.retrieved_at);
                 self.game_data = Ok(report.game_data);
                 self.update_in_progress = false;
                 self.data_status = if skipped == 0 {
-                    format!("Updated {total} servants from Atlas Academy and saved them locally.")
+                    format!("Updated {total} servants · saved locally at {updated_at}.")
                 } else {
                     format!(
-                        "Updated {total} servants. Skipped {skipped} unsupported or incomplete entries."
+                        "Updated {total} servants · saved locally at {updated_at}. Skipped {skipped} incomplete entries."
                     )
                 };
             }
@@ -299,21 +367,45 @@ fn show_result(
     enemy_defense_percent: f64,
     enemy_class: ClassType,
     enemy_attribute: AttributeType,
+    announce_result: bool,
 ) {
-    if let Some(servant) = data.servant(servant_id) {
-        let input = servant.normal_card_input(
-            card_type,
-            percent_to_modifier(attack_buff_percent),
-            percent_to_modifier(card_buff_percent),
-            percent_to_modifier(enemy_defense_percent),
-            enemy_class,
-            enemy_attribute,
-        );
-        ui::result_panel(ui, calculate(input));
+    if let Some(result) = calculate_damage_result(
+        data,
+        servant_id,
+        card_type,
+        attack_buff_percent,
+        card_buff_percent,
+        enemy_defense_percent,
+        enemy_class,
+        enemy_attribute,
+    ) {
+        ui::result_panel(ui, result, announce_result);
     } else {
         ui.colored_label(
             egui::Color32::LIGHT_RED,
             "The selected servant is missing from the loaded servant data.",
         );
     }
+}
+
+fn calculate_damage_result(
+    data: &GameData,
+    servant_id: u32,
+    card_type: CardType,
+    attack_buff_percent: f64,
+    card_buff_percent: f64,
+    enemy_defense_percent: f64,
+    enemy_class: ClassType,
+    enemy_attribute: AttributeType,
+) -> Option<DamageResult> {
+    let servant = data.servant(servant_id)?;
+    let input = servant.normal_card_input(
+        card_type,
+        percent_to_modifier(attack_buff_percent),
+        percent_to_modifier(card_buff_percent),
+        percent_to_modifier(enemy_defense_percent),
+        enemy_class,
+        enemy_attribute,
+    );
+    Some(calculate(input))
 }

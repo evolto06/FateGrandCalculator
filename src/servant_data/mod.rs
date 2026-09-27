@@ -36,8 +36,12 @@ impl ServantDataService {
 
         match store.load() {
             Ok(Some(game_data)) => StartupData {
+                status: format!(
+                    "Loaded {} local servants · updated {}.",
+                    game_data.servants.len(),
+                    format_retrieved_at(&game_data.retrieved_at)
+                ),
                 game_data: Ok(game_data),
-                status: "Loaded locally saved servant data.".into(),
             },
             Ok(None) => bundled_fallback(
                 "Using bundled servant data. Choose Update servant data to fetch Atlas Academy."
@@ -63,6 +67,34 @@ impl ServantDataService {
             skipped_rows: report.skipped_rows,
         })
     }
+}
+
+pub fn format_retrieved_at(timestamp: &str) -> String {
+    let Ok(timestamp) = timestamp.parse::<i64>() else {
+        return timestamp.to_owned();
+    };
+    let days = timestamp.div_euclid(86_400);
+    let seconds = timestamp.rem_euclid(86_400);
+    let Some(date) = days.checked_add(719_468) else {
+        return timestamp.to_string();
+    };
+
+    let era = if date >= 0 { date } else { date - 146_096 } / 146_097;
+    let day_of_era = date - era * 146_097;
+    let year_of_era =
+        (day_of_era - day_of_era / 1_460 + day_of_era / 36_524 - day_of_era / 146_096) / 365;
+    let mut year = year_of_era + era * 400;
+    let day_of_year = day_of_era - (365 * year_of_era + year_of_era / 4 - year_of_era / 100);
+    let month_prime = (5 * day_of_year + 2) / 153;
+    let day = day_of_year - (153 * month_prime + 2) / 5 + 1;
+    let month = month_prime + if month_prime < 10 { 3 } else { -9 };
+    year += i64::from(month <= 2);
+
+    format!(
+        "{year:04}-{month:02}-{day:02} {:02}:{:02} UTC",
+        seconds / 3_600,
+        (seconds % 3_600) / 60
+    )
 }
 
 fn bundled_fallback(status: String) -> StartupData {
