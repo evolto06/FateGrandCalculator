@@ -18,34 +18,44 @@ FateGrandCalculator is intended to make damage calculations understandable as we
 - Versioned game data so saved calculations remain reproducible.
 - Local-first operation: neither client needs to scrape a wiki at runtime.
 
-## Planned architecture
+## Architecture
 
 ```text
-wiki importer --> versioned game data --> shared Rust core
-                                          |          |
-                                   desktop client  web client
-                                     eframe/egui   WebAssembly
+Atlas Academy export -- user-triggered import --> local servant snapshot
+                                                   |                 |
+                                            desktop client      web client
+                                              eframe/egui        WebAssembly
 ```
 
-The calculation core will have no GUI, network, or platform-specific dependencies. It will accept a complete calculation input and a game-data snapshot, then return a result with all intermediate values.
+The calculation core has no GUI, network, or platform-specific dependencies. It accepts the attack inputs and returns each multiplier with the damage range. The desktop client loads the last locally saved servant snapshot, falling back to a bundled seed. Servant data updates happen only when the user chooses **Update servant data**. The selected servant's portrait streams separately from Atlas Academy.
 
 ```rust
-pub fn calculate(input: &DamageInput, data: &GameData) -> DamageResult;
+pub fn calculate(input: DamageInput) -> DamageResult;
 ```
 
 ## Scope
 
 The first release will cover normal-card damage, attack/card buffs, class affinity, attribute affinity, enemy defense, and the random damage range. Noble Phantasms, critical hits, chains, trait-based bonuses, and conditional effects will follow incrementally, each with regression tests.
 
+The current calculator estimates one non-critical card in the first command-card position. Enter buffs and enemy defense as whole percentages: `20` means 20%. The calculation includes the 0.23 attack factor, first-card bonus, class attack rate, class and attribute affinity, and the combined attack/defense modifier. Its random range uses 90.0% through 109.9%.
+
+Card chains, later card positions, Noble Phantasms, and special damage effects are outside this screen's current scope. These terms follow [Atlas Academy's damage formula](https://apps.atlasacademy.io/fgo-docs/deeper/battle/damage.html), [card values](https://api.atlasacademy.io/export/JP/NiceCard.json), and [random modifier range](https://apps.atlasacademy.io/fgo-docs/).
+
 ## Data
 
-Game data is imported offline from publicly available community-wiki pages through their structured API where permitted. The importer caches raw responses, normalizes only the fields required for calculation, and records a source URL, retrieval date, and dataset version for each update.
+The bundled seed is in `data/game_data.json`. After an explicit update, the app downloads Atlas Academy's lightweight NA servant export, keeps only the fields used by the calculator, maps Atlas attributes and class names to the local model, and validates the complete result before saving it in the operating system's application data directory. The snapshot is staged and atomically replaced; an unavailable network, invalid response, or failed write leaves the previous snapshot in place.
 
-Please respect the data source's terms, licensing, `robots.txt`, and rate limits. The app never scrapes from users' devices or browsers.
+The update reports unsupported or incomplete entries and keeps the rest of the valid playable servant list when no more than one in five rows must be skipped. A malformed export, empty usable result, duplicate servant ID, or higher skip ratio rejects the whole update. The data request has bounded retries, timeouts, and a response-size limit.
+
+Atlas Academy recommends its static exports or `/basic` endpoints for indexing; this app uses the [NA basic servant export](https://api.atlasacademy.io/export/NA/basic_servant.json).
+
+The desktop UI requests the selected servant's first ascension portrait from Atlas Academy's `extraAssets.charaGraph.ascension["1"]` URL. It decodes the image in memory and keeps only the currently selected texture. Changing servants releases the previous texture; portraits and portrait URLs are never saved to disk. The portrait window shows a fallback message when the network or artwork is unavailable. No generated images are used.
+
+Please respect the data source's terms, licensing, `robots.txt`, and rate limits. The app uses Atlas Academy's official data and artwork URLs.
 
 ## Project status
 
-Early planning. The first milestone is a small, fully tested damage engine paired with one basic calculator screen and a minimal local data set.
+The first desktop milestone supports normal-card damage for selected servants against selectable enemy classes and attributes. Noble Phantasms, critical hits, chains, and traits remain future work.
 
 ## Development
 
@@ -61,7 +71,7 @@ Run the calculation tests:
 cargo test
 ```
 
-The standalone damage-engine tests live in `tests/damage_calculation.rs`.
+Integration tests are grouped by purpose in `tests/`: face-card damage, class affinity, attribute affinity, game-data loading, percent input, servant damage, and servant model construction.
 
 ## License
 

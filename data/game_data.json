@@ -1,0 +1,26 @@
+{
+  "version": "2026-09-26.1",
+  "region": "NA",
+  "retrieved_at": "2026-09-26",
+  "source": "https://api.atlasacademy.io/docs",
+  "servants": [
+    {
+      "id": 100100,
+      "name": "Altria Pendragon",
+      "level": 90,
+      "attack": 11221,
+      "class": "saber",
+      "attribute": "earth",
+      "source_url": "https://api.atlasacademy.io/nice/NA/servant/100100"
+    },
+    {
+      "id": 200100,
+      "name": "Emiya",
+      "level": 80,
+      "attack": 9398,
+      "class": "archer",
+      "attribute": "man",
+      "source_url": "https://api.atlasacademy.io/nice/NA/servant/200100"
+    }
+  ]
+}
