@@ -25,6 +25,32 @@ pub struct ServantRecord {
     pub class: ClassType,
     pub attribute: AttributeType,
     pub source_url: String,
+    #[serde(default)]
+    pub deck: Vec<CardType>,
+    #[serde(default)]
+    pub noble_phantasms: Vec<NoblePhantasmRecord>,
+    #[serde(default)]
+    pub np_status: NpStatus,
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum NpStatus {
+    Damaging,
+    Support,
+    #[default]
+    Unavailable,
+    Unsupported,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct NoblePhantasmRecord {
+    pub id: u32,
+    pub name: String,
+    pub card_type: CardType,
+    pub multipliers: [f64; 5],
+    #[serde(default)]
+    pub notes: Vec<String>,
 }
 
 impl ServantRecord {
@@ -83,6 +109,25 @@ impl GameData {
 
         let mut ids = HashSet::with_capacity(self.servants.len());
         for servant in &self.servants {
+            if !servant.deck.is_empty()
+                && (servant.deck.len() != 5 || servant.deck.contains(&CardType::Extra))
+            {
+                return Err(format!("{} has an invalid five-card deck.", servant.name));
+            }
+            if (servant.np_status == NpStatus::Damaging) != !servant.noble_phantasms.is_empty() {
+                return Err(format!("{} has inconsistent NP metadata.", servant.name));
+            }
+            let mut np_ids = HashSet::new();
+            for np in &servant.noble_phantasms {
+                if np.id == 0
+                    || !np_ids.insert(np.id)
+                    || np.name.trim().is_empty()
+                    || np.card_type == CardType::Extra
+                    || np.multipliers.iter().any(|v| !v.is_finite() || *v <= 0.0)
+                {
+                    return Err(format!("{} has invalid NP damage data.", servant.name));
+                }
+            }
             if servant.id == 0
                 || servant.name.trim().is_empty()
                 || servant.attack == 0

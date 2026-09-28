@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::loader::GameData;
 
-const SNAPSHOT_SCHEMA_VERSION: u32 = 1;
+const SNAPSHOT_SCHEMA_VERSION: u32 = 2;
 const MAX_SNAPSHOT_BYTES: u64 = 64 * 1024 * 1024;
 
 pub struct SnapshotStore {
@@ -62,7 +62,7 @@ impl SnapshotStore {
         }
         let envelope: SnapshotEnvelope = serde_json::from_str(&json)
             .map_err(|error| format!("The local servant snapshot is malformed: {error}"))?;
-        if envelope.schema_version != SNAPSHOT_SCHEMA_VERSION {
+        if envelope.schema_version != 1 && envelope.schema_version != SNAPSHOT_SCHEMA_VERSION {
             return Err(format!(
                 "The local servant snapshot uses unsupported format version {}.",
                 envelope.schema_version
@@ -141,5 +141,70 @@ fn replace_snapshot(staged: &Path, destination: &Path) -> std::io::Result<()> {
         Err(std::io::Error::last_os_error())
     } else {
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    fn test_store() -> SnapshotStore {
+        SnapshotStore {
+            path: std::env::temp_dir().join(format!(
+                "fgc-snapshot-{}-{}.json",
+                std::process::id(),
+                SystemTime::now()
+                    .duration_since(UNIX_EPOCH)
+                    .unwrap()
+                    .as_nanos()
+            )),
+        }
+    }
+    #[test]
+    fn reads_v1_without_fabricating_new_gameplay_data() {
+        let store = test_store();
+        let mut data = serde_json::to_value(GameData::bundled().unwrap()).unwrap();
+        for servant in data["servants"].as_array_mut().unwrap() {
+            for field in ["deck", "np_status", "noble_phantasms"] {
+                servant.as_object_mut().unwrap().remove(field);
+            }
+        }
+        fs::write(
+            &store.path,
+            serde_json::to_vec(&serde_json::json!({"schema_version":1,"game_data":data})).unwrap(),
+        )
+        .unwrap();
+        let migrated = store.load().unwrap().unwrap();
+        assert!(migrated.servants[0].deck.is_empty());
+        assert_eq!(
+            migrated.servants[0].np_status,
+            crate::loader::NpStatus::Unavailable
+        );
+        fs::remove_file(&store.path).unwrap();
+    }
+    #[test]
+    fn successful_save_uses_v2_and_invalid_save_preserves_existing_bytes() {
+        let store = test_store();
+        let mut data = GameData::bundled().unwrap();
+        store.save(&data).unwrap();
+        let original = fs::read(&store.path).unwrap();
+        let envelope: serde_json::Value = serde_json::from_slice(&original).unwrap();
+        assert_eq!(envelope["schema_version"], 2);
+        assert_eq!(store.load().unwrap().unwrap().servants[0].deck.len(), 5);
+        data.servants[0].deck.pop();
+        assert!(store.save(&data).is_err());
+        assert_eq!(fs::read(&store.path).unwrap(), original);
+        fs::remove_file(&store.path).unwrap();
+    }
+    #[test]
+    fn rejects_unknown_snapshot_versions_without_overwriting() {
+        let store = test_store();
+        let original = serde_json::to_vec(
+            &serde_json::json!({"schema_version":99,"game_data":GameData::bundled().unwrap()}),
+        )
+        .unwrap();
+        fs::write(&store.path, &original).unwrap();
+        assert!(store.load().unwrap_err().contains("unsupported format"));
+        assert_eq!(fs::read(&store.path).unwrap(), original);
+        fs::remove_file(&store.path).unwrap();
     }
 }

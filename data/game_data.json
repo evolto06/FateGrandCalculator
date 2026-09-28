@@ -1,5 +1,5 @@
 {
-  "version": "2026-09-26.1",
+  "version": "atlas-nice-v2",
   "region": "NA",
   "retrieved_at": "2026-09-26",
   "source": "https://api.atlasacademy.io/docs",
@@ -11,7 +11,47 @@
       "attack": 11221,
       "class": "saber",
       "attribute": "earth",
-      "source_url": "https://api.atlasacademy.io/nice/NA/servant/100100"
+      "source_url": "https://api.atlasacademy.io/nice/NA/servant/100100",
+      "deck": [
+        "quick",
+        "arts",
+        "arts",
+        "buster",
+        "buster"
+      ],
+      "np_status": "damaging",
+      "noble_phantasms": [
+        {
+          "id": 100101,
+          "card_type": "buster",
+          "name": "Excalibur (base)",
+          "multipliers": [
+            3.0,
+            4.0,
+            4.5,
+            4.75,
+            5.0
+          ],
+          "notes": [
+            "Other NP effects, including changes to later cards, are not simulated."
+          ]
+        },
+        {
+          "id": 100102,
+          "card_type": "buster",
+          "name": "Excalibur (upgraded)",
+          "multipliers": [
+            4.0,
+            5.0,
+            5.5,
+            5.75,
+            6.0
+          ],
+          "notes": [
+            "Other NP effects, including changes to later cards, are not simulated."
+          ]
+        }
+      ]
     },
     {
       "id": 200100,
@@ -20,7 +60,16 @@
       "attack": 9398,
       "class": "archer",
       "attribute": "man",
-      "source_url": "https://api.atlasacademy.io/nice/NA/servant/200100"
+      "source_url": "https://api.atlasacademy.io/nice/NA/servant/200100",
+      "deck": [
+        "quick",
+        "arts",
+        "arts",
+        "arts",
+        "buster"
+      ],
+      "np_status": "unsupported",
+      "noble_phantasms": []
     }
   ]
 }
