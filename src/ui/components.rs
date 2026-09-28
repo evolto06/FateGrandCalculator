@@ -500,50 +500,48 @@ fn servant_selector(
     let selected = data.servant(*selected_id).or_else(|| data.servants.first());
     let selected_name = selected.map_or("No servants loaded", |servant| servant.name.as_str());
 
-    let servant_label = ui.label(RichText::new("SERVANT").size(13.0).color(TEXT_MUTED));
+    ui.label(RichText::new("SERVANT").size(13.0).color(TEXT_MUTED));
     ui.add_space(6.0);
     ui.horizontal_top(|ui| {
         portrait_window(ui, portrait, portrait_message, portrait_error);
         ui.vertical(|ui| {
-            let combo = egui::ComboBox::from_id_salt("servant_selector")
-                .selected_text(selected_name)
-                .width(ui.available_width())
-                .close_behavior(egui::PopupCloseBehavior::CloseOnClickOutside)
-                .show_ui(ui, |ui| {
-                    let search_label = ui.label("Search servants");
-                    let search_width = ui.available_width();
-                    let search_response = ui.add(
-                        egui::TextEdit::singleline(search)
-                            .id_salt("servant_search")
-                            .desired_width(search_width)
-                            .hint_text("Type a servant name"),
-                    );
-                    search_response.labelled_by(search_label.id);
-                    ui.separator();
-
-                    let query = search.trim().to_lowercase();
-                    let mut matches = 0;
-                    for servant in &data.servants {
-                        if servant.name.to_lowercase().contains(&query) {
-                            matches += 1;
-                            if ui
-                                .selectable_value(selected_id, servant.id, &servant.name)
-                                .clicked()
-                            {
-                                search.clear();
-                                ui.close();
+            ui.label(RichText::new(selected_name).strong());
+            let search_label = ui.label("Search servants");
+            let search_response = ui
+                .add(
+                    egui::TextEdit::singleline(search)
+                        .id_salt("servant_search")
+                        .desired_width(ui.available_width())
+                        .hint_text("Type a servant name"),
+                )
+                .labelled_by(search_label.id);
+            if search_response.has_focus() || !search.is_empty() {
+                let query = search.trim().to_lowercase();
+                let mut matches = 0;
+                egui::ScrollArea::vertical()
+                    .id_salt("servant_search_results")
+                    .max_height(180.0)
+                    .show(ui, |ui| {
+                        for servant in &data.servants {
+                            if servant.name.to_lowercase().contains(&query) {
+                                matches += 1;
+                                if ui
+                                    .selectable_label(*selected_id == servant.id, &servant.name)
+                                    .clicked()
+                                {
+                                    *selected_id = servant.id;
+                                    search.clear();
+                                    ui.memory_mut(|memory| {
+                                        memory.surrender_focus(search_response.id)
+                                    });
+                                }
                             }
                         }
-                    }
-                    if matches == 0 {
-                        ui.label(if data.servants.is_empty() {
-                            "No servants are available."
-                        } else {
-                            "No servants match that search."
-                        });
-                    }
-                });
-            combo.response.labelled_by(servant_label.id);
+                    });
+                if matches == 0 {
+                    ui.label("No servants match that search.");
+                }
+            }
 
             if let Some(servant) = selected {
                 ui.add_space(4.0);
