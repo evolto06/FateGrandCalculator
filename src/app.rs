@@ -1,7 +1,7 @@
 use eframe::egui;
-use fate_grand_calculator::damage::{DamageResult, calculate, percent_to_modifier};
+use fate_grand_calculator::damage::{TurnBuffs, calculate_turn};
 use fate_grand_calculator::loader::GameData;
-use fate_grand_calculator::model::{AttributeType, CardType, ClassType};
+use fate_grand_calculator::model::{AttributeType, ClassType, TurnSelection};
 #[cfg(not(target_arch = "wasm32"))]
 use fate_grand_calculator::servant_data::{ServantDataService, UpdateReport, format_retrieved_at};
 #[cfg(not(target_arch = "wasm32"))]
@@ -15,10 +15,8 @@ pub struct CalculatorApp {
     game_data: Result<GameData, String>,
     selected_servant_id: u32,
     servant_search: String,
-    card_type: CardType,
-    attack_buff_percent: ui::PercentInput,
-    card_buff_percent: ui::PercentInput,
-    enemy_defense_percent: ui::PercentInput,
+    turn_selection: Option<TurnSelection>,
+    buffs: ui::TurnBuffInputs,
     enemy_class: ClassType,
     enemy_attribute: AttributeType,
     data_status: String,
@@ -52,6 +50,11 @@ impl Default for CalculatorApp {
             .ok()
             .and_then(|data| data.servants.first())
             .map_or(0, |servant| servant.id);
+        let turn_selection = game_data
+            .as_ref()
+            .ok()
+            .and_then(|data| data.servant(selected_servant_id))
+            .and_then(TurnSelection::default_for);
         #[cfg(not(target_arch = "wasm32"))]
         let (update_sender, update_receiver) = mpsc::channel();
 
@@ -59,10 +62,8 @@ impl Default for CalculatorApp {
             game_data,
             selected_servant_id,
             servant_search: String::new(),
-            card_type: CardType::Buster,
-            attack_buff_percent: ui::PercentInput::default(),
-            card_buff_percent: ui::PercentInput::default(),
-            enemy_defense_percent: ui::PercentInput::default(),
+            turn_selection,
+            buffs: ui::TurnBuffInputs::default(),
             enemy_class: ClassType::Lancer,
             enemy_attribute: AttributeType::Sky,
             data_status,
@@ -172,10 +173,8 @@ impl eframe::App for CalculatorApp {
 
                                 let selected_servant_id = &mut self.selected_servant_id;
                                 let servant_search = &mut self.servant_search;
-                                let card_type = &mut self.card_type;
-                                let attack_buff_percent = &mut self.attack_buff_percent;
-                                let card_buff_percent = &mut self.card_buff_percent;
-                                let enemy_defense_percent = &mut self.enemy_defense_percent;
+                                let turn_selection = &mut self.turn_selection;
+                                let buffs = &mut self.buffs;
                                 let enemy_class = &mut self.enemy_class;
                                 let enemy_attribute = &mut self.enemy_attribute;
 
@@ -198,10 +197,8 @@ impl eframe::App for CalculatorApp {
                                                     portrait_texture,
                                                     portrait_message,
                                                     portrait_error,
-                                                    card_type,
-                                                    attack_buff_percent,
-                                                    card_buff_percent,
-                                                    enemy_defense_percent,
+                                                    turn_selection,
+                                                    buffs,
                                                 )
                                             },
                                         );
@@ -215,10 +212,8 @@ impl eframe::App for CalculatorApp {
                                                     ui,
                                                     data,
                                                     *selected_servant_id,
-                                                    *card_type,
-                                                    attack_buff_percent.value(),
-                                                    card_buff_percent.value(),
-                                                    enemy_defense_percent.value(),
+                                                    turn_selection.as_ref(),
+                                                    buffs.values(),
                                                     *enemy_class,
                                                     *enemy_attribute,
                                                     !narrow_layout,
@@ -235,10 +230,8 @@ impl eframe::App for CalculatorApp {
                                         portrait_texture,
                                         portrait_message,
                                         portrait_error,
-                                        card_type,
-                                        attack_buff_percent,
-                                        card_buff_percent,
-                                        enemy_defense_percent,
+                                        turn_selection,
+                                        buffs,
                                     );
                                     ui.add_space(10.0);
                                     ui::matchup_panel(ui, enemy_class, enemy_attribute);
@@ -247,17 +240,15 @@ impl eframe::App for CalculatorApp {
                                         ui,
                                         data,
                                         *selected_servant_id,
-                                        *card_type,
-                                        attack_buff_percent.value(),
-                                        card_buff_percent.value(),
-                                        enemy_defense_percent.value(),
+                                        turn_selection.as_ref(),
+                                        buffs.values(),
                                         *enemy_class,
                                         *enemy_attribute,
                                         !narrow_layout,
                                     );
                                 }
                                 if narrow_layout {
-                                    ui.add_space(76.0);
+                                    ui.add_space(150.0);
                                 }
                             });
                         },
@@ -267,18 +258,19 @@ impl eframe::App for CalculatorApp {
 
         if ui.available_width() < 820.0 {
             let result = self.game_data.as_ref().ok().and_then(|data| {
-                calculate_damage_result(
-                    data,
-                    self.selected_servant_id,
-                    self.card_type,
-                    self.attack_buff_percent.value(),
-                    self.card_buff_percent.value(),
-                    self.enemy_defense_percent.value(),
+                let servant = data.servant(self.selected_servant_id)?;
+                let selection = self.turn_selection.as_ref()?;
+                let result = calculate_turn(
+                    servant,
+                    selection,
+                    self.buffs.values(),
                     self.enemy_class,
                     self.enemy_attribute,
                 )
+                .ok()?;
+                Some((servant, selection, result))
             });
-            if let Some(result) = result {
+            if let Some((servant, selection, result)) = result {
                 let summary_width = (ui.ctx().content_rect().width() - 24.0).clamp(280.0, 520.0);
                 egui::Area::new(egui::Id::new("sticky_damage_summary"))
                     .order(egui::Order::Foreground)
@@ -286,7 +278,7 @@ impl eframe::App for CalculatorApp {
                     .interactable(false)
                     .show(ui.ctx(), |ui| {
                         ui.set_width(summary_width);
-                        ui::sticky_result_summary(ui, result);
+                        ui::sticky_result_summary(ui, servant, selection, &result);
                     });
             }
         }
@@ -335,6 +327,12 @@ impl CalculatorApp {
                 let skipped = report.skipped_rows;
                 let updated_at = format_retrieved_at(&report.game_data.retrieved_at);
                 self.game_data = Ok(report.game_data);
+                self.turn_selection = self
+                    .game_data
+                    .as_ref()
+                    .ok()
+                    .and_then(|data| data.servant(self.selected_servant_id))
+                    .and_then(TurnSelection::default_for);
                 self.update_in_progress = false;
                 self.data_status = if skipped == 0 {
                     format!("Updated {total} servants · saved locally at {updated_at}.")
@@ -361,51 +359,33 @@ fn show_result(
     ui: &mut egui::Ui,
     data: &GameData,
     servant_id: u32,
-    card_type: CardType,
-    attack_buff_percent: f64,
-    card_buff_percent: f64,
-    enemy_defense_percent: f64,
+    selection: Option<&TurnSelection>,
+    buffs: TurnBuffs,
     enemy_class: ClassType,
     enemy_attribute: AttributeType,
     announce_result: bool,
 ) {
-    if let Some(result) = calculate_damage_result(
-        data,
-        servant_id,
-        card_type,
-        attack_buff_percent,
-        card_buff_percent,
-        enemy_defense_percent,
-        enemy_class,
-        enemy_attribute,
-    ) {
-        ui::result_panel(ui, result, announce_result);
-    } else {
+    let Some(servant) = data.servant(servant_id) else {
         ui.colored_label(
             egui::Color32::LIGHT_RED,
             "The selected servant is missing from the loaded servant data.",
         );
+        return;
+    };
+    let Some(selection) = selection else {
+        ui.colored_label(
+            egui::Color32::LIGHT_RED,
+            "Card data is unavailable. Update servant data to load it.",
+        );
+        return;
+    };
+    match calculate_turn(servant, selection, buffs, enemy_class, enemy_attribute) {
+        Ok(result) => ui::result_panel(ui, servant, selection, &result, announce_result),
+        Err(error) => {
+            ui.colored_label(
+                egui::Color32::LIGHT_RED,
+                format!("Could not calculate this sequence: {error}"),
+            );
+        }
     }
-}
-
-fn calculate_damage_result(
-    data: &GameData,
-    servant_id: u32,
-    card_type: CardType,
-    attack_buff_percent: f64,
-    card_buff_percent: f64,
-    enemy_defense_percent: f64,
-    enemy_class: ClassType,
-    enemy_attribute: AttributeType,
-) -> Option<DamageResult> {
-    let servant = data.servant(servant_id)?;
-    let input = servant.normal_card_input(
-        card_type,
-        percent_to_modifier(attack_buff_percent),
-        percent_to_modifier(card_buff_percent),
-        percent_to_modifier(enemy_defense_percent),
-        enemy_class,
-        enemy_attribute,
-    );
-    Some(calculate(input))
 }
