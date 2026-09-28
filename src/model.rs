@@ -317,3 +317,80 @@ impl SkillType {
         }
     }
 }
+
+/// A physical normal card or one of the servant's supported NP variants.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SelectedCard {
+    Normal(usize),
+    NoblePhantasm(usize),
+}
+
+impl SelectedCard {
+    pub fn card_type(self, servant: &crate::loader::ServantRecord) -> Option<CardType> {
+        match self {
+            Self::Normal(index) => servant.deck.get(index).copied(),
+            Self::NoblePhantasm(index) => servant.noble_phantasms.get(index).map(|np| np.card_type),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TurnSelection {
+    pub slots: [SelectedCard; 3],
+    pub np_level: u8,
+}
+
+impl TurnSelection {
+    pub fn default_for(servant: &crate::loader::ServantRecord) -> Option<Self> {
+        if servant.deck.len() != 5 {
+            return None;
+        }
+        let slots = if servant.noble_phantasms.is_empty() {
+            [
+                SelectedCard::Normal(0),
+                SelectedCard::Normal(1),
+                SelectedCard::Normal(2),
+            ]
+        } else {
+            [
+                SelectedCard::NoblePhantasm(0),
+                SelectedCard::Normal(0),
+                SelectedCard::Normal(1),
+            ]
+        };
+        Some(Self { slots, np_level: 1 })
+    }
+
+    pub fn validate(&self, servant: &crate::loader::ServantRecord) -> Result<(), String> {
+        if servant.deck.len() != 5 || servant.deck.contains(&CardType::Extra) {
+            return Err(
+                "The servant's deck is unavailable. Update servant data to load it.".into(),
+            );
+        }
+        if !(1..=5).contains(&self.np_level) {
+            return Err("NP level must be between 1 and 5.".into());
+        }
+        let mut used = [false; 5];
+        let mut np_used = false;
+        for slot in self.slots {
+            match slot {
+                SelectedCard::Normal(index) => {
+                    if index >= 5 || used[index] {
+                        return Err("Select three distinct available cards.".into());
+                    }
+                    used[index] = true;
+                }
+                SelectedCard::NoblePhantasm(index) => {
+                    if np_used
+                        || index >= servant.noble_phantasms.len()
+                        || servant.np_status != crate::loader::NpStatus::Damaging
+                    {
+                        return Err("Select at most one supported damaging NP.".into());
+                    }
+                    np_used = true;
+                }
+            }
+        }
+        Ok(())
+    }
+}
