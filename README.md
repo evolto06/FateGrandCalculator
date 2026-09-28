@@ -35,17 +35,17 @@ pub fn calculate(input: DamageInput) -> DamageResult;
 
 ## Scope
 
-The first release will cover normal-card damage, attack/card buffs, class affinity, attribute affinity, enemy defense, and the random damage range. Noble Phantasms, critical hits, chains, trait-based bonuses, and conditional effects will follow incrementally, each with regression tests.
+The calculator estimates a selected servant's three ordered attacks against one enemy. Choose distinct command cards from the servant's five-card deck. When supported NP damage data is available, one slot can be an NP and the other two can be normal cards; a servant with a non-damaging NP uses three normal cards. A damaging-NP servant can also choose three normal cards. Each card, and the Extra attack from a Brave Chain, has its own damage range. The app does not add them into a turn total.
 
-The current calculator estimates one non-critical card in the first command-card position. Enter buffs and enemy defense as whole percentages: `20` means 20%. The calculation includes the 0.23 attack factor, first-card bonus, class attack rate, class and attribute affinity, and the combined attack/defense modifier. Its random range uses 90.0% through 109.9%.
+Enter buffs and enemy defense as whole percentages: `20` means 20%. Attack and defense are additive in the damage formula. Buster, Arts, and Quick buffs have separate inputs so mixed-color sequences can be calculated. NP level and available NP variants are selectable. The calculation uses the 0.23 attack factor, normal-card positions, first-card effects, class attack rate, class and attribute affinity, NP multiplier and NP damage buff, Buster Chain damage, and Extra attack rules. Each range uses random modifiers from 90.0% through 109.9%. These terms follow [Atlas Academy's damage formula](https://apps.atlasacademy.io/fgo-docs/deeper/battle/damage.html), [card values](https://api.atlasacademy.io/export/JP/NiceCard.json), and [random modifier range](https://apps.atlasacademy.io/fgo-docs/).
 
-Card chains, later card positions, Noble Phantasms, and special damage effects are outside this screen's current scope. These terms follow [Atlas Academy's damage formula](https://apps.atlasacademy.io/fgo-docs/deeper/battle/damage.html), [card values](https://api.atlasacademy.io/export/JP/NiceCard.json), and [random modifier range](https://apps.atlasacademy.io/fgo-docs/).
+Damage shown for an NP is its base estimate. Conditional trait bonuses, Overcharge above level 1, automatic NP effects before or after damage, critical hits, skill effects, and enemy HP or retargeting are not simulated. The app labels unsupported or missing NP damage data rather than guessing; those servants can still use three normal cards. The selected servant's command cards represent cards available in the user's current hand. The app does not generate a party-wide hand.
 
 ## Data
 
-The bundled seed is in `data/game_data.json`. After an explicit update, the app downloads Atlas Academy's lightweight NA servant export, keeps only the fields used by the calculator, maps Atlas attributes and class names to the local model, and validates the complete result before saving it in the operating system's application data directory. The snapshot is staged and atomically replaced; an unavailable network, invalid response, or failed write leaves the previous snapshot in place.
+The bundled seed is in `data/game_data.json`. After an explicit update, the app downloads Atlas Academy's lightweight NA servant export, then fetches the selected gameplay fields for each included servant from the NA nice-servant endpoint. It stores the five-card deck and compact NP damage metadata with the existing attack, class, and attribute data. The complete result is validated and saved in the operating system's application data directory. The snapshot is staged and atomically replaced; an unavailable network, invalid response, or failed write leaves the previous snapshot in place. An older snapshot remains readable and prompts the user to update for card data.
 
-The update reports unsupported or incomplete entries and keeps the rest of the valid playable servant list when no more than one in five rows must be skipped. A malformed export, empty usable result, duplicate servant ID, or higher skip ratio rejects the whole update. The data request has bounded retries, timeouts, and a response-size limit.
+The update reports unsupported or incomplete basic-export entries and keeps the rest of the valid playable servant list when no more than one in five rows must be skipped. A malformed export, empty usable result, duplicate servant ID, higher skip ratio, or invalid required deck data rejects the whole update. The data requests have bounded concurrency, retries, timeouts, and response-size limits. NP data can be marked as supported, non-damaging, unavailable, or unsupported without discarding a valid servant deck.
 
 Atlas Academy recommends its static exports or `/basic` endpoints for indexing; this app uses the [NA basic servant export](https://api.atlasacademy.io/export/NA/basic_servant.json).
 
@@ -55,7 +55,7 @@ Please respect the data source's terms, licensing, `robots.txt`, and rate limits
 
 ## Project status
 
-The first desktop milestone supports normal-card damage for selected servants against selectable enemy classes and attributes. Noble Phantasms, critical hits, chains, and traits remain future work.
+The desktop milestone supports three-card sequences, base NP damage for supported NP forms, and per-card damage ranges against a selected enemy class and attribute. Conditional NP effects, critical hits, party-wide card hands, and target HP remain future work. Beast-class servants are still excluded because their attacker affinity is not yet modeled.
 
 ## Development
 
@@ -71,7 +71,7 @@ Run the calculation tests:
 cargo test
 ```
 
-Integration tests are grouped by purpose in `tests/`: face-card damage, class affinity, attribute affinity, game-data loading, percent input, servant damage, and servant model construction.
+Integration tests are grouped by purpose in `tests/`: face-card and turn damage, card selection, NP import, class affinity, attribute affinity, game-data loading, percent input, servant damage, and servant model construction.
 
 ## License
 
