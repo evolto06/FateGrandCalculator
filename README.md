@@ -45,7 +45,7 @@ Damage shown for an NP is its base estimate. Conditional trait bonuses, Overchar
 
 The bundled seed is in `data/game_data.json`. After an explicit update, the app downloads Atlas Academy's lightweight NA servant export, then fetches the selected gameplay fields for each included servant from the NA nice-servant endpoint. It stores the five-card deck and compact NP damage metadata with the existing attack, class, and attribute data. The complete result is validated and saved in the operating system's application data directory. The snapshot is staged and atomically replaced; an unavailable network, invalid response, or failed write leaves the previous snapshot in place. An older snapshot remains readable and prompts the user to update for card data.
 
-The update reports unsupported or incomplete basic-export entries and keeps the rest of the valid playable servant list when no more than one in five rows must be skipped. A malformed export, empty usable result, duplicate servant ID, higher skip ratio, or invalid required deck data rejects the whole update. The data requests have bounded concurrency, retries, timeouts, and response-size limits. NP data can be marked as supported, non-damaging, unavailable, or unsupported without discarding a valid servant deck.
+The update includes the ten additional Atlas NA servant classes previously skipped: seven Beast variants, Solomon's lore Grand Caster form, and both Olga Marie collection forms. It reports incomplete basic-export entries and keeps the rest of the valid servant list when no more than one in five rows must be skipped. A malformed export, empty usable result, duplicate servant ID, higher skip ratio, or invalid required deck data rejects the whole update. The data requests have bounded concurrency, retries, timeouts, and response-size limits. NP data can be marked as supported, non-damaging, unavailable, or unsupported without discarding a valid servant deck. Beast IV's special card type has no Buster, Arts, or Quick mapping, so the servant remains listed but turn damage is unavailable.
 
 Atlas Academy recommends its static exports or `/basic` endpoints for indexing; this app uses the [NA basic servant export](https://api.atlasacademy.io/export/NA/basic_servant.json).
 
@@ -55,7 +55,7 @@ Please respect the data source's terms, licensing, `robots.txt`, and rate limits
 
 ## Project status
 
-The desktop milestone supports three-card sequences, base NP damage for supported NP forms, and per-card damage ranges against a selected enemy class and attribute. Conditional NP effects, critical hits, party-wide card hands, and target HP remain future work. Beast-class servants are still excluded because their attacker affinity is not yet modeled.
+The desktop milestone supports three-card sequences, base NP damage for supported NP forms, and per-card damage ranges against a selected enemy class and attribute. The additional servant classes use their specific Atlas NA attacker affinity and class attack rates against the fourteen enemy classes in the matchup selector. Conditional NP effects, including Space Ereshkigal's battle-phase NP damage, critical hits, party-wide card hands, and target HP remain future work.
 
 ## Development
 
