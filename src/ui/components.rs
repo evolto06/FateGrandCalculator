@@ -1,7 +1,11 @@
 use eframe::egui::{self, Color32, RichText};
-use fate_grand_calculator::damage::DamageResult;
-use fate_grand_calculator::loader::GameData;
-use fate_grand_calculator::model::{AttributeType, CardType, ClassType};
+use fate_grand_calculator::damage::{
+    DamageResult, TurnBuffs, TurnDamageResult, percent_to_modifier,
+};
+use fate_grand_calculator::loader::{GameData, NpStatus, ServantRecord};
+use fate_grand_calculator::model::{
+    AttributeType, CardType, ClassType, SelectedCard, TurnSelection,
+};
 
 use super::theme::{
     ACCENT, ARTS, BACKGROUND, BUSTER, ERROR, PANEL, PANEL_MUTED, QUICK, RESULT_PANEL, TEXT_MUTED,
@@ -37,7 +41,7 @@ pub fn header(ui: &mut egui::Ui) {
         });
         ui.add_space(12.0);
         ui.label(
-            RichText::new("FIRST CARD · EARLY BUILD")
+            RichText::new("THREE CARDS · EARLY BUILD")
                 .size(12.0)
                 .color(ACCENT),
         );
@@ -52,16 +56,15 @@ pub fn attack_panel(
     portrait: Option<&egui::TextureHandle>,
     portrait_message: &str,
     portrait_error: Option<&str>,
-    card_type: &mut CardType,
-    attack_buff_percent: &mut PercentInput,
-    card_buff_percent: &mut PercentInput,
-    enemy_defense_percent: &mut PercentInput,
+    selection: &mut Option<TurnSelection>,
+    buffs: &mut TurnBuffInputs,
 ) {
     section_frame(ui, |ui| {
         ui.heading(RichText::new("Attack setup").size(18.0));
-        ui.label(RichText::new("One non-critical first command card.").color(TEXT_MUTED));
+        ui.label(RichText::new("Choose three cards in attack order.").color(TEXT_MUTED));
         ui.add_space(14.0);
 
+        let previous_servant_id = *selected_servant_id;
         servant_selector(
             ui,
             data,
@@ -71,6 +74,11 @@ pub fn attack_panel(
             portrait_message,
             portrait_error,
         );
+        if *selected_servant_id != previous_servant_id {
+            *selection = data
+                .servant(*selected_servant_id)
+                .and_then(TurnSelection::default_for);
+        }
         if portrait_error.is_some() {
             let response =
                 ui.colored_label(ERROR, "Portrait unavailable. Change servant to try again.");
@@ -78,7 +86,9 @@ pub fn attack_panel(
         }
         ui.add_space(12.0);
 
-        card_selector(ui, card_type);
+        if let Some(servant) = data.servant(*selected_servant_id) {
+            turn_selector(ui, servant, selection);
+        }
         ui.add_space(14.0);
         ui.separator();
         ui.add_space(8.0);
@@ -89,9 +99,12 @@ pub fn attack_panel(
                 .color(TEXT_MUTED),
         );
         ui.add_space(4.0);
-        percent_input(ui, "Attack buff (%)", attack_buff_percent);
-        percent_input(ui, "Card buff (%)", card_buff_percent);
-        percent_input(ui, "Enemy defense (%)", enemy_defense_percent);
+        percent_input(ui, "Attack buff (%)", &mut buffs.attack);
+        percent_input(ui, "Buster buff (%)", &mut buffs.buster);
+        percent_input(ui, "Arts buff (%)", &mut buffs.arts);
+        percent_input(ui, "Quick buff (%)", &mut buffs.quick);
+        percent_input(ui, "NP damage buff (%)", &mut buffs.np_damage);
+        percent_input(ui, "Enemy defense (%)", &mut buffs.enemy_defense);
     });
 }
 
@@ -117,17 +130,70 @@ pub fn matchup_panel(
     });
 }
 
-pub fn result_panel(ui: &mut egui::Ui, result: DamageResult, announce_result: bool) {
+pub fn result_panel(
+    ui: &mut egui::Ui,
+    servant: &ServantRecord,
+    selection: &TurnSelection,
+    result: &TurnDamageResult,
+    announce_result: bool,
+) {
     section_frame(ui, |ui| {
-        ui.heading(RichText::new("First card result").size(18.0));
-        ui.label(RichText::new("No critical hit or chain bonus.").color(TEXT_MUTED));
+        ui.heading(RichText::new("Damage by card").size(18.0));
+        ui.label(
+            RichText::new(
+                "Non-critical damage to the selected enemy; each card has its own range.",
+            )
+            .color(TEXT_MUTED),
+        );
         ui.add_space(14.0);
-
-        damage_result(ui, result, announce_result);
-        ui.add_space(16.0);
-        ui.separator();
-        ui.add_space(8.0);
-        breakdown(ui, result);
+        for (index, card) in selection.slots.iter().enumerate() {
+            ui.push_id(index, |ui| {
+                ui.label(
+                    RichText::new(format!(
+                        "{}. {}",
+                        index + 1,
+                        selected_card_label(servant, *card)
+                    ))
+                    .strong(),
+                );
+                if let SelectedCard::NoblePhantasm(np_index) = card {
+                    if let Some(np) = servant.noble_phantasms.get(*np_index) {
+                        let multiplier = np.multipliers[selection.np_level as usize - 1];
+                        ui.label(
+                            RichText::new(format!(
+                                "NP level {} · base damage ×{multiplier:.2}",
+                                selection.np_level
+                            ))
+                            .size(12.0)
+                            .color(TEXT_MUTED),
+                        );
+                        if let Some(scale) = &np.affection {
+                            ui.label(
+                                RichText::new(format!(
+                                    "Affection level {} · damage ×{:.2}",
+                                    selection.affection_level,
+                                    scale.multiplier(selection.affection_level)
+                                ))
+                                .size(12.0)
+                                .color(TEXT_MUTED),
+                            );
+                        }
+                    }
+                }
+                damage_result(ui, result.cards[index], announce_result);
+                breakdown(ui, result.cards[index]);
+                ui.add_space(8.0);
+            });
+        }
+        if let Some(extra) = result.extra {
+            ui.separator();
+            ui.label(RichText::new("Extra attack · Brave Chain").strong());
+            damage_result(ui, extra, announce_result);
+            breakdown(ui, extra);
+        }
+        for note in &result.notes {
+            ui.label(RichText::new(note).size(12.0).color(TEXT_MUTED));
+        }
     });
 }
 
@@ -152,12 +218,40 @@ impl PercentInput {
     }
 }
 
+#[derive(Debug, Clone, Default)]
+pub struct TurnBuffInputs {
+    pub attack: PercentInput,
+    pub buster: PercentInput,
+    pub arts: PercentInput,
+    pub quick: PercentInput,
+    pub np_damage: PercentInput,
+    pub enemy_defense: PercentInput,
+}
+
+impl TurnBuffInputs {
+    pub fn values(&self) -> TurnBuffs {
+        TurnBuffs {
+            attack_buff: percent_to_modifier(self.attack.value()),
+            buster_buff: percent_to_modifier(self.buster.value()),
+            arts_buff: percent_to_modifier(self.arts.value()),
+            quick_buff: percent_to_modifier(self.quick.value()),
+            np_damage_buff: percent_to_modifier(self.np_damage.value()),
+            enemy_defense: percent_to_modifier(self.enemy_defense.value()),
+        }
+    }
+}
+
 pub fn status_message(ui: &mut egui::Ui, text: &str) {
     let response = ui.label(text);
     mark_live_status(ui.ctx(), response.id);
 }
 
-pub fn sticky_result_summary(ui: &mut egui::Ui, result: DamageResult) {
+pub fn sticky_result_summary(
+    ui: &mut egui::Ui,
+    servant: &ServantRecord,
+    selection: &TurnSelection,
+    result: &TurnDamageResult,
+) {
     egui::Frame::new()
         .fill(RESULT_PANEL)
         .stroke(egui::Stroke::new(1.5, ACCENT))
@@ -165,16 +259,19 @@ pub fn sticky_result_summary(ui: &mut egui::Ui, result: DamageResult) {
         .inner_margin(12)
         .show(ui, |ui| {
             ui.set_width(ui.available_width());
-            ui.horizontal_wrapped(|ui| {
-                ui.label(RichText::new("Estimated damage").size(14.0).color(ACCENT));
-                let response = ui.label(
-                    RichText::new(format_damage_range(result))
-                        .size(21.0)
-                        .strong()
-                        .color(Color32::WHITE),
-                );
+            ui.label(RichText::new("DAMAGE BY CARD").size(12.0).color(ACCENT));
+            for (index, card) in selection.slots.iter().enumerate() {
+                let response = ui.label(format!(
+                    "{} · {}: {}",
+                    index + 1,
+                    selected_card_short_label(servant, *card),
+                    format_damage_range(result.cards[index])
+                ));
                 mark_live_status(ui.ctx(), response.id);
-            });
+            }
+            if let Some(extra) = result.extra {
+                ui.label(format!("Extra: {}", format_damage_range(extra)));
+            }
         });
 }
 
@@ -197,50 +294,190 @@ fn section_frame(ui: &mut egui::Ui, add_contents: impl FnOnce(&mut egui::Ui)) {
         });
 }
 
-fn card_selector(ui: &mut egui::Ui, card_type: &mut CardType) {
-    ui.label(RichText::new("COMMAND CARD").size(13.0).color(TEXT_MUTED));
+fn turn_selector(
+    ui: &mut egui::Ui,
+    servant: &ServantRecord,
+    selection: &mut Option<TurnSelection>,
+) {
+    ui.label(RichText::new("SERVANT CARDS").size(13.0).color(TEXT_MUTED));
     ui.add_space(6.0);
-    ui.horizontal_wrapped(|ui| {
-        let button_width = ((ui.available_width() - 20.0) / 3.0).max(68.0);
-        for (candidate, label, color) in [
-            (CardType::Buster, "Buster", BUSTER),
-            (CardType::Arts, "Arts", ARTS),
-            (CardType::Quick, "Quick", QUICK),
-        ] {
-            let selected = *card_type == candidate;
-            let label = if selected {
-                format!("[x] {label}")
-            } else {
-                label.to_owned()
-            };
-            let button = egui::Button::selectable(
-                selected,
-                RichText::new(label).strong().color(if selected {
-                    Color32::WHITE
-                } else {
-                    TEXT_MUTED
-                }),
-            )
-            .fill(if selected {
-                color
-            } else {
-                Color32::from_rgb(43, 51, 69)
-            })
-            .stroke(egui::Stroke::new(
-                1.0,
-                if selected {
-                    color
-                } else {
-                    Color32::from_rgb(64, 75, 97)
-                },
+    if servant.deck.len() != 5 {
+        ui.label(
+            RichText::new(servant.deck_note.as_deref().unwrap_or(
+                "Card data is unavailable. Update servant data to load this servant's deck.",
             ))
-            .corner_radius(7);
-
-            if ui.add_sized([button_width, 44.0], button).clicked() {
-                *card_type = candidate;
-            }
+            .color(ERROR),
+        );
+        return;
+    }
+    ui.horizontal_wrapped(|ui| {
+        for (index, card) in servant.deck.iter().enumerate() {
+            let used = selection
+                .as_ref()
+                .is_some_and(|turn| turn.slots.contains(&SelectedCard::Normal(index)));
+            let color = card_color(*card);
+            egui::Frame::new()
+                .fill(if used { color } else { PANEL_MUTED })
+                .corner_radius(7)
+                .inner_margin(egui::Margin::symmetric(9, 7))
+                .show(ui, |ui| {
+                    ui.label(
+                        RichText::new(format!("{} {}", card_name(*card), index + 1))
+                            .color(Color32::WHITE),
+                    );
+                });
         }
     });
+    match servant.np_status {
+        NpStatus::Support => {
+            ui.label(
+                RichText::new("This servant's NP does no damage. Choose three command cards.")
+                    .size(12.0)
+                    .color(TEXT_MUTED),
+            );
+        }
+        NpStatus::Unavailable => {
+            ui.label(RichText::new("NP data is unavailable locally. Choose three command cards or update servant data.").size(12.0).color(TEXT_MUTED));
+        }
+        NpStatus::Unsupported => {
+            ui.label(RichText::new("This NP's damage cannot be estimated with the current data. Choose three command cards.").size(12.0).color(TEXT_MUTED));
+        }
+        NpStatus::Damaging => {}
+    }
+    let Some(turn) = selection.as_mut() else {
+        ui.label(RichText::new("Select a servant with available card data.").color(ERROR));
+        return;
+    };
+    ui.add_space(8.0);
+    for slot in 0..3 {
+        let slot_label = ui.label(format!("Card {}", slot + 1));
+        let selected_text = selected_card_label(servant, turn.slots[slot]);
+        let combo = egui::ComboBox::from_id_salt(("turn_slot", slot))
+            .selected_text(selected_text)
+            .width(ui.available_width().min(350.0))
+            .wrap_mode(egui::TextWrapMode::Truncate)
+            .show_ui(ui, |ui| {
+                for (index, card) in servant.deck.iter().enumerate() {
+                    let candidate = SelectedCard::Normal(index);
+                    let available = !turn
+                        .slots
+                        .iter()
+                        .enumerate()
+                        .any(|(other, selected)| other != slot && *selected == candidate);
+                    if ui
+                        .add_enabled(
+                            available,
+                            egui::Button::new(format!(
+                                "{} · deck card {}",
+                                card_name(*card),
+                                index + 1
+                            )),
+                        )
+                        .clicked()
+                    {
+                        turn.slots[slot] = candidate;
+                    }
+                }
+                if servant.np_status == NpStatus::Damaging {
+                    ui.separator();
+                    let np_used_elsewhere = turn.slots.iter().enumerate().any(|(other, card)| {
+                        other != slot && matches!(card, SelectedCard::NoblePhantasm(_))
+                    });
+                    for (index, np) in servant.noble_phantasms.iter().enumerate() {
+                        if ui
+                            .add_enabled(
+                                !np_used_elsewhere,
+                                egui::Button::new(format!("NP · {}", np.name)),
+                            )
+                            .clicked()
+                        {
+                            turn.slots[slot] = SelectedCard::NoblePhantasm(index);
+                        }
+                    }
+                }
+            });
+        combo.response.labelled_by(slot_label.id);
+    }
+    if turn
+        .slots
+        .iter()
+        .any(|card| matches!(card, SelectedCard::NoblePhantasm(_)))
+    {
+        let level_label = ui.label("NP level");
+        let combo = egui::ComboBox::from_id_salt("np_level")
+            .selected_text(turn.np_level.to_string())
+            .width(100.0)
+            .show_ui(ui, |ui| {
+                for level in 1..=5 {
+                    ui.selectable_value(&mut turn.np_level, level, level.to_string());
+                }
+            });
+        combo.response.labelled_by(level_label.id);
+        if let Some(scale) = turn.slots.iter().find_map(|card| match card {
+            SelectedCard::NoblePhantasm(index) => servant
+                .noble_phantasms
+                .get(*index)
+                .and_then(|np| np.affection.as_ref()),
+            SelectedCard::Normal(_) => None,
+        }) {
+            let affection_label = ui.label("Affection level at NP damage");
+            let combo = egui::ComboBox::from_id_salt("affection_level")
+                .selected_text(turn.affection_level.to_string())
+                .width(100.0)
+                .show_ui(ui, |ui| {
+                    for level in 0..=scale.max_level {
+                        ui.selectable_value(&mut turn.affection_level, level, level.to_string());
+                    }
+                });
+            combo.response.labelled_by(affection_label.id);
+            ui.label(
+                RichText::new("Each level adds 10% NP damage; level 0 has no affection bonus. At level 7+, this NP ignores enemy defense. Enter the level after any Overcharge gain.")
+                    .size(12.0)
+                    .color(TEXT_MUTED),
+            );
+        }
+    }
+}
+
+fn card_name(card: CardType) -> &'static str {
+    match card {
+        CardType::Buster => "Buster",
+        CardType::Arts => "Arts",
+        CardType::Quick => "Quick",
+        CardType::Extra => "Extra",
+    }
+}
+
+fn card_color(card: CardType) -> Color32 {
+    match card {
+        CardType::Buster => BUSTER,
+        CardType::Arts => ARTS,
+        CardType::Quick => QUICK,
+        CardType::Extra => ACCENT,
+    }
+}
+
+fn selected_card_label(servant: &ServantRecord, card: SelectedCard) -> String {
+    match card {
+        SelectedCard::Normal(index) => servant.deck.get(index).map_or_else(
+            || "Unavailable card".to_owned(),
+            |color| format!("{} · deck card {}", card_name(*color), index + 1),
+        ),
+        SelectedCard::NoblePhantasm(index) => servant.noble_phantasms.get(index).map_or_else(
+            || "Unavailable NP".to_owned(),
+            |np| format!("NP · {}", np.name),
+        ),
+    }
+}
+
+fn selected_card_short_label(servant: &ServantRecord, card: SelectedCard) -> String {
+    match card {
+        SelectedCard::Normal(index) => servant
+            .deck
+            .get(index)
+            .map_or_else(|| "Card".to_owned(), |color| card_name(*color).to_owned()),
+        SelectedCard::NoblePhantasm(_) => "NP".to_owned(),
+    }
 }
 
 fn percent_input(ui: &mut egui::Ui, label: &str, value: &mut PercentInput) {
@@ -297,50 +534,48 @@ fn servant_selector(
     let selected = data.servant(*selected_id).or_else(|| data.servants.first());
     let selected_name = selected.map_or("No servants loaded", |servant| servant.name.as_str());
 
-    let servant_label = ui.label(RichText::new("SERVANT").size(13.0).color(TEXT_MUTED));
+    ui.label(RichText::new("SERVANT").size(13.0).color(TEXT_MUTED));
     ui.add_space(6.0);
     ui.horizontal_top(|ui| {
         portrait_window(ui, portrait, portrait_message, portrait_error);
         ui.vertical(|ui| {
-            let combo = egui::ComboBox::from_id_salt("servant_selector")
-                .selected_text(selected_name)
-                .width(ui.available_width())
-                .close_behavior(egui::PopupCloseBehavior::CloseOnClickOutside)
-                .show_ui(ui, |ui| {
-                    let search_label = ui.label("Search servants");
-                    let search_width = ui.available_width();
-                    let search_response = ui.add(
-                        egui::TextEdit::singleline(search)
-                            .id_salt("servant_search")
-                            .desired_width(search_width)
-                            .hint_text("Type a servant name"),
-                    );
-                    search_response.labelled_by(search_label.id);
-                    ui.separator();
-
-                    let query = search.trim().to_lowercase();
-                    let mut matches = 0;
-                    for servant in &data.servants {
-                        if servant.name.to_lowercase().contains(&query) {
-                            matches += 1;
-                            if ui
-                                .selectable_value(selected_id, servant.id, &servant.name)
-                                .clicked()
-                            {
-                                search.clear();
-                                ui.close();
+            ui.label(RichText::new(selected_name).strong());
+            let search_label = ui.label("Search servants");
+            let search_response = ui
+                .add(
+                    egui::TextEdit::singleline(search)
+                        .id_salt("servant_search")
+                        .desired_width(ui.available_width())
+                        .hint_text("Type a servant name"),
+                )
+                .labelled_by(search_label.id);
+            if search_response.has_focus() || !search.is_empty() {
+                let query = search.trim().to_lowercase();
+                let mut matches = 0;
+                egui::ScrollArea::vertical()
+                    .id_salt("servant_search_results")
+                    .max_height(180.0)
+                    .show(ui, |ui| {
+                        for servant in &data.servants {
+                            if servant.name.to_lowercase().contains(&query) {
+                                matches += 1;
+                                if ui
+                                    .selectable_label(*selected_id == servant.id, &servant.name)
+                                    .clicked()
+                                {
+                                    *selected_id = servant.id;
+                                    search.clear();
+                                    ui.memory_mut(|memory| {
+                                        memory.surrender_focus(search_response.id)
+                                    });
+                                }
                             }
                         }
-                    }
-                    if matches == 0 {
-                        ui.label(if data.servants.is_empty() {
-                            "No servants are available."
-                        } else {
-                            "No servants match that search."
-                        });
-                    }
-                });
-            combo.response.labelled_by(servant_label.id);
+                    });
+                if matches == 0 {
+                    ui.label("No servants match that search.");
+                }
+            }
 
             if let Some(servant) = selected {
                 ui.add_space(4.0);

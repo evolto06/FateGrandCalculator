@@ -59,7 +59,6 @@ pub fn normalize_atlas_export(payload: &Value) -> Result<NormalizationReport, St
             continue;
         };
         let Some(class) = source.class_name.as_deref().and_then(parse_class) else {
-            // The calculator intentionally excludes Beast and non-playable classes.
             skipped_rows += 1;
             continue;
         };
@@ -89,6 +88,10 @@ pub fn normalize_atlas_export(payload: &Value) -> Result<NormalizationReport, St
             attack,
             class,
             attribute,
+            deck: Vec::new(),
+            deck_note: None,
+            noble_phantasms: Vec::new(),
+            np_status: crate::loader::NpStatus::Unavailable,
             source_url: format!("https://api.atlasacademy.io/nice/{REGION}/servant/{id}"),
         });
     }
@@ -144,7 +147,16 @@ fn parse_class(value: &str) -> Option<ClassType> {
         "foreigner" => Some(ClassType::Foreigner),
         "pretender" => Some(ClassType::Pretender),
         "shielder" => Some(ClassType::Shielder),
-        // Beast is encounter-specific in this calculator and is filtered here.
+        "beast" => Some(ClassType::Beast),
+        "beasteresh" => Some(ClassType::BeastEresh),
+        "beasti" => Some(ClassType::BeastI),
+        "beastii" => Some(ClassType::BeastII),
+        "beastiiil" => Some(ClassType::BeastIIIL),
+        "beastiiir" => Some(ClassType::BeastIIIR),
+        "beastiv" => Some(ClassType::BeastIV),
+        "loregrandcaster" => Some(ClassType::LoreGrandCaster),
+        "uolgamarieflarecollection" => Some(ClassType::OlgaMarieFlareCollection),
+        "uolgamarieaquacollection" => Some(ClassType::OlgaMarieAquaCollection),
         _ => None,
     }
 }
@@ -167,4 +179,264 @@ fn compact(value: &str) -> String {
         .filter(|character| !matches!(character, '_' | '-' | ' '))
         .flat_map(char::to_lowercase)
         .collect()
+}
+
+/// Adds compact gameplay metadata from a single Atlas nice-servant response.
+pub fn enrich_servant(servant: &mut ServantRecord, row: &Value) -> Result<(), String> {
+    use crate::loader::{AffectionScaling, NoblePhantasmRecord, NpStatus};
+    if row.get("id").and_then(Value::as_u64) != Some(servant.id as u64) {
+        return Err(format!(
+            "Atlas returned the wrong servant for {}.",
+            servant.name
+        ));
+    }
+    let cards = row
+        .get("cards")
+        .and_then(Value::as_array)
+        .filter(|cards| cards.len() == 5)
+        .ok_or_else(|| {
+            format!(
+                "{} has no valid five-card deck in Atlas data.",
+                servant.name
+            )
+        })?;
+    match cards.iter().map(parse_card).collect::<Option<Vec<_>>>() {
+        Some(deck) => {
+            servant.deck = deck;
+            servant.deck_note = None;
+        }
+        None if servant.class == ClassType::BeastIV
+            && cards
+                .iter()
+                .all(|card| card.as_str() == Some("10") || card.as_u64() == Some(10)) =>
+        {
+            servant.deck.clear();
+            servant.deck_note = Some("Atlas lists only special card type 10 for Beast IV. Three-card damage cannot be calculated for this servant.".into());
+        }
+        None => {
+            return Err(format!(
+                "{} has unsupported card types in Atlas data.",
+                servant.name
+            ));
+        }
+    }
+    servant.noble_phantasms.clear();
+    let Some(nps) = row
+        .get("noblePhantasms")
+        .and_then(Value::as_array)
+        .filter(|nps| !nps.is_empty())
+    else {
+        servant.np_status = NpStatus::Unavailable;
+        return Ok(());
+    };
+    let mut unsupported = false;
+    let mut incomplete = false;
+    for np in nps {
+        let Some(functions) = np
+            .get("functions")
+            .and_then(Value::as_array)
+            .filter(|f| !f.is_empty())
+        else {
+            incomplete = true;
+            continue;
+        };
+        if functions
+            .iter()
+            .any(|function| function.get("funcType").and_then(Value::as_str).is_none())
+        {
+            incomplete = true;
+            continue;
+        }
+        let damage_functions: Vec<_> = functions
+            .iter()
+            .enumerate()
+            .filter(|(_, f)| {
+                f.get("funcType")
+                    .and_then(Value::as_str)
+                    .is_some_and(|t| t.starts_with("damage"))
+            })
+            .collect();
+        if damage_functions.is_empty() {
+            if np
+                .get("effectFlags")
+                .and_then(Value::as_array)
+                .is_some_and(|flags| {
+                    flags.iter().any(|flag| {
+                        flag.as_str()
+                            .is_some_and(|flag| flag.starts_with("attackEnemy"))
+                    })
+                })
+            {
+                unsupported = true;
+            }
+            continue;
+        }
+        if damage_functions.len() != 1 {
+            unsupported = true;
+            continue;
+        }
+        let (position, damage) = damage_functions[0];
+        let function_type = damage["funcType"].as_str().unwrap_or("");
+        let affection_np = function_type == "damageNpBattlePointPhase" && servant.id == 3_300_200;
+        // Conditional trait damage uses Value as its ordinary base; Correction is intentionally not applied.
+        if !matches!(function_type, "damageNp" | "damageNpIndividual") && !affection_np {
+            unsupported = true;
+            continue;
+        }
+        let Some(values) = damage
+            .get("svals")
+            .and_then(Value::as_array)
+            .filter(|v| v.len() == 5)
+        else {
+            incomplete = true;
+            continue;
+        };
+        let multipliers: Option<Vec<f64>> = values
+            .iter()
+            .map(|v| {
+                v.get("Value")
+                    .and_then(Value::as_f64)
+                    .filter(|v| v.is_finite() && *v > 0.0)
+                    .map(|v| v / 1000.0)
+            })
+            .collect();
+        let Some(multipliers) = multipliers else {
+            incomplete = true;
+            continue;
+        };
+        let affection = if affection_np {
+            let scales: Option<Vec<_>> = values
+                .iter()
+                .map(|value| {
+                    let base = value.get("Value2")?.as_f64()? / 1000.0;
+                    let per_level = value.get("Correction")?.as_f64()? / 1000.0;
+                    let target = value.get("Target")?.as_u64()?;
+                    (target == servant.id as u64
+                        && base.is_finite()
+                        && per_level.is_finite()
+                        && base > 0.0
+                        && per_level > 0.0)
+                        .then_some((base, per_level))
+                })
+                .collect();
+            let Some(scales) =
+                scales.filter(|scales| scales.iter().all(|scale| *scale == scales[0]))
+            else {
+                incomplete = true;
+                continue;
+            };
+            Some(AffectionScaling {
+                base: scales[0].0,
+                per_level: scales[0].1,
+                max_level: 10,
+                ignore_defense_at: 7,
+            })
+        } else {
+            None
+        };
+        let Some(card_type) = np.get("card").and_then(parse_card) else {
+            incomplete = true;
+            continue;
+        };
+        let Some(id) = np
+            .get("id")
+            .and_then(Value::as_u64)
+            .and_then(|v| u32::try_from(v).ok())
+            .filter(|v| *v > 0)
+        else {
+            incomplete = true;
+            continue;
+        };
+        let Some(name) = np
+            .get("name")
+            .and_then(Value::as_str)
+            .filter(|n| !n.trim().is_empty())
+        else {
+            incomplete = true;
+            continue;
+        };
+        let mut notes = Vec::new();
+        if function_type == "damageNpIndividual" {
+            notes.push("Conditional NP damage bonuses are excluded; this is base damage.".into());
+        }
+        if affection_np {
+            notes.push("Set the affection level at the moment NP damage lands. Higher Overcharge can raise the gauge before damage; adjust the level manually.".into());
+        }
+        if position > 0 {
+            notes.push(if affection_np {
+                "Other NP effects before damage are not applied automatically; enter applicable buffs manually."
+            } else {
+                "NP effects before damage are not applied automatically; enter applicable buffs manually."
+            }.into());
+        }
+        if functions.len() > 1 {
+            notes.push(
+                "Other NP effects, including changes to later cards, are not simulated.".into(),
+            );
+        }
+        if (2..=5).any(|oc| {
+            damage
+                .get(format!("svals{oc}"))
+                .is_some_and(|other| other != &damage["svals"])
+        }) {
+            notes.push("Damage uses Overcharge 1; higher Overcharge effects are excluded.".into());
+        }
+        if servant
+            .noble_phantasms
+            .iter()
+            .any(|existing| existing.id == id)
+        {
+            continue;
+        }
+        servant.noble_phantasms.push(NoblePhantasmRecord {
+            id,
+            name: format!(
+                "{name} ({})",
+                if np
+                    .get("strengthStatus")
+                    .and_then(Value::as_u64)
+                    .unwrap_or(0)
+                    >= 2
+                {
+                    "upgraded"
+                } else {
+                    "base"
+                }
+            ),
+            card_type,
+            multipliers: multipliers.try_into().expect("five values"),
+            affection,
+            notes,
+        });
+    }
+    servant.np_status = if !servant.noble_phantasms.is_empty() {
+        if unsupported || incomplete {
+            for np in &mut servant.noble_phantasms {
+                np.notes.push("Some NP variants have unsupported or unavailable damage data and cannot be selected.".into());
+            }
+        }
+        NpStatus::Damaging
+    } else if unsupported {
+        NpStatus::Unsupported
+    } else if incomplete {
+        NpStatus::Unavailable
+    } else {
+        NpStatus::Support
+    };
+    Ok(())
+}
+
+fn parse_card(value: &Value) -> Option<crate::model::CardType> {
+    use crate::model::CardType;
+    match value
+        .as_str()
+        .map(str::to_owned)
+        .or_else(|| value.as_u64().map(|v| v.to_string()))
+        .as_deref()
+    {
+        Some("1" | "arts") => Some(CardType::Arts),
+        Some("2" | "buster") => Some(CardType::Buster),
+        Some("3" | "quick") => Some(CardType::Quick),
+        _ => None,
+    }
 }

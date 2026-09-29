@@ -4,7 +4,7 @@ mod store;
 
 use crate::loader::GameData;
 
-pub use normalize::NormalizationReport;
+pub use normalize::{NormalizationReport, enrich_servant, normalize_atlas_export};
 
 use atlas::AtlasClient;
 use store::SnapshotStore;
@@ -37,9 +37,14 @@ impl ServantDataService {
         match store.load() {
             Ok(Some(game_data)) => StartupData {
                 status: format!(
-                    "Loaded {} local servants · updated {}.",
+                    "Loaded {} local servants · updated {}.{}",
                     game_data.servants.len(),
-                    format_retrieved_at(&game_data.retrieved_at)
+                    format_retrieved_at(&game_data.retrieved_at),
+                    if game_data.servants.iter().any(|s| s.deck.is_empty()) {
+                        " Older data has no card decks. Choose Update servant data to enable turn calculations."
+                    } else {
+                        ""
+                    }
                 ),
                 game_data: Ok(game_data),
             },
@@ -59,7 +64,50 @@ impl ServantDataService {
         let store = SnapshotStore::in_app_data_directory()?;
         let client = AtlasClient::new()?;
         let payload = client.fetch_basic_export()?;
-        let report = normalize::normalize_atlas_export(&payload)?;
+        let mut report = normalize::normalize_atlas_export(&payload)?;
+        if report.game_data.servants.len() > 1000 {
+            return Err("Atlas returned too many servants; the saved data was not changed.".into());
+        }
+        // Four bounded workers; each request has timeouts, a response-size cap and at most three attempts.
+        // No snapshot is replaced until every requested servant has been normalized.
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(600);
+        let chunk_size = report.game_data.servants.len().div_ceil(4);
+        let cancelled = std::sync::atomic::AtomicBool::new(false);
+        std::thread::scope(|scope| -> Result<(), String> {
+            let handles: Vec<_> = report.game_data.servants.chunks_mut(chunk_size).map(|chunk| {
+                let cancelled = &cancelled;
+                scope.spawn(move || -> Result<(), String> {
+                    let result = (|| {
+                        let client = AtlasClient::new()?;
+                        for servant in chunk {
+                            if cancelled.load(std::sync::atomic::Ordering::Relaxed) { return Ok(()); }
+                            if std::time::Instant::now() >= deadline {
+                                return Err("The servant update exceeded ten minutes; saved data was retained.".into());
+                            }
+                            let nice = client.fetch_servant(servant.id).map_err(|error|
+                                format!("Could not update {} ({}): {error}", servant.name, servant.id))?;
+                            normalize::enrich_servant(servant, &nice)?;
+                        }
+                        Ok(())
+                    })();
+                    if result.is_err() { cancelled.store(true, std::sync::atomic::Ordering::Relaxed); }
+                    result
+                })
+            }).collect();
+            let mut failure = None;
+            for handle in handles {
+                let result = handle.join().unwrap_or_else(|_| {
+                    cancelled.store(true, std::sync::atomic::Ordering::Relaxed);
+                    Err("A servant update worker stopped unexpectedly.".to_owned())
+                });
+                if let Err(error) = result {
+                    failure.get_or_insert(error);
+                }
+            }
+            failure.map_or(Ok(()), Err)
+        })?;
+        report.game_data.version = "atlas-nice-v2".into();
+        report.game_data.validate()?;
         store.save(&report.game_data)?;
 
         Ok(UpdateReport {

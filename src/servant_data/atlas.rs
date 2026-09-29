@@ -30,8 +30,16 @@ impl AtlasClient {
     }
 
     pub fn fetch_basic_export(&self) -> Result<Value, String> {
+        self.fetch_url(BASIC_EXPORT_URL)
+    }
+    pub fn fetch_servant(&self, id: u32) -> Result<Value, String> {
+        self.fetch_url(&format!(
+            "https://api.atlasacademy.io/nice/NA/servant/{id}?lang=en"
+        ))
+    }
+    fn fetch_url(&self, url: &str) -> Result<Value, String> {
         for attempt in 1..=MAX_ATTEMPTS {
-            match self.fetch_once() {
+            match self.fetch_once(url) {
                 Ok(payload) => return Ok(payload),
                 Err(FetchError {
                     message,
@@ -53,16 +61,12 @@ impl AtlasClient {
         Err("Atlas Academy servant data download ended unexpectedly.".into())
     }
 
-    fn fetch_once(&self) -> Result<Value, FetchError> {
-        let response = self
-            .client
-            .get(BASIC_EXPORT_URL)
-            .send()
-            .map_err(|error| FetchError {
-                message: format!("network request failed: {error}"),
-                retryable: true,
-                retry_after: None,
-            })?;
+    fn fetch_once(&self, url: &str) -> Result<Value, FetchError> {
+        let response = self.client.get(url).send().map_err(|error| FetchError {
+            message: format!("network request failed: {error}"),
+            retryable: true,
+            retry_after: None,
+        })?;
 
         let response = checked_response(response)?;
         let mut body = Vec::new();

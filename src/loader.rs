@@ -25,6 +25,50 @@ pub struct ServantRecord {
     pub class: ClassType,
     pub attribute: AttributeType,
     pub source_url: String,
+    #[serde(default)]
+    pub deck: Vec<CardType>,
+    #[serde(default)]
+    pub deck_note: Option<String>,
+    #[serde(default)]
+    pub noble_phantasms: Vec<NoblePhantasmRecord>,
+    #[serde(default)]
+    pub np_status: NpStatus,
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum NpStatus {
+    Damaging,
+    Support,
+    #[default]
+    Unavailable,
+    Unsupported,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct NoblePhantasmRecord {
+    pub id: u32,
+    pub name: String,
+    pub card_type: CardType,
+    pub multipliers: [f64; 5],
+    #[serde(default)]
+    pub affection: Option<AffectionScaling>,
+    #[serde(default)]
+    pub notes: Vec<String>,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct AffectionScaling {
+    pub base: f64,
+    pub per_level: f64,
+    pub max_level: u8,
+    pub ignore_defense_at: u8,
+}
+
+impl AffectionScaling {
+    pub fn multiplier(&self, level: u8) -> f64 {
+        self.base + self.per_level * f64::from(level)
+    }
 }
 
 impl ServantRecord {
@@ -83,6 +127,44 @@ impl GameData {
 
         let mut ids = HashSet::with_capacity(self.servants.len());
         for servant in &self.servants {
+            if !servant.deck.is_empty()
+                && (servant.deck.len() != 5 || servant.deck.contains(&CardType::Extra))
+            {
+                return Err(format!("{} has an invalid five-card deck.", servant.name));
+            }
+            if servant
+                .deck_note
+                .as_ref()
+                .is_some_and(|note| note.trim().is_empty())
+                || (!servant.deck.is_empty() && servant.deck_note.is_some())
+            {
+                return Err(format!(
+                    "{} has inconsistent card availability data.",
+                    servant.name
+                ));
+            }
+            if (servant.np_status == NpStatus::Damaging) != !servant.noble_phantasms.is_empty() {
+                return Err(format!("{} has inconsistent NP metadata.", servant.name));
+            }
+            let mut np_ids = HashSet::new();
+            for np in &servant.noble_phantasms {
+                if np.id == 0
+                    || !np_ids.insert(np.id)
+                    || np.name.trim().is_empty()
+                    || np.card_type == CardType::Extra
+                    || np.multipliers.iter().any(|v| !v.is_finite() || *v <= 0.0)
+                    || np.affection.as_ref().is_some_and(|scale| {
+                        !scale.base.is_finite()
+                            || !scale.per_level.is_finite()
+                            || scale.base <= 0.0
+                            || scale.per_level <= 0.0
+                            || scale.max_level != 10
+                            || !(1..=scale.max_level).contains(&scale.ignore_defense_at)
+                    })
+                {
+                    return Err(format!("{} has invalid NP damage data.", servant.name));
+                }
+            }
             if servant.id == 0
                 || servant.name.trim().is_empty()
                 || servant.attack == 0
@@ -93,12 +175,6 @@ impl GameData {
             if servant.level == Some(0) {
                 return Err(format!(
                     "{} has an invalid level in game data.",
-                    servant.name
-                ));
-            }
-            if servant.class == ClassType::Beast {
-                return Err(format!(
-                    "{} uses Beast class affinity, which must be specified per encounter.",
                     servant.name
                 ));
             }
