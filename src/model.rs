@@ -167,6 +167,15 @@ pub enum ClassType {
     Foreigner,
     Pretender,
     Beast,
+    BeastEresh,
+    BeastI,
+    BeastII,
+    BeastIIIL,
+    BeastIIIR,
+    BeastIV,
+    LoreGrandCaster,
+    OlgaMarieFlareCollection,
+    OlgaMarieAquaCollection,
     Shielder,
 }
 
@@ -204,13 +213,22 @@ impl ClassType {
             Self::Foreigner => "Foreigner",
             Self::Pretender => "Pretender",
             Self::Beast => "Beast",
+            Self::BeastEresh => "Beast Ereshkigal",
+            Self::BeastI => "Beast I",
+            Self::BeastII => "Beast II",
+            Self::BeastIIIL => "Beast III/L",
+            Self::BeastIIIR => "Beast III/R",
+            Self::BeastIV => "Beast IV",
+            Self::LoreGrandCaster => "Grand Caster (Solomon)",
+            Self::OlgaMarieFlareCollection => "E-Flare Marie",
+            Self::OlgaMarieAquaCollection => "E-Aqua Marie",
             Self::Shielder => "Shielder",
         }
     }
 
     /// Returns the directional class affinity multiplier from attacker to target.
-    /// The generic Beast class is intentionally neutral here because individual
-    /// Beast encounters use different rows in the source game data.
+    /// The additional rows cover the ten servant classes omitted by the old importer.
+    /// Enemy selection currently uses the fourteen ordinary target classes.
     pub const fn affinity_against(self, target: Self) -> f64 {
         const RELATIONS: [[u16; 14]; 14] = [
             [
@@ -257,14 +275,66 @@ impl ClassType {
             ],
         ];
 
-        let Some(attacker_index) = self.affinity_index() else {
-            return 1.0;
-        };
+        // Atlas Academy NA NiceClassRelation.json, attacker rows in the order
+        // Beast, Beast Eresh, Beast I, Beast II, Beast III/L, Beast III/R,
+        // Beast IV, lore Grand Caster, E-Flare Marie, E-Aqua Marie.
+        const ADDITIONAL_RELATIONS: [[u16; 14]; 10] = [
+            [
+                1500, 1500, 1500, 1500, 1500, 1500, 2000, 1000, 500, 500, 500, 500, 500, 500,
+            ],
+            [
+                1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1500, 1500, 500, 1500, 1500, 1500,
+            ],
+            [
+                2000, 2000, 2000, 1000, 1000, 1000, 2000, 1000, 1000, 1000, 500, 1000, 1000, 1000,
+            ],
+            [
+                1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000,
+            ],
+            [
+                1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000,
+            ],
+            [
+                1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000,
+            ],
+            [
+                1000, 1000, 1000, 1000, 500, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000,
+            ],
+            [
+                1000, 1000, 1000, 500, 1000, 2000, 2000, 1000, 500, 1000, 1000, 1000, 1000, 1000,
+            ],
+            [
+                1000, 1000, 1000, 500, 1000, 1500, 2000, 500, 1000, 1500, 1000, 500, 500, 1000,
+            ],
+            [
+                1000, 1500, 500, 1500, 500, 1000, 1000, 500, 1000, 500, 1500, 1000, 1000, 1000,
+            ],
+        ];
+
         let Some(target_index) = target.affinity_index() else {
             return 1.0;
         };
+        let rate = match self.affinity_index() {
+            Some(attacker_index) => RELATIONS[attacker_index][target_index],
+            None => ADDITIONAL_RELATIONS[self.additional_affinity_index()][target_index],
+        };
+        rate as f64 / 1000.0
+    }
 
-        RELATIONS[attacker_index][target_index] as f64 / 1000.0
+    const fn additional_affinity_index(self) -> usize {
+        match self {
+            Self::Beast => 0,
+            Self::BeastEresh => 1,
+            Self::BeastI => 2,
+            Self::BeastII => 3,
+            Self::BeastIIIL => 4,
+            Self::BeastIIIR => 5,
+            Self::BeastIV => 6,
+            Self::LoreGrandCaster => 7,
+            Self::OlgaMarieFlareCollection => 8,
+            Self::OlgaMarieAquaCollection => 9,
+            _ => unreachable!(),
+        }
     }
 
     const fn affinity_index(self) -> Option<usize> {
@@ -283,7 +353,16 @@ impl ClassType {
             Self::MoonCancer => Some(11),
             Self::Foreigner => Some(12),
             Self::Pretender => Some(13),
-            Self::Beast => None,
+            Self::Beast
+            | Self::BeastEresh
+            | Self::BeastI
+            | Self::BeastII
+            | Self::BeastIIIL
+            | Self::BeastIIIR
+            | Self::BeastIV
+            | Self::LoreGrandCaster
+            | Self::OlgaMarieFlareCollection
+            | Self::OlgaMarieAquaCollection => None,
         }
     }
 
@@ -302,6 +381,15 @@ impl ClassType {
             Self::AlterEgo => 1.0,
             Self::Foreigner => 1.0,
             Self::Beast => 1.0,
+            Self::BeastEresh
+            | Self::BeastI
+            | Self::BeastII
+            | Self::BeastIIIL
+            | Self::BeastIIIR
+            | Self::BeastIV
+            | Self::OlgaMarieFlareCollection
+            | Self::OlgaMarieAquaCollection => 1.0,
+            Self::LoreGrandCaster => 0.9,
             Self::Pretender => 1.0,
             Self::Shielder => 1.0,
         }

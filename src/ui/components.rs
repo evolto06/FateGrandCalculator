@@ -292,9 +292,9 @@ fn turn_selector(
     ui.add_space(6.0);
     if servant.deck.len() != 5 {
         ui.label(
-            RichText::new(
+            RichText::new(servant.deck_note.as_deref().unwrap_or(
                 "Card data is unavailable. Update servant data to load this servant's deck.",
-            )
+            ))
             .color(ERROR),
         );
         return;

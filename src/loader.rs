@@ -28,6 +28,8 @@ pub struct ServantRecord {
     #[serde(default)]
     pub deck: Vec<CardType>,
     #[serde(default)]
+    pub deck_note: Option<String>,
+    #[serde(default)]
     pub noble_phantasms: Vec<NoblePhantasmRecord>,
     #[serde(default)]
     pub np_status: NpStatus,
@@ -114,6 +116,17 @@ impl GameData {
             {
                 return Err(format!("{} has an invalid five-card deck.", servant.name));
             }
+            if servant
+                .deck_note
+                .as_ref()
+                .is_some_and(|note| note.trim().is_empty())
+                || (!servant.deck.is_empty() && servant.deck_note.is_some())
+            {
+                return Err(format!(
+                    "{} has inconsistent card availability data.",
+                    servant.name
+                ));
+            }
             if (servant.np_status == NpStatus::Damaging) != !servant.noble_phantasms.is_empty() {
                 return Err(format!("{} has inconsistent NP metadata.", servant.name));
             }
@@ -138,12 +151,6 @@ impl GameData {
             if servant.level == Some(0) {
                 return Err(format!(
                     "{} has an invalid level in game data.",
-                    servant.name
-                ));
-            }
-            if servant.class == ClassType::Beast {
-                return Err(format!(
-                    "{} uses Beast class affinity, which must be specified per encounter.",
                     servant.name
                 ));
             }

@@ -59,7 +59,6 @@ pub fn normalize_atlas_export(payload: &Value) -> Result<NormalizationReport, St
             continue;
         };
         let Some(class) = source.class_name.as_deref().and_then(parse_class) else {
-            // The calculator intentionally excludes Beast and non-playable classes.
             skipped_rows += 1;
             continue;
         };
@@ -90,6 +89,7 @@ pub fn normalize_atlas_export(payload: &Value) -> Result<NormalizationReport, St
             class,
             attribute,
             deck: Vec::new(),
+            deck_note: None,
             noble_phantasms: Vec::new(),
             np_status: crate::loader::NpStatus::Unavailable,
             source_url: format!("https://api.atlasacademy.io/nice/{REGION}/servant/{id}"),
@@ -147,7 +147,16 @@ fn parse_class(value: &str) -> Option<ClassType> {
         "foreigner" => Some(ClassType::Foreigner),
         "pretender" => Some(ClassType::Pretender),
         "shielder" => Some(ClassType::Shielder),
-        // Beast is encounter-specific in this calculator and is filtered here.
+        "beast" => Some(ClassType::Beast),
+        "beasteresh" => Some(ClassType::BeastEresh),
+        "beasti" => Some(ClassType::BeastI),
+        "beastii" => Some(ClassType::BeastII),
+        "beastiiil" => Some(ClassType::BeastIIIL),
+        "beastiiir" => Some(ClassType::BeastIIIR),
+        "beastiv" => Some(ClassType::BeastIV),
+        "loregrandcaster" => Some(ClassType::LoreGrandCaster),
+        "uolgamarieflarecollection" => Some(ClassType::OlgaMarieFlareCollection),
+        "uolgamarieaquacollection" => Some(ClassType::OlgaMarieAquaCollection),
         _ => None,
     }
 }
@@ -181,18 +190,36 @@ pub fn enrich_servant(servant: &mut ServantRecord, row: &Value) -> Result<(), St
             servant.name
         ));
     }
-    let deck: Option<Vec<_>> = row
+    let cards = row
         .get("cards")
         .and_then(Value::as_array)
-        .map(|cards| cards.iter().map(parse_card).collect())
-        .flatten();
-    let deck = deck.filter(|cards| cards.len() == 5).ok_or_else(|| {
-        format!(
-            "{} has no valid five-card deck in Atlas data.",
-            servant.name
-        )
-    })?;
-    servant.deck = deck;
+        .filter(|cards| cards.len() == 5)
+        .ok_or_else(|| {
+            format!(
+                "{} has no valid five-card deck in Atlas data.",
+                servant.name
+            )
+        })?;
+    match cards.iter().map(parse_card).collect::<Option<Vec<_>>>() {
+        Some(deck) => {
+            servant.deck = deck;
+            servant.deck_note = None;
+        }
+        None if servant.class == ClassType::BeastIV
+            && cards
+                .iter()
+                .all(|card| card.as_str() == Some("10") || card.as_u64() == Some(10)) =>
+        {
+            servant.deck.clear();
+            servant.deck_note = Some("Atlas lists only special card type 10 for Beast IV. Three-card damage cannot be calculated for this servant.".into());
+        }
+        None => {
+            return Err(format!(
+                "{} has unsupported card types in Atlas data.",
+                servant.name
+            ));
+        }
+    }
     servant.noble_phantasms.clear();
     let Some(nps) = row
         .get("noblePhantasms")

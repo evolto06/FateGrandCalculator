@@ -375,7 +375,10 @@ fn show_result(
     let Some(selection) = selection else {
         ui.colored_label(
             egui::Color32::LIGHT_RED,
-            "Card data is unavailable. Update servant data to load it.",
+            servant
+                .deck_note
+                .as_deref()
+                .unwrap_or("Card data is unavailable. Update servant data to load it."),
         );
         return;
     };
