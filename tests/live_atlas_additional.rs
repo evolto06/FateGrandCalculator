@@ -2,7 +2,10 @@
 
 use std::time::Duration;
 
-use fate_grand_calculator::servant_data::{enrich_servant, normalize_atlas_export};
+use fate_grand_calculator::{
+    loader::NpStatus,
+    servant_data::{enrich_servant, normalize_atlas_export},
+};
 use serde_json::Value;
 
 #[test]
@@ -54,4 +57,12 @@ fn current_na_export_enriches_all_ten_additional_servants() {
     report.game_data.validate().unwrap();
     assert_eq!(report.game_data.servant(9943610).unwrap().deck.len(), 0);
     assert_eq!(report.game_data.servant(3300200).unwrap().deck.len(), 5);
+    let eresh = report.game_data.servant(3300200).unwrap();
+    assert_eq!(eresh.np_status, NpStatus::Damaging);
+    assert!(
+        eresh
+            .noble_phantasms
+            .iter()
+            .all(|np| np.affection.is_some())
+    );
 }

@@ -15,7 +15,11 @@ fn run(
 ) -> fate_grand_calculator::damage::TurnDamageResult {
     calculate_turn(
         &servant(),
-        &TurnSelection { slots, np_level: 1 },
+        &TurnSelection {
+            slots,
+            np_level: 1,
+            affection_level: 1,
+        },
         buffs,
         ClassType::Saber,
         AttributeType::Earth,
@@ -104,6 +108,7 @@ fn np_level_and_upgrade_select_independent_multipliers() {
             SelectedCard::Normal(1),
         ],
         np_level: 5,
+        affection_level: 1,
     };
     let result = calculate_turn(
         &base,

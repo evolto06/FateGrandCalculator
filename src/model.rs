@@ -426,6 +426,7 @@ impl SelectedCard {
 pub struct TurnSelection {
     pub slots: [SelectedCard; 3],
     pub np_level: u8,
+    pub affection_level: u8,
 }
 
 impl TurnSelection {
@@ -446,7 +447,11 @@ impl TurnSelection {
                 SelectedCard::Normal(1),
             ]
         };
-        Some(Self { slots, np_level: 1 })
+        Some(Self {
+            slots,
+            np_level: 1,
+            affection_level: 1,
+        })
     }
 
     pub fn validate(&self, servant: &crate::loader::ServantRecord) -> Result<(), String> {
@@ -457,6 +462,9 @@ impl TurnSelection {
         }
         if !(1..=5).contains(&self.np_level) {
             return Err("NP level must be between 1 and 5.".into());
+        }
+        if self.affection_level > 10 {
+            return Err("Affection level must be between 0 and 10.".into());
         }
         let mut used = [false; 5];
         let mut np_used = false;

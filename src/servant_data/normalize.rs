@@ -183,7 +183,7 @@ fn compact(value: &str) -> String {
 
 /// Adds compact gameplay metadata from a single Atlas nice-servant response.
 pub fn enrich_servant(servant: &mut ServantRecord, row: &Value) -> Result<(), String> {
-    use crate::loader::{NoblePhantasmRecord, NpStatus};
+    use crate::loader::{AffectionScaling, NoblePhantasmRecord, NpStatus};
     if row.get("id").and_then(Value::as_u64) != Some(servant.id as u64) {
         return Err(format!(
             "Atlas returned the wrong servant for {}.",
@@ -277,8 +277,9 @@ pub fn enrich_servant(servant: &mut ServantRecord, row: &Value) -> Result<(), St
         }
         let (position, damage) = damage_functions[0];
         let function_type = damage["funcType"].as_str().unwrap_or("");
+        let affection_np = function_type == "damageNpBattlePointPhase" && servant.id == 3_300_200;
         // Conditional trait damage uses Value as its ordinary base; Correction is intentionally not applied.
-        if !matches!(function_type, "damageNp" | "damageNpIndividual") {
+        if !matches!(function_type, "damageNp" | "damageNpIndividual") && !affection_np {
             unsupported = true;
             continue;
         }
@@ -303,6 +304,36 @@ pub fn enrich_servant(servant: &mut ServantRecord, row: &Value) -> Result<(), St
             incomplete = true;
             continue;
         };
+        let affection = if affection_np {
+            let scales: Option<Vec<_>> = values
+                .iter()
+                .map(|value| {
+                    let base = value.get("Value2")?.as_f64()? / 1000.0;
+                    let per_level = value.get("Correction")?.as_f64()? / 1000.0;
+                    let target = value.get("Target")?.as_u64()?;
+                    (target == servant.id as u64
+                        && base.is_finite()
+                        && per_level.is_finite()
+                        && base > 0.0
+                        && per_level > 0.0)
+                        .then_some((base, per_level))
+                })
+                .collect();
+            let Some(scales) =
+                scales.filter(|scales| scales.iter().all(|scale| *scale == scales[0]))
+            else {
+                incomplete = true;
+                continue;
+            };
+            Some(AffectionScaling {
+                base: scales[0].0,
+                per_level: scales[0].1,
+                max_level: 10,
+                ignore_defense_at: 7,
+            })
+        } else {
+            None
+        };
         let Some(card_type) = np.get("card").and_then(parse_card) else {
             incomplete = true;
             continue;
@@ -325,11 +356,18 @@ pub fn enrich_servant(servant: &mut ServantRecord, row: &Value) -> Result<(), St
             continue;
         };
         let mut notes = Vec::new();
-        if function_type != "damageNp" {
+        if function_type == "damageNpIndividual" {
             notes.push("Conditional NP damage bonuses are excluded; this is base damage.".into());
         }
+        if affection_np {
+            notes.push("Set the affection level at the moment NP damage lands. Higher Overcharge can raise the gauge before damage; adjust the level manually.".into());
+        }
         if position > 0 {
-            notes.push("NP effects before damage are not applied automatically; enter applicable buffs manually.".into());
+            notes.push(if affection_np {
+                "Other NP effects before damage are not applied automatically; enter applicable buffs manually."
+            } else {
+                "NP effects before damage are not applied automatically; enter applicable buffs manually."
+            }.into());
         }
         if functions.len() > 1 {
             notes.push(
@@ -367,6 +405,7 @@ pub fn enrich_servant(servant: &mut ServantRecord, row: &Value) -> Result<(), St
             ),
             card_type,
             multipliers: multipliers.try_into().expect("five values"),
+            affection,
             notes,
         });
     }

@@ -140,7 +140,7 @@ pub fn calculate_turn(
     let mut notes = Vec::new();
     let cards = std::array::from_fn(|position| {
         let color = colors[position];
-        let (np_multiplier, np_buff, position_multiplier, bonus, flat) =
+        let (np_multiplier, np_buff, position_multiplier, bonus, flat, ignore_defense) =
             match selection.slots[position] {
                 SelectedCard::Normal(_) => (
                     1.0,
@@ -152,16 +152,24 @@ pub fn calculate_turn(
                     } else {
                         0.0
                     },
+                    false,
                 ),
                 SelectedCard::NoblePhantasm(index) => {
                     let np = &servant.noble_phantasms[index];
                     notes.extend(np.notes.iter().cloned());
+                    let affection_multiplier = np
+                        .affection
+                        .as_ref()
+                        .map_or(1.0, |scale| scale.multiplier(selection.affection_level));
                     (
-                        np.multipliers[selection.np_level as usize - 1],
+                        np.multipliers[selection.np_level as usize - 1] * affection_multiplier,
                         (1.0 + buffs.np_damage_buff).max(0.001),
                         1.0,
                         0.0,
                         0.0,
+                        np.affection.as_ref().is_some_and(|scale| {
+                            selection.affection_level >= scale.ignore_defense_at
+                        }),
                     )
                 }
             };
@@ -173,7 +181,14 @@ pub fn calculate_turn(
         };
         turn_card(
             servant,
-            buffs,
+            TurnBuffs {
+                enemy_defense: if ignore_defense {
+                    buffs.enemy_defense.min(0.0)
+                } else {
+                    buffs.enemy_defense
+                },
+                ..buffs
+            },
             enemy_class,
             enemy_attribute,
             color.base_multiplier() * position_multiplier,

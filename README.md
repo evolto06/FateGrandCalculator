@@ -39,7 +39,7 @@ The calculator estimates a selected servant's three ordered attacks against one 
 
 Enter buffs and enemy defense as whole percentages: `20` means 20%. Attack and defense are additive in the damage formula. Buster, Arts, and Quick buffs have separate inputs so mixed-color sequences can be calculated. NP level and available NP variants are selectable. The calculation uses the 0.23 attack factor, normal-card positions, first-card effects, class attack rate, class and attribute affinity, NP multiplier and NP damage buff, Buster Chain damage, and Extra attack rules. Each range uses random modifiers from 90.0% through 109.9%. These terms follow [Atlas Academy's damage formula](https://apps.atlasacademy.io/fgo-docs/deeper/battle/damage.html), [card values](https://api.atlasacademy.io/export/JP/NiceCard.json), and [random modifier range](https://apps.atlasacademy.io/fgo-docs/).
 
-Damage shown for an NP is its base estimate. Conditional trait bonuses, Overcharge above level 1, automatic NP effects before or after damage, critical hits, skill effects, and enemy HP or retargeting are not simulated. The app labels unsupported or missing NP damage data rather than guessing; those servants can still use three normal cards. The selected servant's command cards represent cards available in the user's current hand. The app does not generate a party-wide hand.
+Damage shown for an NP is its base estimate, except Space Ereshkigal's NP, which applies the selected affection level's 10% damage bonus per level and ignores enemy defense at level 7 or higher. Level 1 is the normal starting value; level 0 has no affection bonus. Set the affection level at the moment damage lands; an Overcharged NP can raise the gauge before damage, and the app does not calculate that gain automatically. Other conditional trait bonuses, Overcharge effects, automatic NP effects before or after damage, critical hits, skill effects, and enemy HP or retargeting are not simulated. The app labels unsupported or missing NP damage data rather than guessing; those servants can still use three normal cards. The selected servant's command cards represent cards available in the user's current hand. The app does not generate a party-wide hand.
 
 ## Data
 
@@ -55,7 +55,7 @@ Please respect the data source's terms, licensing, `robots.txt`, and rate limits
 
 ## Project status
 
-The desktop milestone supports three-card sequences, base NP damage for supported NP forms, and per-card damage ranges against a selected enemy class and attribute. The additional servant classes use their specific Atlas NA attacker affinity and class attack rates against the fourteen enemy classes in the matchup selector. Conditional NP effects, including Space Ereshkigal's battle-phase NP damage, critical hits, party-wide card hands, and target HP remain future work.
+The desktop milestone supports three-card sequences, base NP damage for supported NP forms, Space Ereshkigal's affection-scaled NP damage, and per-card damage ranges against a selected enemy class and attribute. The additional servant classes use their specific Atlas NA attacker affinity and class attack rates against the fourteen enemy classes in the matchup selector. Other conditional NP effects, critical hits, party-wide card hands, and target HP remain future work.
 
 ## Development
 

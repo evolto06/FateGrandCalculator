@@ -52,7 +52,23 @@ pub struct NoblePhantasmRecord {
     pub card_type: CardType,
     pub multipliers: [f64; 5],
     #[serde(default)]
+    pub affection: Option<AffectionScaling>,
+    #[serde(default)]
     pub notes: Vec<String>,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct AffectionScaling {
+    pub base: f64,
+    pub per_level: f64,
+    pub max_level: u8,
+    pub ignore_defense_at: u8,
+}
+
+impl AffectionScaling {
+    pub fn multiplier(&self, level: u8) -> f64 {
+        self.base + self.per_level * f64::from(level)
+    }
 }
 
 impl ServantRecord {
@@ -137,6 +153,14 @@ impl GameData {
                     || np.name.trim().is_empty()
                     || np.card_type == CardType::Extra
                     || np.multipliers.iter().any(|v| !v.is_finite() || *v <= 0.0)
+                    || np.affection.as_ref().is_some_and(|scale| {
+                        !scale.base.is_finite()
+                            || !scale.per_level.is_finite()
+                            || scale.base <= 0.0
+                            || scale.per_level <= 0.0
+                            || scale.max_level != 10
+                            || !(1..=scale.max_level).contains(&scale.ignore_defense_at)
+                    })
                 {
                     return Err(format!("{} has invalid NP damage data.", servant.name));
                 }

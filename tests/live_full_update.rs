@@ -1,6 +1,6 @@
 #![cfg(not(target_arch = "wasm32"))]
 
-use fate_grand_calculator::servant_data::ServantDataService;
+use fate_grand_calculator::{loader::NpStatus, servant_data::ServantDataService};
 
 #[test]
 #[ignore = "downloads Atlas Academy data and updates the local servant snapshot"]
@@ -18,4 +18,8 @@ fn current_na_update_saves_the_complete_additional_servant_catalog() {
     let loaded = startup.game_data.unwrap();
     assert_eq!(loaded.servants.len(), report.game_data.servants.len());
     assert!(loaded.servant(3300200).is_some());
+    assert_eq!(
+        loaded.servant(3300200).unwrap().np_status,
+        NpStatus::Damaging
+    );
 }
