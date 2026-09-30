@@ -6,6 +6,7 @@ use fate_grand_calculator::{
 
 fn servant() -> fate_grand_calculator::loader::ServantRecord {
     let mut servant = GameData::bundled().unwrap().servants.remove(0);
+    servant.id = 3_300_200;
     servant.class = ClassType::BeastEresh;
     servant.noble_phantasms[0].card_type = CardType::Arts;
     servant.noble_phantasms[0].multipliers = [4.5, 6.0, 6.75, 7.125, 7.5];
@@ -65,6 +66,10 @@ fn affection_scales_only_np_damage() {
         level_one.cards[1].damage_before_random,
         level_ten.cards[1].damage_before_random
     );
+    assert_eq!(
+        level_one.extra.unwrap().damage_before_random,
+        level_ten.extra.unwrap().damage_before_random
+    );
 }
 
 #[test]
@@ -72,6 +77,11 @@ fn affection_seven_ignores_enemy_defense_for_np_only() {
     let level_six = damage(6, 0.2);
     let level_seven = damage(7, 0.2);
     let level_seven_no_defense = damage(7, 0.0);
+    let level_six_no_defense = damage(6, 0.0);
+    assert!(
+        level_six.cards[0].damage_before_random
+            < level_six_no_defense.cards[0].damage_before_random
+    );
     assert_eq!(
         level_seven.cards[0].damage_before_random,
         level_seven_no_defense.cards[0].damage_before_random
@@ -80,6 +90,18 @@ fn affection_seven_ignores_enemy_defense_for_np_only() {
     assert!(
         level_seven.cards[1].damage_before_random
             < level_seven_no_defense.cards[1].damage_before_random
+    );
+    assert_eq!(
+        level_six.cards[1].minimum_damage,
+        level_seven.cards[1].minimum_damage
+    );
+    assert_eq!(
+        level_six.extra.unwrap().minimum_damage,
+        level_seven.extra.unwrap().minimum_damage
+    );
+    assert!(
+        level_seven.extra.unwrap().minimum_damage
+            < level_seven_no_defense.extra.unwrap().minimum_damage
     );
     let level_seven_defense_down = damage(7, -0.2);
     assert!(

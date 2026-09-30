@@ -68,8 +68,77 @@
         "arts",
         "buster"
       ],
-      "np_status": "unsupported",
-      "noble_phantasms": []
+      "np_status": "damaging",
+      "noble_phantasms": [
+        {
+          "id": 200101,
+          "card_type": "buster",
+          "name": "Unlimited Blade Works (base)",
+          "multipliers": [
+            3.0,
+            4.0,
+            4.5,
+            4.75,
+            5.0
+          ],
+          "defense_pierce": true,
+          "notes": [
+            "Ignores positive enemy Defense; Defense Down still increases damage.",
+            "Other NP effects, including changes to later cards, are not simulated."
+          ]
+        },
+        {
+          "id": 200102,
+          "card_type": "buster",
+          "name": "Unlimited Blade Works (upgraded)",
+          "multipliers": [
+            4.0,
+            5.0,
+            5.5,
+            5.75,
+            6.0
+          ],
+          "defense_pierce": true,
+          "notes": [
+            "Ignores positive enemy Defense; Defense Down still increases damage.",
+            "Other NP effects, including changes to later cards, are not simulated."
+          ]
+        },
+        {
+          "id": 200197,
+          "card_type": "arts",
+          "name": "Unlimited Blade Works (base)",
+          "multipliers": [
+            6.0,
+            7.5,
+            8.25,
+            8.625,
+            9.0
+          ],
+          "defense_pierce": true,
+          "notes": [
+            "Ignores positive enemy Defense; Defense Down still increases damage.",
+            "Other NP effects, including changes to later cards, are not simulated."
+          ]
+        },
+        {
+          "id": 200198,
+          "card_type": "arts",
+          "name": "Unlimited Blade Works (base)",
+          "multipliers": [
+            4.5,
+            6.0,
+            6.75,
+            7.125,
+            7.5
+          ],
+          "defense_pierce": true,
+          "notes": [
+            "Ignores positive enemy Defense; Defense Down still increases damage.",
+            "Other NP effects, including changes to later cards, are not simulated."
+          ]
+        }
+      ]
     }
   ]
 }
