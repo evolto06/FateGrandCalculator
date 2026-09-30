@@ -243,6 +243,13 @@ pub fn result_panel(
                                 .color(TEXT_MUTED),
                             );
                         }
+                        if np.defense_pierce {
+                            ui.label(
+                                RichText::new("Ignores Defense Up · retains Defense Down")
+                                    .size(12.0)
+                                    .color(TEXT_MUTED),
+                            );
+                        }
                     }
                 }
                 damage_result(ui, result.cards[index], announce_result);

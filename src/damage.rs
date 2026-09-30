@@ -3,6 +3,7 @@
 //! Non-critical command cards and base NP damage, including ordered three-card
 //! selections. Every card and Extra attack has its own range.
 use crate::model::{CardType, ClassType};
+use crate::np_mechanics::{self, defense_pierce::effective_defense};
 
 const ATTACK_RATE: f64 = 0.23;
 const MIN_RANDOM_MODIFIER: f64 = 0.9;
@@ -157,19 +158,14 @@ pub fn calculate_turn(
                 SelectedCard::NoblePhantasm(index) => {
                     let np = &servant.noble_phantasms[index];
                     notes.extend(np.notes.iter().cloned());
-                    let affection_multiplier = np
-                        .affection
-                        .as_ref()
-                        .map_or(1.0, |scale| scale.multiplier(selection.affection_level));
+                    let modifiers = np_mechanics::modifiers(np, selection.affection_level);
                     (
-                        np.multipliers[selection.np_level as usize - 1] * affection_multiplier,
+                        np.multipliers[selection.np_level as usize - 1] * modifiers.multiplier,
                         (1.0 + buffs.np_damage_buff).max(0.001),
                         1.0,
                         0.0,
                         0.0,
-                        np.affection.as_ref().is_some_and(|scale| {
-                            selection.affection_level >= scale.ignore_defense_at
-                        }),
+                        modifiers.ignore_defense,
                     )
                 }
             };
@@ -182,11 +178,7 @@ pub fn calculate_turn(
         turn_card(
             servant,
             TurnBuffs {
-                enemy_defense: if ignore_defense {
-                    buffs.enemy_defense.min(0.0)
-                } else {
-                    buffs.enemy_defense
-                },
+                enemy_defense: effective_defense(buffs.enemy_defense, ignore_defense),
                 ..buffs
             },
             enemy_class,

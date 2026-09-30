@@ -6,6 +6,7 @@ use serde_json::Value;
 
 use crate::loader::{GameData, ServantRecord};
 use crate::model::{AttributeType, ClassType};
+use crate::np_mechanics::{self, NpDamageKind};
 
 const REGION: &str = "NA";
 const SOURCE_URL: &str = "https://api.atlasacademy.io/export/NA/basic_servant.json";
@@ -183,7 +184,7 @@ fn compact(value: &str) -> String {
 
 /// Adds compact gameplay metadata from a single Atlas nice-servant response.
 pub fn enrich_servant(servant: &mut ServantRecord, row: &Value) -> Result<(), String> {
-    use crate::loader::{AffectionScaling, NoblePhantasmRecord, NpStatus};
+    use crate::loader::{NoblePhantasmRecord, NpStatus};
     if row.get("id").and_then(Value::as_u64) != Some(servant.id as u64) {
         return Err(format!(
             "Atlas returned the wrong servant for {}.",
@@ -271,18 +272,25 @@ pub fn enrich_servant(servant: &mut ServantRecord, row: &Value) -> Result<(), St
             }
             continue;
         }
-        if damage_functions.len() != 1 {
+        let function_types: Vec<_> = damage_functions
+            .iter()
+            .map(|(_, damage)| damage["funcType"].as_str().unwrap_or(""))
+            .collect();
+        let damage_kind = np_mechanics::classify_functions(&function_types, servant.id);
+        // Conditional trait damage uses Value as its ordinary base; Correction is intentionally not applied.
+        if !matches!(
+            damage_kind,
+            NpDamageKind::Standard
+                | NpDamageKind::TraitBase
+                | NpDamageKind::DefensePierce
+                | NpDamageKind::SpaceEresh
+        ) {
             unsupported = true;
             continue;
         }
         let (position, damage) = damage_functions[0];
         let function_type = damage["funcType"].as_str().unwrap_or("");
-        let affection_np = function_type == "damageNpBattlePointPhase" && servant.id == 3_300_200;
-        // Conditional trait damage uses Value as its ordinary base; Correction is intentionally not applied.
-        if !matches!(function_type, "damageNp" | "damageNpIndividual") && !affection_np {
-            unsupported = true;
-            continue;
-        }
+        let affection_np = damage_kind == NpDamageKind::SpaceEresh;
         let Some(values) = damage
             .get("svals")
             .and_then(Value::as_array)
@@ -305,32 +313,12 @@ pub fn enrich_servant(servant: &mut ServantRecord, row: &Value) -> Result<(), St
             continue;
         };
         let affection = if affection_np {
-            let scales: Option<Vec<_>> = values
-                .iter()
-                .map(|value| {
-                    let base = value.get("Value2")?.as_f64()? / 1000.0;
-                    let per_level = value.get("Correction")?.as_f64()? / 1000.0;
-                    let target = value.get("Target")?.as_u64()?;
-                    (target == servant.id as u64
-                        && base.is_finite()
-                        && per_level.is_finite()
-                        && base > 0.0
-                        && per_level > 0.0)
-                        .then_some((base, per_level))
-                })
-                .collect();
-            let Some(scales) =
-                scales.filter(|scales| scales.iter().all(|scale| *scale == scales[0]))
+            let Some(scaling) = np_mechanics::space_eresh::import_scaling(damage, servant.id)
             else {
                 incomplete = true;
                 continue;
             };
-            Some(AffectionScaling {
-                base: scales[0].0,
-                per_level: scales[0].1,
-                max_level: 10,
-                ignore_defense_at: 7,
-            })
+            Some(scaling)
         } else {
             None
         };
@@ -361,6 +349,11 @@ pub fn enrich_servant(servant: &mut ServantRecord, row: &Value) -> Result<(), St
         }
         if affection_np {
             notes.push("Set the affection level at the moment NP damage lands. Higher Overcharge can raise the gauge before damage; adjust the level manually.".into());
+        }
+        if damage_kind == NpDamageKind::DefensePierce {
+            notes.push(
+                "Ignores positive enemy Defense; Defense Down still increases damage.".into(),
+            );
         }
         if position > 0 {
             notes.push(if affection_np {
@@ -406,6 +399,7 @@ pub fn enrich_servant(servant: &mut ServantRecord, row: &Value) -> Result<(), St
             card_type,
             multipliers: multipliers.try_into().expect("five values"),
             affection,
+            defense_pierce: damage_kind == NpDamageKind::DefensePierce,
             notes,
         });
     }

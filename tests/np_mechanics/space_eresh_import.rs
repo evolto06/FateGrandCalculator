@@ -25,6 +25,7 @@ fn imports_affection_np_values_from_atlas() {
         [4.5, 6.0, 6.75, 7.125, 7.5]
     );
     let scale = servant.noble_phantasms[0].affection.as_ref().unwrap();
+    assert!(!servant.noble_phantasms[0].defense_pierce);
     assert!((scale.multiplier(1) - 1.1).abs() < 1e-12);
     assert!((scale.multiplier(10) - 2.0).abs() < 1e-12);
 }
