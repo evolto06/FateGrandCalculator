@@ -948,9 +948,24 @@ fn damage_result(ui: &mut egui::Ui, result: DamageResult, announce_result: bool)
             ui.set_width(ui.available_width());
             ui.label(RichText::new("ESTIMATED DAMAGE").size(13.0).color(ACCENT));
             ui.add_space(5.0);
+            let range = format_damage_range(result);
+            let width = ui.available_width();
+            let mut font_size = (width / 8.0).clamp(28.0, 42.0);
+            let measured_width = ui
+                .painter()
+                .layout_no_wrap(
+                    range.clone(),
+                    egui::FontId::proportional(font_size),
+                    Color32::WHITE,
+                )
+                .size()
+                .x;
+            if measured_width > width {
+                font_size *= width / measured_width;
+            }
             let damage_response = ui.label(
-                RichText::new(format_damage_range(result))
-                    .size((ui.available_width() / 8.0).clamp(28.0, 42.0))
+                RichText::new(range)
+                    .size(font_size)
                     .strong()
                     .color(Color32::WHITE),
             );

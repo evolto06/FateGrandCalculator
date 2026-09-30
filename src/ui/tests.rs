@@ -359,3 +359,35 @@ fn compact_card_labels_render_without_truncation_at_small_widths() {
         }
     }
 }
+
+#[test]
+fn damage_ranges_fit_inside_padded_result_panels() {
+    let servant = servant();
+    let turn = TurnSelection::default_for(&servant).unwrap();
+    let result = fate_grand_calculator::damage::calculate_turn(
+        &servant,
+        &turn,
+        TurnBuffs::default(),
+        ClassType::Lancer,
+        AttributeType::Sky,
+    )
+    .unwrap();
+    let mut damage = result.cards[0];
+    damage.minimum_damage = u32::MAX;
+    damage.maximum_damage = u32::MAX;
+    for width in [280.0, 328.0, 412.0] {
+        let ctx = egui::Context::default();
+        let output = ctx.run_ui(input(width, vec![]), |ui| {
+            apply_canvas(ui);
+            damage_result(ui, damage, false);
+            assert!(ui.min_rect().right() <= width + 1.0);
+        });
+        let range = output
+            .shapes
+            .iter()
+            .find_map(|shape| painted_text_rect(&shape.shape, &format_damage_range(damage)))
+            .unwrap();
+        assert!(range.left() >= 18.0 && range.right() <= width - 18.0 + 1.0);
+        output.drop_without_applying_deltas();
+    }
+}
