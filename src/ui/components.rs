@@ -57,37 +57,67 @@ pub fn attack_panel(
     portrait_message: &str,
     portrait_error: Option<&str>,
     selection: &mut Option<TurnSelection>,
+    active_slot: &mut usize,
     buffs: &mut TurnBuffInputs,
 ) {
     section_frame(ui, |ui| {
         ui.heading(RichText::new("Attack setup").size(18.0));
-        ui.label(RichText::new("Choose three cards in attack order.").color(TEXT_MUTED));
+        ui.label(RichText::new("Select an attack card to change it.").color(TEXT_MUTED));
         ui.add_space(14.0);
 
-        let previous_servant_id = *selected_servant_id;
-        servant_selector(
-            ui,
-            data,
-            selected_servant_id,
-            servant_search,
-            portrait,
-            portrait_message,
-            portrait_error,
-        );
-        if *selected_servant_id != previous_servant_id {
-            *selection = data
-                .servant(*selected_servant_id)
-                .and_then(TurnSelection::default_for);
-        }
-        if portrait_error.is_some() {
-            let response =
-                ui.colored_label(ERROR, "Portrait unavailable. Change servant to try again.");
-            mark_live_status(ui.ctx(), response.id);
-        }
-        ui.add_space(12.0);
-
-        if let Some(servant) = data.servant(*selected_servant_id) {
-            turn_selector(ui, servant, selection);
+        let width = ui.available_width();
+        if width >= 450.0 {
+            let servant_width = 220.0;
+            let cards_width = width - servant_width - ui.spacing().item_spacing.x;
+            ui.horizontal_top(|ui| {
+                ui.allocate_ui_with_layout(
+                    egui::vec2(servant_width, 0.0),
+                    egui::Layout::top_down(egui::Align::Min),
+                    |ui| {
+                        ui.set_width(servant_width);
+                        servant_setup(
+                            ui,
+                            data,
+                            selected_servant_id,
+                            servant_search,
+                            portrait,
+                            portrait_message,
+                            portrait_error,
+                            selection,
+                            active_slot,
+                        );
+                    },
+                );
+                ui.allocate_ui_with_layout(
+                    egui::vec2(cards_width, 0.0),
+                    egui::Layout::top_down(egui::Align::Min),
+                    |ui| {
+                        ui.set_width(cards_width);
+                        if let Some(servant) = data.servant(*selected_servant_id) {
+                            turn_selector(ui, servant, selection, active_slot);
+                        }
+                    },
+                );
+            });
+        } else {
+            ui.vertical_centered(|ui| {
+                ui.set_width(width.min(300.0));
+                servant_setup(
+                    ui,
+                    data,
+                    selected_servant_id,
+                    servant_search,
+                    portrait,
+                    portrait_message,
+                    portrait_error,
+                    selection,
+                    active_slot,
+                );
+            });
+            ui.add_space(12.0);
+            if let Some(servant) = data.servant(*selected_servant_id) {
+                turn_selector(ui, servant, selection, active_slot);
+            }
         }
         ui.add_space(14.0);
         ui.separator();
@@ -106,6 +136,41 @@ pub fn attack_panel(
         percent_input(ui, "NP damage buff (%)", &mut buffs.np_damage);
         percent_input(ui, "Enemy defense (%)", &mut buffs.enemy_defense);
     });
+}
+
+fn servant_setup(
+    ui: &mut egui::Ui,
+    data: &GameData,
+    selected_id: &mut u32,
+    search: &mut String,
+    portrait: Option<&egui::TextureHandle>,
+    portrait_message: &str,
+    portrait_error: Option<&str>,
+    selection: &mut Option<TurnSelection>,
+    active_slot: &mut usize,
+) -> egui::Response {
+    let previous_id = *selected_id;
+    let response = servant_selector(
+        ui,
+        data,
+        selected_id,
+        search,
+        portrait,
+        portrait_message,
+        portrait_error,
+    );
+    if *selected_id != previous_id {
+        *selection = data
+            .servant(*selected_id)
+            .and_then(TurnSelection::default_for);
+        *active_slot = 0;
+        ui.ctx().request_repaint();
+    } else if portrait_error.is_some() {
+        let response =
+            ui.colored_label(ERROR, "Portrait unavailable. Change servant to try again.");
+        mark_live_status(ui.ctx(), response.id);
+    }
+    response
 }
 
 pub fn matchup_panel(
@@ -298,8 +363,9 @@ fn turn_selector(
     ui: &mut egui::Ui,
     servant: &ServantRecord,
     selection: &mut Option<TurnSelection>,
+    active_slot: &mut usize,
 ) {
-    ui.label(RichText::new("SERVANT CARDS").size(13.0).color(TEXT_MUTED));
+    ui.label(RichText::new("ATTACK ORDER").size(13.0).color(TEXT_MUTED));
     ui.add_space(6.0);
     if servant.deck.len() != 5 {
         ui.label(
@@ -310,24 +376,6 @@ fn turn_selector(
         );
         return;
     }
-    ui.horizontal_wrapped(|ui| {
-        for (index, card) in servant.deck.iter().enumerate() {
-            let used = selection
-                .as_ref()
-                .is_some_and(|turn| turn.slots.contains(&SelectedCard::Normal(index)));
-            let color = card_color(*card);
-            egui::Frame::new()
-                .fill(if used { color } else { PANEL_MUTED })
-                .corner_radius(7)
-                .inner_margin(egui::Margin::symmetric(9, 7))
-                .show(ui, |ui| {
-                    ui.label(
-                        RichText::new(format!("{} {}", card_name(*card), index + 1))
-                            .color(Color32::WHITE),
-                    );
-                });
-        }
-    });
     match servant.np_status {
         NpStatus::Support => {
             ui.label(
@@ -348,56 +396,119 @@ fn turn_selector(
         ui.label(RichText::new("Select a servant with available card data.").color(ERROR));
         return;
     };
-    ui.add_space(8.0);
-    for slot in 0..3 {
-        let slot_label = ui.label(format!("Card {}", slot + 1));
-        let selected_text = selected_card_label(servant, turn.slots[slot]);
-        let combo = egui::ComboBox::from_id_salt(("turn_slot", slot))
-            .selected_text(selected_text)
-            .width(ui.available_width().min(350.0))
-            .wrap_mode(egui::TextWrapMode::Truncate)
-            .show_ui(ui, |ui| {
-                for (index, card) in servant.deck.iter().enumerate() {
-                    let candidate = SelectedCard::Normal(index);
-                    let available = !turn
-                        .slots
-                        .iter()
-                        .enumerate()
-                        .any(|(other, selected)| other != slot && *selected == candidate);
-                    if ui
-                        .add_enabled(
-                            available,
-                            egui::Button::new(format!(
-                                "{} · deck card {}",
-                                card_name(*card),
-                                index + 1
-                            )),
-                        )
-                        .clicked()
-                    {
-                        turn.slots[slot] = candidate;
-                    }
-                }
-                if servant.np_status == NpStatus::Damaging {
-                    ui.separator();
-                    let np_used_elsewhere = turn.slots.iter().enumerate().any(|(other, card)| {
-                        other != slot && matches!(card, SelectedCard::NoblePhantasm(_))
-                    });
-                    for (index, np) in servant.noble_phantasms.iter().enumerate() {
-                        if ui
-                            .add_enabled(
-                                !np_used_elsewhere,
-                                egui::Button::new(format!("NP · {}", np.name)),
-                            )
-                            .clicked()
-                        {
-                            turn.slots[slot] = SelectedCard::NoblePhantasm(index);
+    *active_slot = (*active_slot).min(2);
+    ui.label(
+        RichText::new("Select a card to edit")
+            .size(13.0)
+            .color(TEXT_MUTED),
+    );
+    let gap = ui.spacing().item_spacing.x;
+    let slot_width = ((ui.available_width() - gap * 2.0) / 3.0).max(1.0);
+    ui.horizontal(|ui| {
+        for slot in 0..3 {
+            let editing = *active_slot == slot;
+            let card = turn.slots[slot];
+            let response = card_button(
+                ui,
+                egui::vec2(slot_width, 80.0),
+                selected_card_symbol(servant, card),
+                selected_card_color(servant, card),
+                editing,
+                true,
+            );
+            ui.painter().text(
+                response.rect.left_top() + egui::vec2(10.0, 8.0),
+                egui::Align2::LEFT_TOP,
+                (slot + 1).to_string(),
+                egui::FontId::proportional(12.0),
+                Color32::WHITE,
+            );
+            response.widget_info(|| {
+                egui::WidgetInfo::selected(
+                    egui::WidgetType::Button,
+                    ui.is_enabled(),
+                    editing,
+                    format!(
+                        "Attack position {}: {}{}",
+                        slot + 1,
+                        selected_card_label(servant, turn.slots[slot]),
+                        if editing { ", editing" } else { "" }
+                    ),
+                )
+            });
+            if response
+                .on_hover_text(selected_card_label(servant, turn.slots[slot]))
+                .clicked()
+            {
+                *active_slot = slot;
+            }
+        }
+    });
+    ui.add_space(12.0);
+    egui::Frame::new()
+        .fill(PANEL_MUTED)
+        .stroke(egui::Stroke::new(1.0, Color32::from_rgb(59, 69, 91)))
+        .corner_radius(10)
+        .inner_margin(12)
+        .show(ui, |ui| {
+            ui.set_width(ui.available_width());
+            ui.label(
+                RichText::new(format!("Replace card {}", *active_slot + 1))
+                    .size(15.0)
+                    .strong()
+                    .color(ACCENT),
+            );
+            ui.label(
+                RichText::new("Choose a card below.")
+                    .size(12.0)
+                    .color(TEXT_MUTED),
+            );
+            let columns = if ui.available_width() >= 250.0 { 3 } else { 2 };
+            let tile_width = ((ui.available_width() - gap * (columns - 1) as f32) / columns as f32)
+                .clamp(1.0, 130.0);
+            egui::Grid::new("attack_card_tiles")
+                .num_columns(columns)
+                .spacing([gap, gap])
+                .show(ui, |ui| {
+                    let mut tile_index = 0;
+                    if servant.np_status == NpStatus::Damaging {
+                        for (index, _) in servant.noble_phantasms.iter().enumerate() {
+                            card_tile(
+                                ui,
+                                servant,
+                                turn,
+                                *active_slot,
+                                SelectedCard::NoblePhantasm(index),
+                                tile_width,
+                            );
+                            tile_index += 1;
+                            if tile_index % columns == 0 {
+                                ui.end_row();
+                            }
                         }
                     }
-                }
-            });
-        combo.response.labelled_by(slot_label.id);
-    }
+                    for index in 0..servant.deck.len() {
+                        card_tile(
+                            ui,
+                            servant,
+                            turn,
+                            *active_slot,
+                            SelectedCard::Normal(index),
+                            tile_width,
+                        );
+                        tile_index += 1;
+                        if tile_index % columns == 0 {
+                            ui.end_row();
+                        }
+                    }
+                });
+            ui.label(
+                RichText::new("Cards marked In 1, In 2 or In 3 are used in another position.")
+                    .size(12.0)
+                    .color(TEXT_MUTED),
+            );
+        });
+    ui.add_space(8.0);
     if turn
         .slots
         .iter()
@@ -436,6 +547,165 @@ fn turn_selector(
                     .color(TEXT_MUTED),
             );
         }
+    }
+}
+
+fn card_owner(turn: &TurnSelection, candidate: SelectedCard) -> Option<usize> {
+    turn.slots
+        .iter()
+        .position(|selected| match (candidate, *selected) {
+            (SelectedCard::NoblePhantasm(_), SelectedCard::NoblePhantasm(_)) => true,
+            _ => candidate == *selected,
+        })
+}
+
+fn card_tile(
+    ui: &mut egui::Ui,
+    servant: &ServantRecord,
+    turn: &mut TurnSelection,
+    active_slot: usize,
+    candidate: SelectedCard,
+    width: f32,
+) -> egui::Response {
+    let owner = card_owner(turn, candidate);
+    let available = owner.is_none_or(|slot| slot == active_slot);
+    let current = turn.slots[active_slot] == candidate;
+    let state = if current {
+        "Current".to_owned()
+    } else if owner == Some(active_slot) {
+        "Replace NP".to_owned()
+    } else if let Some(slot) = owner {
+        format!("In slot {}", slot + 1)
+    } else {
+        "Choose".to_owned()
+    };
+    let detail = match candidate {
+        SelectedCard::Normal(index) => format!("Deck {}", index + 1),
+        SelectedCard::NoblePhantasm(index) => format!("Variant {}", index + 1),
+    };
+    let full_label = selected_card_label(servant, candidate);
+    let response = card_button(
+        ui,
+        egui::vec2(width, 96.0),
+        selected_card_symbol(servant, candidate),
+        selected_card_color(servant, candidate),
+        current,
+        available,
+    );
+    let badge = if current {
+        "Selected".to_owned()
+    } else if owner == Some(active_slot) {
+        "Replace".to_owned()
+    } else if let Some(slot) = owner {
+        format!("In {}", slot + 1)
+    } else {
+        "Use".to_owned()
+    };
+    let caption_color = if available {
+        Color32::WHITE
+    } else {
+        TEXT_MUTED
+    };
+    ui.painter().text(
+        response.rect.center_top() + egui::vec2(0.0, 10.0),
+        egui::Align2::CENTER_TOP,
+        badge,
+        egui::FontId::proportional(10.0),
+        caption_color,
+    );
+    ui.painter().text(
+        response.rect.center_bottom() - egui::vec2(0.0, 10.0),
+        egui::Align2::CENTER_BOTTOM,
+        detail,
+        egui::FontId::proportional(11.0),
+        caption_color,
+    );
+    response.widget_info(|| {
+        egui::WidgetInfo::selected(
+            egui::WidgetType::Button,
+            available && ui.is_enabled(),
+            current,
+            format!(
+                "{full_label}, {state}, for attack position {}",
+                active_slot + 1
+            ),
+        )
+    });
+    let response = response.on_hover_text(format!("{full_label} · {state}"));
+    if response.clicked() {
+        turn.slots[active_slot] = candidate;
+    }
+    response
+}
+
+fn selected_card_symbol(servant: &ServantRecord, card: SelectedCard) -> &'static str {
+    match card {
+        SelectedCard::NoblePhantasm(_) => "NP",
+        SelectedCard::Normal(index) => match servant.deck[index] {
+            CardType::Buster => "B",
+            CardType::Arts => "A",
+            CardType::Quick => "Q",
+            CardType::Extra => "EX",
+        },
+    }
+}
+
+fn selected_card_color(servant: &ServantRecord, card: SelectedCard) -> Color32 {
+    match card {
+        SelectedCard::NoblePhantasm(_) => Color32::from_rgb(85, 83, 148),
+        SelectedCard::Normal(index) => card_color(servant.deck[index]),
+    }
+}
+
+fn card_button(
+    ui: &mut egui::Ui,
+    size: egui::Vec2,
+    symbol: &str,
+    color: Color32,
+    selected: bool,
+    enabled: bool,
+) -> egui::Response {
+    let fill = if !enabled {
+        PANEL_MUTED
+    } else if selected {
+        color
+    } else {
+        color.gamma_multiply(0.45)
+    };
+    let response = ui
+        .add_enabled_ui(enabled, |ui| {
+            ui.add_sized(
+                size,
+                egui::Button::new("")
+                    .fill(fill)
+                    .corner_radius(10)
+                    .stroke(egui::Stroke::new(
+                        if selected { 3.0 } else { 1.0 },
+                        if selected { ACCENT } else { color },
+                    ))
+                    .selected(selected),
+            )
+        })
+        .inner;
+    ui.painter().text(
+        response.rect.center(),
+        egui::Align2::CENTER_CENTER,
+        symbol,
+        egui::FontId::proportional(28.0),
+        if enabled { Color32::WHITE } else { TEXT_MUTED },
+    );
+    card_focus_outline(ui, &response);
+    response
+}
+
+fn card_focus_outline(ui: &egui::Ui, response: &egui::Response) {
+    if response.enabled() && (response.has_focus() || response.hovered()) {
+        ui.painter().rect_stroke(
+            response.rect,
+            8.0,
+            egui::Stroke::new(if response.has_focus() { 3.0 } else { 1.5 }, ACCENT),
+            egui::StrokeKind::Inside,
+        );
     }
 }
 
@@ -530,16 +800,41 @@ fn servant_selector(
     portrait: Option<&egui::TextureHandle>,
     portrait_message: &str,
     portrait_error: Option<&str>,
-) {
+) -> egui::Response {
     let selected = data.servant(*selected_id).or_else(|| data.servants.first());
     let selected_name = selected.map_or("No servants loaded", |servant| servant.name.as_str());
 
     ui.label(RichText::new("SERVANT").size(13.0).color(TEXT_MUTED));
     ui.add_space(6.0);
-    ui.horizontal_top(|ui| {
-        portrait_window(ui, portrait, portrait_message, portrait_error);
-        ui.vertical(|ui| {
-            ui.label(RichText::new(selected_name).strong());
+    portrait_window(ui, portrait, portrait_message, portrait_error);
+    ui.add_space(6.0);
+    ui.add(egui::Label::new(RichText::new(selected_name).strong()).wrap());
+    if let Some(servant) = selected {
+        let attack_label = servant.level.map_or_else(
+            || format!("Maximum ATK {}", servant.attack),
+            |level| format!("Level {level} · {} ATK", servant.attack),
+        );
+        ui.label(RichText::new(attack_label).size(12.0).color(TEXT_MUTED));
+        ui.label(
+            RichText::new(format!(
+                "{} · {}",
+                servant.class.label(),
+                servant.attribute.label()
+            ))
+            .size(12.0)
+            .color(TEXT_MUTED),
+        );
+    }
+    ui.add_space(8.0);
+    let label = ui.label("Servant");
+    let combo = egui::ComboBox::from_id_salt("servant_selector")
+        .selected_text(selected_name)
+        .width(ui.available_width())
+        .height(280.0)
+        .close_behavior(egui::PopupCloseBehavior::CloseOnClickOutside)
+        .wrap_mode(egui::TextWrapMode::Truncate)
+        .show_ui(ui, |ui| {
+            ui.style_mut().wrap_mode = Some(egui::TextWrapMode::Truncate);
             let search_label = ui.label("Search servants");
             let search_response = ui
                 .add(
@@ -549,53 +844,32 @@ fn servant_selector(
                         .hint_text("Type a servant name"),
                 )
                 .labelled_by(search_label.id);
-            if search_response.has_focus() || !search.is_empty() {
-                let query = search.trim().to_lowercase();
-                let mut matches = 0;
-                egui::ScrollArea::vertical()
-                    .id_salt("servant_search_results")
-                    .max_height(180.0)
-                    .show(ui, |ui| {
-                        for servant in &data.servants {
-                            if servant.name.to_lowercase().contains(&query) {
-                                matches += 1;
-                                if ui
-                                    .selectable_label(*selected_id == servant.id, &servant.name)
-                                    .clicked()
-                                {
-                                    *selected_id = servant.id;
-                                    search.clear();
-                                    ui.memory_mut(|memory| {
-                                        memory.surrender_focus(search_response.id)
-                                    });
-                                }
+            let query = search.trim().to_lowercase();
+            let mut matches = 0;
+            egui::ScrollArea::vertical()
+                .id_salt("servant_search_results")
+                .max_height(180.0)
+                .show(ui, |ui| {
+                    for servant in &data.servants {
+                        if servant.name.to_lowercase().contains(&query) {
+                            matches += 1;
+                            if ui
+                                .selectable_label(*selected_id == servant.id, &servant.name)
+                                .clicked()
+                            {
+                                *selected_id = servant.id;
+                                search.clear();
+                                ui.memory_mut(|memory| memory.surrender_focus(search_response.id));
+                                ui.close();
                             }
                         }
-                    });
-                if matches == 0 {
-                    ui.label("No servants match that search.");
-                }
-            }
-
-            if let Some(servant) = selected {
-                ui.add_space(4.0);
-                let attack_label = servant.level.map_or_else(
-                    || format!("Maximum ATK {}", servant.attack),
-                    |level| format!("Level {level} · {} ATK", servant.attack),
-                );
-                ui.label(RichText::new(attack_label).size(12.0).color(TEXT_MUTED));
-                ui.label(
-                    RichText::new(format!(
-                        "{} · {}",
-                        servant.class.label(),
-                        servant.attribute.label()
-                    ))
-                    .size(12.0)
-                    .color(TEXT_MUTED),
-                );
+                    }
+                });
+            if matches == 0 {
+                ui.label("No servants match that search.");
             }
         });
-    });
+    combo.response.labelled_by(label.id)
 }
 
 fn portrait_window(
@@ -604,7 +878,8 @@ fn portrait_window(
     message: &str,
     error: Option<&str>,
 ) {
-    let size = egui::vec2(100.0, 136.0);
+    let width = ui.available_width().min(220.0);
+    let size = egui::vec2(width, width * (300.0 / 220.0));
     let (rect, response) = ui.allocate_exact_size(size, egui::Sense::hover());
     ui.painter().rect_filled(rect, 8.0, PANEL_MUTED);
     if let Some(texture) = portrait {
@@ -752,3 +1027,7 @@ fn breakdown(ui: &mut egui::Ui, result: DamageResult) {
             });
     });
 }
+
+#[cfg(test)]
+#[path = "tests.rs"]
+mod tests;

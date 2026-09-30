@@ -16,6 +16,7 @@ pub struct CalculatorApp {
     selected_servant_id: u32,
     servant_search: String,
     turn_selection: Option<TurnSelection>,
+    active_attack_slot: usize,
     buffs: ui::TurnBuffInputs,
     enemy_class: ClassType,
     enemy_attribute: AttributeType,
@@ -63,6 +64,7 @@ impl Default for CalculatorApp {
             selected_servant_id,
             servant_search: String::new(),
             turn_selection,
+            active_attack_slot: 0,
             buffs: ui::TurnBuffInputs::default(),
             enemy_class: ClassType::Lancer,
             enemy_attribute: AttributeType::Sky,
@@ -174,6 +176,7 @@ impl eframe::App for CalculatorApp {
                                 let selected_servant_id = &mut self.selected_servant_id;
                                 let servant_search = &mut self.servant_search;
                                 let turn_selection = &mut self.turn_selection;
+                                let active_attack_slot = &mut self.active_attack_slot;
                                 let buffs = &mut self.buffs;
                                 let enemy_class = &mut self.enemy_class;
                                 let enemy_attribute = &mut self.enemy_attribute;
@@ -198,6 +201,7 @@ impl eframe::App for CalculatorApp {
                                                     portrait_message,
                                                     portrait_error,
                                                     turn_selection,
+                                                    active_attack_slot,
                                                     buffs,
                                                 )
                                             },
@@ -231,6 +235,7 @@ impl eframe::App for CalculatorApp {
                                         portrait_message,
                                         portrait_error,
                                         turn_selection,
+                                        active_attack_slot,
                                         buffs,
                                     );
                                     ui.add_space(10.0);
@@ -333,6 +338,7 @@ impl CalculatorApp {
                     .ok()
                     .and_then(|data| data.servant(self.selected_servant_id))
                     .and_then(TurnSelection::default_for);
+                self.active_attack_slot = 0;
                 self.update_in_progress = false;
                 self.data_status = if skipped == 0 {
                     format!("Updated {total} servants · saved locally at {updated_at}.")
