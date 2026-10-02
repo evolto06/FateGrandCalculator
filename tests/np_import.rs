@@ -21,11 +21,17 @@ fn imports_physical_deck_and_base_and_strengthened_np_variants() {
     enrich_servant(&mut servant, &fixture()).unwrap();
     assert_eq!(servant.deck.len(), 5);
     assert_eq!(
-        servant.noble_phantasms[0].multipliers,
+        servant.noble_phantasms[0].components[0].overcharge[0]
+            .as_ref()
+            .unwrap()
+            .multipliers,
         [3., 4., 4.5, 4.75, 5.]
     );
     assert_eq!(
-        servant.noble_phantasms[1].multipliers,
+        servant.noble_phantasms[1].components[0].overcharge[0]
+            .as_ref()
+            .unwrap()
+            .multipliers,
         [4., 5., 5.5, 5.75, 6.]
     );
 }

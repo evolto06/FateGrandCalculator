@@ -1,7 +1,13 @@
 use super::*;
 
 fn servant() -> ServantRecord {
+    use fate_grand_calculator::np_mechanics::components::NpDamageComponent;
     let mut servant = GameData::bundled().unwrap().servants.remove(0);
+    for np in &mut servant.noble_phantasms {
+        let multipliers =
+            std::array::from_fn(|level| np.base_multiplier(level as u8 + 1, 1).unwrap());
+        np.components = vec![NpDamageComponent::legacy(multipliers)];
+    }
     servant.deck = vec![
         CardType::Buster,
         CardType::Arts,
@@ -225,6 +231,9 @@ fn searchable_dropdown_is_below_portrait_and_changing_servant_resets_attack_orde
     let mut id = data.servants[0].id;
     let mut search = String::new();
     let mut selection = TurnSelection::default_for(&data.servants[0]);
+    selection.as_mut().unwrap().np_level = 4;
+    selection.as_mut().unwrap().overcharge_level = 4;
+    selection.as_mut().unwrap().affection_level = 7;
     let mut active_slot = 2;
     let ctx = egui::Context::default();
     let mut response = None;
@@ -292,6 +301,196 @@ fn searchable_dropdown_is_below_portrait_and_changing_servant_resets_attack_orde
     assert!(search.is_empty());
     assert_eq!(active_slot, 0);
     assert_eq!(selection, TurnSelection::default_for(target));
+}
+
+fn full_overcharge_servant() -> ServantRecord {
+    use fate_grand_calculator::np_mechanics::components::{NpDamageComponent, NpDamageValues};
+    let mut servant = servant();
+    servant.noble_phantasms[0].components = vec![NpDamageComponent {
+        target: None,
+        overcharge: std::array::from_fn(|oc| {
+            Some(NpDamageValues::guaranteed([3.0 + oc as f64; 5]))
+        }),
+    }];
+    servant
+}
+
+#[test]
+fn overcharge_changes_independently_and_legacy_choices_are_disabled() {
+    for available in [false, true] {
+        let servant = if available {
+            full_overcharge_servant()
+        } else {
+            servant()
+        };
+        let mut turn = TurnSelection::default_for(&servant).unwrap();
+        turn.np_level = 4;
+        turn.affection_level = 7;
+        let ctx = egui::Context::default();
+        let mut frame = |events| {
+            ctx.run_ui(input(328.0, events), |ui| {
+                apply_canvas(ui);
+                np_settings(ui, &servant, &mut turn);
+            })
+        };
+        let output = frame(vec![]);
+        let combo = output
+            .shapes
+            .iter()
+            .find_map(|shape| painted_text_rect(&shape.shape, "OC 1"))
+            .unwrap();
+        if !available {
+            assert!(output.shapes.iter().any(|shape| {
+                painted_text_rect(
+                    &shape.shape,
+                    "Update servant data to enable missing Overcharge levels.",
+                )
+                .is_some()
+            }));
+        }
+        output.drop_without_applying_deltas();
+        frame(pointer(combo.center(), true)).drop_without_applying_deltas();
+        frame(pointer(combo.center(), false)).drop_without_applying_deltas();
+        let output = frame(vec![]);
+        let option = output
+            .shapes
+            .iter()
+            .find_map(|shape| painted_text_rect(&shape.shape, "OC 3"))
+            .expect("all OC choices shown");
+        output.drop_without_applying_deltas();
+        frame(pointer(option.center(), true)).drop_without_applying_deltas();
+        frame(pointer(option.center(), false)).drop_without_applying_deltas();
+        assert_eq!(turn.overcharge_level, if available { 3 } else { 1 });
+        assert_eq!(turn.np_level, 4);
+        assert_eq!(turn.affection_level, 7);
+    }
+}
+
+#[test]
+fn replacing_np_resets_unavailable_overcharge_with_visible_feedback() {
+    let servant = full_overcharge_servant();
+    let mut turn = TurnSelection::default_for(&servant).unwrap();
+    turn.overcharge_level = 5;
+    turn.np_level = 3;
+    turn.affection_level = 7;
+    let ctx = egui::Context::default();
+    let candidate = SelectedCard::NoblePhantasm(1);
+    let response = tile_frame(&ctx, vec![], &servant, &mut turn, 0, candidate);
+    tile_frame(
+        &ctx,
+        pointer(response.rect.center(), true),
+        &servant,
+        &mut turn,
+        0,
+        candidate,
+    );
+    tile_frame(
+        &ctx,
+        pointer(response.rect.center(), false),
+        &servant,
+        &mut turn,
+        0,
+        candidate,
+    );
+    assert_eq!(turn.overcharge_level, 1);
+    assert_eq!(turn.np_level, 3);
+    assert_eq!(turn.affection_level, 7);
+    let output = ctx.run_ui(input(328.0, vec![]), |ui| {
+        np_settings(ui, &servant, &mut turn)
+    });
+    assert!(output.shapes.iter().any(|shape| {
+        painted_text_rect(
+            &shape.shape,
+            "Overcharge reset from 5 to 1: this NP needs updated servant data for higher levels.",
+        )
+        .is_some()
+    }));
+    output.drop_without_applying_deltas();
+}
+
+#[test]
+fn unavailable_overcharge_is_explicit_and_never_silently_changed_by_rendering() {
+    let servant = servant();
+    let mut turn = TurnSelection::default_for(&servant).unwrap();
+    turn.overcharge_level = 5;
+    let ctx = egui::Context::default();
+    let output = ctx.run_ui(input(328.0, vec![]), |ui| {
+        np_settings(ui, &servant, &mut turn)
+    });
+    assert!(output.shapes.iter().any(|shape| {
+        painted_text_rect(
+            &shape.shape,
+            "Selected Overcharge is unavailable. Choose an available level or update servant data.",
+        )
+        .is_some()
+    }));
+    output.drop_without_applying_deltas();
+    assert_eq!(turn.overcharge_level, 5);
+    assert!(turn.validate(&servant).is_err());
+}
+
+#[test]
+fn multiple_np_components_show_aggregate_and_separate_ranges_in_narrow_panels() {
+    use fate_grand_calculator::np_mechanics::components::NpTarget;
+    let mut servant = full_overcharge_servant();
+    servant.noble_phantasms[0].components[0].target = Some(NpTarget::EnemyAll);
+    let second_component = servant.noble_phantasms[0].components[0].clone();
+    servant.noble_phantasms[0].components.push(second_component);
+    let turn = TurnSelection::default_for(&servant).unwrap();
+    let result = fate_grand_calculator::damage::calculate_turn(
+        &servant,
+        &turn,
+        TurnBuffs::default(),
+        ClassType::Lancer,
+        AttributeType::Sky,
+    )
+    .unwrap();
+    for width in [328.0, 760.0] {
+        let ctx = egui::Context::default();
+        let frame = |events| {
+            ctx.run_ui(input(width, events), |ui| {
+                ui.style_mut().animation_time = 0.0;
+                apply_canvas(ui);
+                result_panel(ui, &servant, &turn, &result, false);
+                assert!(ui.min_rect().right() <= width + 1.0);
+            })
+        };
+        let output = frame(vec![]);
+        assert!(output.shapes.iter().any(|shape| {
+            painted_text_rect(
+                &shape.shape,
+                "NP level 1 · Overcharge 1 · base damage ×6.00",
+            )
+            .is_some()
+        }));
+        let toggle = output
+            .shapes
+            .iter()
+            .find_map(|shape| painted_text_rect(&shape.shape, "NP component breakdown"))
+            .unwrap();
+        output.drop_without_applying_deltas();
+        frame(pointer(toggle.center(), true)).drop_without_applying_deltas();
+        frame(pointer(toggle.center(), false)).drop_without_applying_deltas();
+        for _ in 0..3 {
+            frame(vec![]).drop_without_applying_deltas();
+        }
+        let output = frame(vec![]);
+        for (index, component) in result.np_components[0].iter().enumerate() {
+            let label = format!(
+                "Component {} · {}",
+                index + 1,
+                format_damage_range(*component)
+            );
+            assert!(
+                output
+                    .shapes
+                    .iter()
+                    .any(|shape| painted_text_rect(&shape.shape, &label).is_some()),
+                "missing {label}"
+            );
+        }
+        output.drop_without_applying_deltas();
+    }
 }
 
 #[test]

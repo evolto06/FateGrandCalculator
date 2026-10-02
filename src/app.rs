@@ -84,7 +84,7 @@ impl Default for CalculatorApp {
 impl eframe::App for CalculatorApp {
     fn ui(&mut self, ui: &mut egui::Ui, _: &mut eframe::Frame) {
         #[cfg(not(target_arch = "wasm32"))]
-        self.poll_update_result();
+        self.poll_update_result(ui.ctx());
 
         #[cfg(not(target_arch = "wasm32"))]
         {
@@ -318,9 +318,10 @@ impl CalculatorApp {
         }
     }
 
-    fn poll_update_result(&mut self) {
+    fn poll_update_result(&mut self, context: &egui::Context) {
         match self.update_receiver.try_recv() {
             Ok(Ok(report)) => {
+                ui::clear_overcharge_feedback(context, self.selected_servant_id);
                 if report.game_data.servant(self.selected_servant_id).is_none() {
                     self.selected_servant_id = report
                         .game_data
@@ -328,6 +329,7 @@ impl CalculatorApp {
                         .first()
                         .map_or(0, |servant| servant.id);
                 }
+                ui::clear_overcharge_feedback(context, self.selected_servant_id);
                 let total = report.game_data.servants.len();
                 let skipped = report.skipped_rows;
                 let updated_at = format_retrieved_at(&report.game_data.retrieved_at);
@@ -396,5 +398,93 @@ fn show_result(
                 format!("Could not calculate this sequence: {error}"),
             );
         }
+    }
+}
+
+#[cfg(all(test, not(target_arch = "wasm32")))]
+mod tests {
+    use super::*;
+
+    fn app_with_bundled_data() -> CalculatorApp {
+        let data = GameData::bundled().unwrap();
+        let selected_servant_id = data.servants[0].id;
+        let turn_selection = TurnSelection::default_for(&data.servants[0]);
+        let (update_sender, update_receiver) = mpsc::channel();
+        CalculatorApp {
+            game_data: Ok(data),
+            selected_servant_id,
+            servant_search: String::new(),
+            turn_selection,
+            active_attack_slot: 2,
+            buffs: ui::TurnBuffInputs::default(),
+            enemy_class: ClassType::Lancer,
+            enemy_attribute: AttributeType::Sky,
+            data_status: String::new(),
+            portrait: PortraitStream::default(),
+            update_in_progress: true,
+            update_sender,
+            update_receiver,
+        }
+    }
+
+    #[test]
+    fn successful_data_update_clears_reset_feedback_and_resets_overcharge() {
+        for removes_selected_servant in [false, true] {
+            let mut app = app_with_bundled_data();
+            let context = egui::Context::default();
+            let previous_id = app.selected_servant_id;
+            let mut updated = GameData::bundled().unwrap();
+            if removes_selected_servant {
+                updated.servants.remove(0);
+            }
+            let next_id = updated.servants[0].id;
+            for id in [previous_id, next_id] {
+                context.data_mut(|data| {
+                    data.insert_temp(
+                        egui::Id::new(("overcharge_reset_feedback", id)),
+                        "Overcharge reset: update servant data.".to_owned(),
+                    )
+                });
+            }
+            app.turn_selection.as_mut().unwrap().overcharge_level = 5;
+            app.update_sender
+                .send(Ok(UpdateReport {
+                    game_data: updated,
+                    skipped_rows: 0,
+                }))
+                .unwrap();
+            app.poll_update_result(&context);
+            assert_eq!(app.selected_servant_id, next_id);
+            assert_eq!(app.turn_selection.as_ref().unwrap().overcharge_level, 1);
+            assert_eq!(app.active_attack_slot, 0);
+            for id in [previous_id, next_id] {
+                assert!(
+                    context
+                        .data(|data| data
+                            .get_temp::<String>(egui::Id::new(("overcharge_reset_feedback", id))))
+                        .is_none()
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn failed_data_update_keeps_current_reset_feedback() {
+        let mut app = app_with_bundled_data();
+        let context = egui::Context::default();
+        let id = egui::Id::new(("overcharge_reset_feedback", app.selected_servant_id));
+        context.data_mut(|data| data.insert_temp(id, "Current reset feedback".to_owned()));
+        app.update_sender
+            .send(Err("Test network failure".to_owned()))
+            .unwrap();
+        app.poll_update_result(&context);
+        assert_eq!(
+            context.data(|data| data.get_temp::<String>(id)).as_deref(),
+            Some("Current reset feedback")
+        );
+        assert!(
+            app.data_status
+                .starts_with("Update failed; current data was kept.")
+        );
     }
 }

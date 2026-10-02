@@ -42,6 +42,13 @@ impl ServantDataService {
                     format_retrieved_at(&game_data.retrieved_at),
                     if game_data.servants.iter().any(|s| s.deck.is_empty()) {
                         " Older data has no card decks. Choose Update servant data to enable turn calculations."
+                    } else if game_data
+                        .servants
+                        .iter()
+                        .flat_map(|servant| &servant.noble_phantasms)
+                        .any(|np| np.available_overcharges().len() < 5)
+                    {
+                        " Some NP Overcharge values are missing. Choose Update servant data to refresh them."
                     } else {
                         ""
                     }
@@ -106,7 +113,7 @@ impl ServantDataService {
             }
             failure.map_or(Ok(()), Err)
         })?;
-        report.game_data.version = "atlas-nice-v2".into();
+        report.game_data.version = "atlas-nice-v3".into();
         report.game_data.validate()?;
         store.save(&report.game_data)?;
 

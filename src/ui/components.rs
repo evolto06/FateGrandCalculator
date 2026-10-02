@@ -160,6 +160,8 @@ fn servant_setup(
         portrait_error,
     );
     if *selected_id != previous_id {
+        clear_overcharge_feedback(ui.ctx(), previous_id);
+        clear_overcharge_feedback(ui.ctx(), *selected_id);
         *selection = data
             .servant(*selected_id)
             .and_then(TurnSelection::default_for);
@@ -223,11 +225,16 @@ pub fn result_panel(
                 );
                 if let SelectedCard::NoblePhantasm(np_index) = card {
                     if let Some(np) = servant.noble_phantasms.get(*np_index) {
-                        let multiplier = np.multipliers[selection.np_level as usize - 1];
+                        let multiplier =
+                            np.base_multiplier(selection.np_level, selection.overcharge_level);
                         ui.label(
                             RichText::new(format!(
-                                "NP level {} · base damage ×{multiplier:.2}",
-                                selection.np_level
+                                "NP level {} · Overcharge {}{}",
+                                selection.np_level,
+                                selection.overcharge_level,
+                                multiplier.map_or_else(String::new, |value| format!(
+                                    " · base damage ×{value:.2}"
+                                ))
                             ))
                             .size(12.0)
                             .color(TEXT_MUTED),
@@ -253,7 +260,50 @@ pub fn result_panel(
                     }
                 }
                 damage_result(ui, result.cards[index], announce_result);
-                breakdown(ui, result.cards[index]);
+                if result.np_components[index].len() > 1 {
+                    ui.label(
+                        RichText::new("Total of separately calculated NP components")
+                            .size(12.0)
+                            .color(TEXT_MUTED),
+                    );
+                    ui.collapsing("NP component breakdown", |ui| {
+                        for (component_index, component) in
+                            result.np_components[index].iter().enumerate()
+                        {
+                            ui.push_id(component_index, |ui| {
+                                ui.label(format!(
+                                    "Component {} · {}",
+                                    component_index + 1,
+                                    format_damage_range(*component)
+                                ));
+                                if let SelectedCard::NoblePhantasm(np_index) = card {
+                                    if let Some(multiplier) = servant
+                                        .noble_phantasms
+                                        .get(*np_index)
+                                        .and_then(|np| np.components.get(component_index))
+                                        .and_then(|part| {
+                                            part.multiplier(
+                                                selection.np_level,
+                                                selection.overcharge_level,
+                                            )
+                                        })
+                                    {
+                                        ui.label(
+                                            RichText::new(format!(
+                                                "Base NP multiplier ×{multiplier:.2}"
+                                            ))
+                                            .size(12.0)
+                                            .color(TEXT_MUTED),
+                                        );
+                                    }
+                                }
+                                breakdown(ui, *component);
+                            });
+                        }
+                    });
+                } else {
+                    breakdown(ui, result.cards[index]);
+                }
                 ui.add_space(8.0);
             });
         }
@@ -516,6 +566,20 @@ fn turn_selector(
             );
         });
     ui.add_space(8.0);
+    np_settings(ui, servant, turn);
+}
+
+fn overcharge_feedback_id(servant_id: u32) -> egui::Id {
+    egui::Id::new(("overcharge_reset_feedback", servant_id))
+}
+
+pub(crate) fn clear_overcharge_feedback(context: &egui::Context, servant_id: u32) {
+    context.data_mut(|data| {
+        data.remove::<String>(overcharge_feedback_id(servant_id));
+    });
+}
+
+fn np_settings(ui: &mut egui::Ui, servant: &ServantRecord, turn: &mut TurnSelection) {
     if turn
         .slots
         .iter()
@@ -531,6 +595,67 @@ fn turn_selector(
                 }
             });
         combo.response.labelled_by(level_label.id);
+        let Some(np) = turn.slots.iter().find_map(|card| match card {
+            SelectedCard::NoblePhantasm(index) => servant.noble_phantasms.get(*index),
+            SelectedCard::Normal(_) => None,
+        }) else {
+            ui.colored_label(ERROR, "Selected NP is unavailable. Choose another card.");
+            return;
+        };
+        let coverage = np.available_overcharges();
+        let previous_overcharge = turn.overcharge_level;
+        let overcharge_label = ui.label("Overcharge level");
+        let combo = egui::ComboBox::from_id_salt("overcharge_level")
+            .selected_text(format!("OC {}", turn.overcharge_level))
+            .width(100.0)
+            .show_ui(ui, |ui| {
+                for level in 1..=5 {
+                    let available = coverage.contains(&level);
+                    let response = ui.add_enabled(
+                        available,
+                        egui::Button::selectable(
+                            turn.overcharge_level == level,
+                            format!("OC {level}"),
+                        ),
+                    );
+                    if !available {
+                        response.clone().on_disabled_hover_text(
+                            "Update servant data to load this Overcharge level.",
+                        );
+                    }
+                    if response.clicked() {
+                        turn.overcharge_level = level;
+                        ui.close();
+                    }
+                }
+            });
+        combo.response.labelled_by(overcharge_label.id);
+        ui.label(
+            RichText::new("NP level and Overcharge are independent.")
+                .size(12.0)
+                .color(TEXT_MUTED),
+        );
+        if coverage.len() < 5 {
+            ui.label(
+                RichText::new("Update servant data to enable missing Overcharge levels.")
+                    .size(12.0)
+                    .color(TEXT_MUTED),
+            );
+        }
+        if !coverage.contains(&turn.overcharge_level) {
+            ui.colored_label(ERROR, "Selected Overcharge is unavailable. Choose an available level or update servant data.");
+        }
+        if previous_overcharge != turn.overcharge_level {
+            ui.ctx().data_mut(|data| {
+                data.remove::<String>(overcharge_feedback_id(servant.id));
+            });
+        }
+        if let Some(message) = ui
+            .ctx()
+            .data(|data| data.get_temp::<String>(overcharge_feedback_id(servant.id)))
+        {
+            status_message(ui, &message);
+        }
         if let Some(scale) = turn.slots.iter().find_map(|card| match card {
             SelectedCard::NoblePhantasm(index) => servant
                 .noble_phantasms
@@ -641,6 +766,18 @@ fn card_tile(
     let response = response.on_hover_text(format!("{full_label} · {state}"));
     if response.clicked() {
         turn.slots[active_slot] = candidate;
+        ui.ctx().data_mut(|data| {
+            data.remove::<String>(overcharge_feedback_id(servant.id));
+        });
+        if let SelectedCard::NoblePhantasm(index) = candidate {
+            if let Some(np) = servant.noble_phantasms.get(index) {
+                if !np.available_overcharges().contains(&turn.overcharge_level) {
+                    let previous = turn.overcharge_level;
+                    turn.overcharge_level = 1;
+                    ui.ctx().data_mut(|data| data.insert_temp(overcharge_feedback_id(servant.id), format!("Overcharge reset from {previous} to 1: this NP needs updated servant data for higher levels.")));
+                }
+            }
+        }
     }
     response
 }
