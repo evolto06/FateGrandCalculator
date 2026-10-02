@@ -18,6 +18,7 @@ fn run(
         &TurnSelection {
             slots,
             np_level: 1,
+            overcharge_level: 1,
             affection_level: 1,
         },
         buffs,
@@ -108,6 +109,7 @@ fn np_level_and_upgrade_select_independent_multipliers() {
             SelectedCard::Normal(1),
         ],
         np_level: 5,
+        overcharge_level: 1,
         affection_level: 1,
     };
     let result = calculate_turn(

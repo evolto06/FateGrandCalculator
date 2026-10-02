@@ -97,6 +97,8 @@ pub struct TurnBuffs {
 #[derive(Debug, Clone)]
 pub struct TurnDamageResult {
     pub cards: [DamageResult; 3],
+    /// Ordered NP function results for each slot; normal-card slots are empty.
+    pub np_components: [Vec<DamageResult>; 3],
     pub extra: Option<DamageResult>,
     pub notes: Vec<String>,
 }
@@ -139,8 +141,15 @@ pub fn calculate_turn(
     };
     let buster_chain = color_chain && colors[0] == CardType::Buster;
     let mut notes = Vec::new();
+    let mut np_components: [Vec<DamageResult>; 3] = std::array::from_fn(|_| Vec::new());
     let cards = std::array::from_fn(|position| {
         let color = colors[position];
+        let card_buff = match color {
+            CardType::Buster => buffs.buster_buff,
+            CardType::Arts => buffs.arts_buff,
+            CardType::Quick => buffs.quick_buff,
+            CardType::Extra => 0.0,
+        };
         let (np_multiplier, np_buff, position_multiplier, bonus, flat, ignore_defense) =
             match selection.slots[position] {
                 SelectedCard::Normal(_) => (
@@ -159,22 +168,51 @@ pub fn calculate_turn(
                     let np = &servant.noble_phantasms[index];
                     notes.extend(np.notes.iter().cloned());
                     let modifiers = np_mechanics::modifiers(np, selection.affection_level);
-                    (
-                        np.multipliers[selection.np_level as usize - 1] * modifiers.multiplier,
-                        (1.0 + buffs.np_damage_buff).max(0.001),
-                        1.0,
-                        0.0,
-                        0.0,
-                        modifiers.ignore_defense,
-                    )
+                    let component_results: Vec<_> = np
+                        .components
+                        .iter()
+                        .map(|component| {
+                            let multiplier = component
+                                .multiplier(selection.np_level, selection.overcharge_level)
+                                .expect("validated NP coverage");
+                            turn_card(
+                                servant,
+                                TurnBuffs {
+                                    enemy_defense: effective_defense(
+                                        buffs.enemy_defense,
+                                        modifiers.ignore_defense,
+                                    ),
+                                    ..buffs
+                                },
+                                enemy_class,
+                                enemy_attribute,
+                                color.base_multiplier(),
+                                0.0,
+                                card_buff,
+                                multiplier
+                                    * modifiers.multiplier
+                                    * (1.0 + buffs.np_damage_buff).max(0.001),
+                                0.0,
+                            )
+                        })
+                        .collect();
+                    // Floor each damage function first. Flooring the combined
+                    // multiplier would overstate endpoints for some inputs.
+                    let mut aggregate = component_results[0];
+                    aggregate.damage_before_random = component_results
+                        .iter()
+                        .map(|part| part.damage_before_random)
+                        .sum();
+                    aggregate.minimum_damage = component_results
+                        .iter()
+                        .fold(0_u32, |sum, part| sum.saturating_add(part.minimum_damage));
+                    aggregate.maximum_damage = component_results
+                        .iter()
+                        .fold(0_u32, |sum, part| sum.saturating_add(part.maximum_damage));
+                    np_components[position] = component_results;
+                    return aggregate;
                 }
             };
-        let card_buff = match color {
-            CardType::Buster => buffs.buster_buff,
-            CardType::Arts => buffs.arts_buff,
-            CardType::Quick => buffs.quick_buff,
-            CardType::Extra => 0.0,
-        };
         turn_card(
             servant,
             TurnBuffs {
@@ -204,6 +242,7 @@ pub fn calculate_turn(
     );
     Ok(TurnDamageResult {
         cards,
+        np_components,
         extra: Some(extra),
         notes,
     })

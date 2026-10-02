@@ -1,3 +1,5 @@
+#[path = "np_mechanics/components_damage.rs"]
+mod components_damage;
 #[cfg(not(target_arch = "wasm32"))]
 #[path = "np_mechanics/import.rs"]
 mod import;

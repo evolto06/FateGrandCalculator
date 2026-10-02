@@ -27,6 +27,7 @@ fn rejects_duplicate_physical_cards_multiple_nps_and_invalid_levels() {
             TurnSelection {
                 slots,
                 np_level: 1,
+                overcharge_level: 1,
                 affection_level: 1
             }
             .validate(servant)
@@ -49,6 +50,7 @@ fn same_color_distinct_cards_are_valid_and_legacy_decks_are_not_guessed() {
             SelectedCard::Normal(1),
         ],
         np_level: 1,
+        overcharge_level: 1,
         affection_level: 1,
     };
     assert!(selection.validate(&servant).is_ok());

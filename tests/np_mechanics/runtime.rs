@@ -14,6 +14,7 @@ fn run(servant: &ServantRecord, np_level: u8, defense: f64) -> TurnDamageResult 
                 SelectedCard::Normal(1),
             ],
             np_level,
+            overcharge_level: 1,
             affection_level: 0,
         },
         TurnBuffs {

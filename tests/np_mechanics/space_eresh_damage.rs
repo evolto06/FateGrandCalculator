@@ -9,7 +9,11 @@ fn servant() -> fate_grand_calculator::loader::ServantRecord {
     servant.id = 3_300_200;
     servant.class = ClassType::BeastEresh;
     servant.noble_phantasms[0].card_type = CardType::Arts;
-    servant.noble_phantasms[0].multipliers = [4.5, 6.0, 6.75, 7.125, 7.5];
+    servant.noble_phantasms[0].components = vec![
+        fate_grand_calculator::np_mechanics::components::NpDamageComponent::legacy([
+            4.5, 6.0, 6.75, 7.125, 7.5,
+        ]),
+    ];
     servant.noble_phantasms[0].affection = Some(AffectionScaling {
         base: 1.0,
         per_level: 0.1,
@@ -31,6 +35,7 @@ fn damage(
             SelectedCard::Normal(1),
         ],
         np_level: 1,
+        overcharge_level: 1,
         affection_level,
     };
     calculate_turn(

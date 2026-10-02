@@ -21,7 +21,10 @@ fn imports_affection_np_values_from_atlas() {
     enrich_servant(&mut servant, &row).unwrap();
     assert_eq!(servant.np_status, NpStatus::Damaging);
     assert_eq!(
-        servant.noble_phantasms[0].multipliers,
+        servant.noble_phantasms[0].components[0].overcharge[0]
+            .as_ref()
+            .unwrap()
+            .multipliers,
         [4.5, 6.0, 6.75, 7.125, 7.5]
     );
     let scale = servant.noble_phantasms[0].affection.as_ref().unwrap();
@@ -47,4 +50,40 @@ fn rejects_mismatched_affection_target_without_guessing() {
     ]});
     enrich_servant(&mut servant, &row).unwrap();
     assert_eq!(servant.np_status, NpStatus::Unavailable);
+}
+
+#[test]
+fn affection_overcharge_rows_keep_manual_scaling_and_reject_inconsistent_targets() {
+    let mut servant = GameData::bundled().unwrap().servants.remove(0);
+    servant.id = 3_300_200;
+    let values: Vec<_> = [4500, 6000, 6750, 7125, 7500].into_iter()
+        .map(|value| json!({"Value":value,"Rate":1000,"Value2":1000,"Correction":100,"Target":3300200})).collect();
+    let mut damage =
+        json!({"funcType":"damageNpBattlePointPhase","funcTargetType":"enemyAll","svals":values});
+    for oc in 2..=5 {
+        damage[format!("svals{oc}")] = damage["svals"].clone();
+    }
+    let mut row = json!({"id":3300200,"cards":["1","1","1","2","3"],"noblePhantasms":[
+        {"id":3300201,"name":"Edin Shugurra Collapsar","card":"1","functions":[damage]}
+    ]});
+    enrich_servant(&mut servant, &row).unwrap();
+    assert_eq!(
+        servant.noble_phantasms[0].available_overcharges(),
+        [1, 2, 3, 4, 5]
+    );
+    assert_eq!(servant.noble_phantasms[0].base_multiplier(3, 5), Some(6.75));
+    assert!(
+        servant.noble_phantasms[0]
+            .notes
+            .iter()
+            .any(|note| note.contains("manually"))
+    );
+    row["noblePhantasms"][0]["functions"][0]["svals3"][0]["Target"] = json!(999);
+    row["noblePhantasms"][0]["functions"][0]["svals4"][0]["Correction"] = json!(200);
+    enrich_servant(&mut servant, &row).unwrap();
+    assert_eq!(servant.np_status, NpStatus::Damaging);
+    assert_eq!(
+        servant.noble_phantasms[0].available_overcharges(),
+        [1, 2, 5]
+    );
 }

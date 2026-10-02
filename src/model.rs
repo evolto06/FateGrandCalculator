@@ -426,6 +426,7 @@ impl SelectedCard {
 pub struct TurnSelection {
     pub slots: [SelectedCard; 3],
     pub np_level: u8,
+    pub overcharge_level: u8,
     pub affection_level: u8,
 }
 
@@ -450,6 +451,7 @@ impl TurnSelection {
         Some(Self {
             slots,
             np_level: 1,
+            overcharge_level: 1,
             affection_level: 1,
         })
     }
@@ -462,6 +464,9 @@ impl TurnSelection {
         }
         if !(1..=5).contains(&self.np_level) {
             return Err("NP level must be between 1 and 5.".into());
+        }
+        if !(1..=5).contains(&self.overcharge_level) {
+            return Err("Overcharge must be between 1 and 5.".into());
         }
         if self.affection_level > 10 {
             return Err("Affection level must be between 0 and 10.".into());
@@ -484,6 +489,15 @@ impl TurnSelection {
                         return Err("Select at most one supported damaging NP.".into());
                     }
                     np_used = true;
+                    if servant.noble_phantasms[index]
+                        .base_multiplier(self.np_level, self.overcharge_level)
+                        .is_none()
+                    {
+                        return Err(
+                            "This NP has no data for the selected Overcharge. Update servant data."
+                                .into(),
+                        );
+                    }
                 }
             }
         }

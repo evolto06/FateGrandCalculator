@@ -2,7 +2,9 @@
 //!
 //! Known but unsupported mechanics stay distinct from ordinary base NP damage.
 
+pub mod components;
 pub mod defense_pierce;
+pub mod multi_import;
 pub mod space_eresh;
 
 use crate::loader::NoblePhantasmRecord;

@@ -6,6 +6,7 @@ use serde_json::Value;
 
 use crate::loader::{GameData, ServantRecord};
 use crate::model::{AttributeType, ClassType};
+use crate::np_mechanics::components::{NpDamageComponent, NpDamageValues, NpTarget};
 use crate::np_mechanics::{self, NpDamageKind};
 
 const REGION: &str = "NA";
@@ -277,47 +278,130 @@ pub fn enrich_servant(servant: &mut ServantRecord, row: &Value) -> Result<(), St
             .map(|(_, damage)| damage["funcType"].as_str().unwrap_or(""))
             .collect();
         let damage_kind = np_mechanics::classify_functions(&function_types, servant.id);
-        // Conditional trait damage uses Value as its ordinary base; Correction is intentionally not applied.
-        if !matches!(
-            damage_kind,
-            NpDamageKind::Standard
-                | NpDamageKind::TraitBase
-                | NpDamageKind::DefensePierce
-                | NpDamageKind::SpaceEresh
-        ) {
+        // Only audited variants may use the verified consecutive component path.
+        let np_id = np
+            .get("id")
+            .and_then(Value::as_u64)
+            .and_then(|id| u32::try_from(id).ok());
+        let multi = damage_kind == NpDamageKind::MultipleComponents;
+        if multi
+            && !(np_id
+                .is_some_and(|id| np_mechanics::multi_import::is_verified_variant(servant.id, id))
+                && np_mechanics::multi_import::is_verified_shape(&damage_functions))
+        {
+            unsupported = true;
+            continue;
+        }
+        if !multi
+            && !matches!(
+                damage_kind,
+                NpDamageKind::Standard
+                    | NpDamageKind::TraitBase
+                    | NpDamageKind::DefensePierce
+                    | NpDamageKind::SpaceEresh
+            )
+        {
             unsupported = true;
             continue;
         }
         let (position, damage) = damage_functions[0];
         let function_type = damage["funcType"].as_str().unwrap_or("");
         let affection_np = damage_kind == NpDamageKind::SpaceEresh;
-        let Some(values) = damage
-            .get("svals")
-            .and_then(Value::as_array)
-            .filter(|v| v.len() == 5)
-        else {
+        let mut components = Vec::new();
+        let mut bad_data = false;
+        let mut bad_condition = false;
+        for (_, function) in &damage_functions {
+            let target = match function.get("funcTargetType").and_then(Value::as_str) {
+                Some("enemy") => Some(NpTarget::Enemy),
+                Some("enemyAll") => Some(NpTarget::EnemyAll),
+                None if !multi => None,
+                _ => {
+                    bad_condition = true;
+                    break;
+                }
+            };
+            let mut overcharge: [Option<NpDamageValues>; 5] = std::array::from_fn(|_| None);
+            for (oc, output) in overcharge.iter_mut().enumerate() {
+                let key = if oc == 0 {
+                    "svals".to_owned()
+                } else {
+                    format!("svals{}", oc + 1)
+                };
+                if let Some(values) = function.get(&key) {
+                    match import_damage_values(values, function_type, multi) {
+                        Ok(row) => *output = Some(row),
+                        Err(ImportValuesError::Unsupported) => {
+                            if oc == 0 {
+                                bad_condition = true;
+                            }
+                        }
+                        Err(ImportValuesError::Incomplete) => {
+                            if oc == 0 {
+                                bad_data = true;
+                            }
+                        }
+                    }
+                } else if oc == 0 {
+                    bad_data = true;
+                }
+            }
+            components.push(NpDamageComponent { target, overcharge });
+        }
+        if bad_condition {
+            unsupported = true;
+            continue;
+        }
+        if bad_data {
             incomplete = true;
             continue;
-        };
-        let multipliers: Option<Vec<f64>> = values
+        }
+        // A row is usable only when every component explicitly supplies it.
+        for oc in 0..5 {
+            let complete = components
+                .iter()
+                .all(|component| component.overcharge[oc].is_some());
+            let active = complete
+                && (0..5).all(|level| {
+                    components.iter().any(|component| {
+                        let row = component.overcharge[oc].as_ref().unwrap();
+                        row.rates[level] == 1000 && row.multipliers[level] > 0.0
+                    })
+                });
+            if !active {
+                for component in &mut components {
+                    component.overcharge[oc] = None;
+                }
+            }
+        }
+        if components
             .iter()
-            .map(|v| {
-                v.get("Value")
-                    .and_then(Value::as_f64)
-                    .filter(|v| v.is_finite() && *v > 0.0)
-                    .map(|v| v / 1000.0)
-            })
-            .collect();
-        let Some(multipliers) = multipliers else {
+            .any(|component| component.overcharge[0].is_none())
+        {
             incomplete = true;
             continue;
-        };
+        }
         let affection = if affection_np {
             let Some(scaling) = np_mechanics::space_eresh::import_scaling(damage, servant.id)
             else {
                 incomplete = true;
                 continue;
             };
+            for oc in 1..5 {
+                if components[0].overcharge[oc].is_some() {
+                    let mut other = damage.clone();
+                    other["svals"] = damage[format!("svals{}", oc + 1)].clone();
+                    let same = np_mechanics::space_eresh::import_scaling(&other, servant.id)
+                        .is_some_and(|other| {
+                            other.base == scaling.base
+                                && other.per_level == scaling.per_level
+                                && other.max_level == scaling.max_level
+                                && other.ignore_defense_at == scaling.ignore_defense_at
+                        });
+                    if !same {
+                        components[0].overcharge[oc] = None;
+                    }
+                }
+            }
             Some(scaling)
         } else {
             None
@@ -367,12 +451,16 @@ pub fn enrich_servant(servant: &mut ServantRecord, row: &Value) -> Result<(), St
                 "Other NP effects, including changes to later cards, are not simulated.".into(),
             );
         }
-        if (2..=5).any(|oc| {
-            damage
-                .get(format!("svals{oc}"))
-                .is_some_and(|other| other != &damage["svals"])
-        }) {
-            notes.push("Damage uses Overcharge 1; higher Overcharge effects are excluded.".into());
+        if components[0].overcharge.iter().skip(1).any(Option::is_none) {
+            notes.push("Some Overcharge rows are unavailable. Update servant data to fetch complete values; missing rows are never inferred.".into());
+        }
+        if multi {
+            match servant.id {
+                201300 => notes.push("Arash's self-sacrifice and its effects on later cards are not simulated.".into()),
+                504400 => notes.push("Chen Gong's NP assumes an eligible ally is available; ally sacrifice and its effects on later cards are not simulated.".into()),
+                305400 => notes.push("Bhima removes enemy buffs before damage; enter the resulting enemy Defense manually. Buff removal and later effects are not simulated.".into()),
+                _ => {}
+            }
         }
         if servant
             .noble_phantasms
@@ -397,7 +485,7 @@ pub fn enrich_servant(servant: &mut ServantRecord, row: &Value) -> Result<(), St
                 }
             ),
             card_type,
-            multipliers: multipliers.try_into().expect("five values"),
+            components,
             affection,
             defense_pierce: damage_kind == NpDamageKind::DefensePierce,
             notes,
@@ -433,4 +521,69 @@ fn parse_card(value: &Value) -> Option<crate::model::CardType> {
         Some("3" | "quick") => Some(CardType::Quick),
         _ => None,
     }
+}
+
+#[derive(Debug)]
+enum ImportValuesError {
+    Incomplete,
+    Unsupported,
+}
+
+fn import_damage_values(
+    values: &Value,
+    function_type: &str,
+    multi: bool,
+) -> Result<NpDamageValues, ImportValuesError> {
+    let values = values
+        .as_array()
+        .filter(|values| values.len() == 5)
+        .ok_or(ImportValuesError::Incomplete)?;
+    let mut row = NpDamageValues::guaranteed([0.0; 5]);
+    for (level, value) in values.iter().enumerate() {
+        let object = value.as_object().ok_or(ImportValuesError::Incomplete)?;
+        // The ordinary trait and affection fields have separate, explicit handling.
+        let allowed: &[&str] = match function_type {
+            "damageNpIndividual" => &[
+                "Value",
+                "Rate",
+                "Target",
+                "Correction",
+                "IncludeIgnoreIndividuality",
+                "IgnoreIndividuality",
+            ],
+            "damageNpBattlePointPhase" => &["Value", "Rate", "Value2", "Correction", "Target"],
+            _ => &["Value", "Rate", "HideMiss", "HideNoEffect", "CheckDead"],
+        };
+        if object.keys().any(|key| !allowed.contains(&key.as_str())) {
+            return Err(ImportValuesError::Unsupported);
+        }
+        let multiplier = value
+            .get("Value")
+            .and_then(Value::as_f64)
+            .filter(|value| value.is_finite() && *value >= 0.0)
+            .ok_or(ImportValuesError::Incomplete)?
+            / 1000.0;
+        let rate = match value.get("Rate") {
+            None => 1000,
+            Some(rate) => rate
+                .as_u64()
+                .filter(|rate| matches!(rate, 0 | 1000))
+                .ok_or(ImportValuesError::Unsupported)? as u16,
+        };
+        if (!multi && multiplier <= 0.0) || (rate == 0 && multiplier != 0.0) {
+            return Err(ImportValuesError::Incomplete);
+        }
+        let check_dead = match value.get("CheckDead") {
+            None => false,
+            Some(flag) => match flag.as_u64() {
+                Some(0) => false,
+                Some(1) => true,
+                _ => return Err(ImportValuesError::Unsupported),
+            },
+        };
+        row.multipliers[level] = multiplier;
+        row.rates[level] = rate;
+        row.check_dead[level] = check_dead;
+    }
+    Ok(row)
 }

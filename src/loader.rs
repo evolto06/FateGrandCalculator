@@ -1,6 +1,7 @@
 use std::collections::HashSet;
 
-use serde::{Deserialize, Serialize};
+use crate::np_mechanics::components::{NpDamageComponent, NpDamageValues};
+use serde::{Deserialize, Deserializer, Serialize};
 
 use crate::damage::DamageInput;
 use crate::model::{AttributeType, CardType, ClassType};
@@ -46,18 +47,108 @@ pub enum NpStatus {
     Unsupported,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Serialize)]
 pub struct NoblePhantasmRecord {
     pub id: u32,
     pub name: String,
     pub card_type: CardType,
-    pub multipliers: [f64; 5],
-    #[serde(default)]
+    pub components: Vec<NpDamageComponent>,
     pub defense_pierce: bool,
-    #[serde(default)]
     pub affection: Option<AffectionScaling>,
-    #[serde(default)]
     pub notes: Vec<String>,
+}
+
+impl<'de> Deserialize<'de> for NoblePhantasmRecord {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        #[derive(Deserialize)]
+        struct Record {
+            id: u32,
+            name: String,
+            card_type: CardType,
+            #[serde(default)]
+            defense_pierce: bool,
+            #[serde(default)]
+            affection: Option<AffectionScaling>,
+            #[serde(default)]
+            notes: Vec<String>,
+        }
+        let value = serde_json::Value::deserialize(deserializer)?;
+        let metadata: Record =
+            serde_json::from_value(value.clone()).map_err(serde::de::Error::custom)?;
+        // Presence of the new field is authoritative, even when it is malformed.
+        let components =
+            if let Some(components) = value.get("components") {
+                serde_json::from_value(components.clone()).map_err(serde::de::Error::custom)?
+            } else {
+                let multipliers: [f64; 5] =
+                    serde_json::from_value(value.get("multipliers").cloned().ok_or_else(|| {
+                        serde::de::Error::custom("NP is missing damage components")
+                    })?)
+                    .map_err(serde::de::Error::custom)?;
+                vec![NpDamageComponent {
+                    target: None,
+                    overcharge: [
+                        Some(NpDamageValues {
+                            multipliers,
+                            rates: [1000; 5],
+                            check_dead: [false; 5],
+                        }),
+                        None,
+                        None,
+                        None,
+                        None,
+                    ],
+                }]
+            };
+        Ok(Self {
+            id: metadata.id,
+            name: metadata.name,
+            card_type: metadata.card_type,
+            components,
+            defense_pierce: metadata.defense_pierce,
+            affection: metadata.affection,
+            notes: metadata.notes,
+        })
+    }
+}
+
+impl NoblePhantasmRecord {
+    pub fn available_overcharges(&self) -> Vec<u8> {
+        (1..=5)
+            .filter(|&overcharge| {
+                (1..=5).all(|level| self.base_multiplier(level, overcharge).is_some())
+            })
+            .collect()
+    }
+
+    pub fn base_multiplier(&self, np_level: u8, overcharge: u8) -> Option<f64> {
+        let level = usize::from(np_level.checked_sub(1)?);
+        let oc = usize::from(overcharge.checked_sub(1)?);
+        if level >= 5 || oc >= 5 || self.components.is_empty() {
+            return None;
+        }
+        let mut total = 0.0;
+        for component in &self.components {
+            let row = component.overcharge[oc].as_ref()?;
+            let value = row.multipliers[level];
+            let rate = row.rates[level];
+            if !value.is_finite()
+                || value < 0.0
+                || !matches!(rate, 0 | 1000)
+                || (rate == 0 && value != 0.0)
+            {
+                return None;
+            }
+            if rate == 1000 {
+                total += value;
+            }
+        }
+        (total.is_finite() && total > 0.0).then_some(total)
+    }
+
+    fn valid_components(&self) -> bool {
+        crate::np_mechanics::components::components_are_valid(&self.components)
+    }
 }
 
 impl ServantRecord {
@@ -141,7 +232,7 @@ impl GameData {
                     || !np_ids.insert(np.id)
                     || np.name.trim().is_empty()
                     || np.card_type == CardType::Extra
-                    || np.multipliers.iter().any(|v| !v.is_finite() || *v <= 0.0)
+                    || !np.valid_components()
                     || np.affection.as_ref().is_some_and(|scale| !scale.is_valid())
                 {
                     return Err(format!("{} has invalid NP damage data.", servant.name));

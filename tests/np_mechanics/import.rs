@@ -62,7 +62,14 @@ fn imports_every_audited_defense_piercing_variant_without_losing_older_variants(
                 .iter()
                 .map(|value| value["Value"].as_f64().unwrap() / 1000.0)
                 .collect();
-            assert_eq!(imported.multipliers.as_slice(), expected.as_slice());
+            assert_eq!(
+                imported.components[0].overcharge[0]
+                    .as_ref()
+                    .unwrap()
+                    .multipliers
+                    .as_slice(),
+                expected.as_slice()
+            );
             assert_eq!(imported.defense_pierce, kind == "damageNpPierce");
             assert!(imported.affection.is_none());
             if imported.defense_pierce {
