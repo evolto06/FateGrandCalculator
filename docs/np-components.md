@@ -59,16 +59,27 @@ Non-damage effects remain manual. Arash's death and Chen Gong's ally requirement
 and sacrifice are not simulated. For Bhīma, enter enemy defense after any buff
 removal that applies before damage.
 
+## Low-HP NP scaling
+
+Six audited NP variants also support `damageNpHpratioLow`. Their source base rate
+and HP coefficient stay separate for every NP-level and Overcharge row. The
+effective rate adds the truncated missing-HP contribution before converting the
+source value from thousandths to a multiplier. Users enter attacker HP at the
+moment NP damage lands; preceding healing or HP loss remains manual. The supported
+variants, defaults, and formula are documented in [low-HP NP support](low-hp-nps.md).
+
 ## Coverage and migration
 
 NP level and Overcharge are independent, each ranging from 1 to 5. A component
 stores an explicit OC row containing five NP-level values and execution metadata.
 Missing OC rows remain unavailable rather than copying OC1.
 
-Snapshot format v3 retains component metadata. Older v1/v2 records with five base
-multipliers migrate to a single OC1-only component, preserving affection,
-defense-piercing flags, and notes. Updating servant data loads explicitly available
-higher-OC values. An unsuccessful update preserves the prior snapshot.
+Snapshot format v4 retains component and optional low-HP metadata. The app reads
+v1/v2/v3 snapshots; records without low-HP metadata retain ordinary component
+behavior. Older records with five base multipliers migrate to a single OC1-only
+component, preserving affection, defense-piercing flags, and notes. Updating
+servant data loads explicitly available higher-OC values. An unsuccessful update
+preserves the prior snapshot.
 
 Overcharge selection changes only imported damage values. It does not calculate
 NP gauge, chain-based Overcharge gain, automatic pre-damage buffs, conditional
