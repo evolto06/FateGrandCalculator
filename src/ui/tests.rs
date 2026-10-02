@@ -590,3 +590,214 @@ fn damage_ranges_fit_inside_padded_result_panels() {
         output.drop_without_applying_deltas();
     }
 }
+
+fn low_hp_servant(max_hp: Option<u32>) -> ServantRecord {
+    use fate_grand_calculator::np_mechanics::low_hp::LowHpScaling;
+    let mut servant = full_overcharge_servant();
+    servant.max_hp = max_hp;
+    for row in servant.noble_phantasms[0].components[0]
+        .overcharge
+        .iter_mut()
+        .flatten()
+    {
+        row.multipliers = [6.0; 5];
+        row.low_hp = Some(LowHpScaling {
+            source_base_rates: [6000; 5],
+            coefficients: [6000; 5],
+        });
+    }
+    servant
+}
+
+#[test]
+fn hp_text_rejects_invalid_input_without_reusing_previous_damage() {
+    let servant = low_hp_servant(Some(100));
+    let mut turn = TurnSelection::default_for(&servant).unwrap();
+    let ctx = egui::Context::default();
+    for text in ["", "0", "-1", "1.5", "101", "4294967296", "+1", " 1"] {
+        ctx.data_mut(|data| {
+            data.insert_temp(
+                hp_inputs_id(servant.id),
+                HpInputs {
+                    current: text.into(),
+                    maximum: "100".into(),
+                    reset_feedback: None,
+                },
+            )
+        });
+        let output = ctx.run_ui(input(328.0, vec![]), |ui| {
+            hp_settings(ui, &servant, &mut turn)
+        });
+        output.drop_without_applying_deltas();
+        assert_eq!(turn.attacker_hp, None, "invalid text {text:?}");
+        assert!(
+            fate_grand_calculator::damage::calculate_turn(
+                &servant,
+                &turn,
+                TurnBuffs::default(),
+                ClassType::Lancer,
+                AttributeType::Sky,
+            )
+            .is_err(),
+            "invalid text must suspend calculation"
+        );
+    }
+    for maximum in ["", "0", "-1", "1.5", "4294967296"] {
+        let inputs = HpInputs {
+            current: "1".into(),
+            maximum: maximum.into(),
+            reset_feedback: None,
+        };
+        assert!(inputs.value().is_err(), "maximum {maximum:?}");
+    }
+    turn.slots[0] = SelectedCard::Normal(2);
+    assert!(
+        fate_grand_calculator::damage::calculate_turn(
+            &servant,
+            &turn,
+            TurnBuffs::default(),
+            ClassType::Lancer,
+            AttributeType::Sky,
+        )
+        .is_ok(),
+        "unused invalid HP must not block normal attacks"
+    );
+}
+
+#[test]
+fn hp_initialization_missing_metadata_and_level_changes_are_explicit() {
+    for max_hp in [None, Some(101)] {
+        let servant = low_hp_servant(max_hp);
+        let mut turn = TurnSelection::default_for(&servant).unwrap();
+        let ctx = egui::Context::default();
+        let output = ctx.run_ui(input(328.0, vec![]), |ui| {
+            np_settings(ui, &servant, &mut turn)
+        });
+        output.drop_without_applying_deltas();
+        let initial = ctx
+            .data(|data| data.get_temp::<HpInputs>(hp_inputs_id(servant.id)))
+            .unwrap();
+        assert_eq!(
+            initial.maximum,
+            max_hp.map_or_else(String::new, |hp| hp.to_string())
+        );
+        assert_eq!(initial.current, initial.maximum);
+        assert_eq!(turn.attacker_hp.is_some(), max_hp.is_some());
+        ctx.data_mut(|data| {
+            data.insert_temp(
+                hp_inputs_id(servant.id),
+                HpInputs {
+                    current: "1".into(),
+                    maximum: "101".into(),
+                    reset_feedback: None,
+                },
+            )
+        });
+        turn.np_level = 5;
+        turn.overcharge_level = 5;
+        let output = ctx.run_ui(input(328.0, vec![]), |ui| {
+            np_settings(ui, &servant, &mut turn)
+        });
+        output.drop_without_applying_deltas();
+        assert_eq!(turn.attacker_hp, Some(AttackerHp::new(1, 101).unwrap()));
+        let mut inputs = ctx
+            .data(|data| data.get_temp::<HpInputs>(hp_inputs_id(servant.id)))
+            .unwrap();
+        inputs.maximum = "102".into();
+        inputs.maximum_changed();
+        assert_eq!(inputs.current, "102");
+        assert!(inputs.reset_feedback.unwrap().contains("reset to full HP"));
+    }
+}
+
+#[test]
+fn hp_controls_and_effective_breakdown_fit_narrow_panels() {
+    let servant = low_hp_servant(Some(100));
+    for width in [214.0, 280.0, 328.0, 760.0] {
+        let mut turn = TurnSelection::default_for(&servant).unwrap();
+        let ctx = egui::Context::default();
+        let output = ctx.run_ui(input(width, vec![]), |ui| {
+            apply_canvas(ui);
+            np_settings(ui, &servant, &mut turn);
+            assert!(ui.min_rect().right() <= width + 1.0);
+        });
+        assert!(
+            output.shapes.iter().any(|shape| painted_text_rect(
+                &shape.shape,
+                "HP at NP damage time"
+            )
+            .is_some())
+        );
+        output.drop_without_applying_deltas();
+        turn.attacker_hp = Some(AttackerHp::new(50, 100).unwrap());
+        let result = fate_grand_calculator::damage::calculate_turn(
+            &servant,
+            &turn,
+            TurnBuffs::default(),
+            ClassType::Lancer,
+            AttributeType::Sky,
+        )
+        .unwrap();
+        let output = ctx.run_ui(input(width, vec![]), |ui| {
+            apply_canvas(ui);
+            result_panel(ui, &servant, &turn, &result, false);
+            assert!(ui.min_rect().right() <= width + 1.0);
+        });
+        assert!(output.shapes.iter().any(|shape| {
+            painted_text_rect(
+                &shape.shape,
+                "Base ×6.000 + missing-HP bonus ×3.000 = effective ×9.000",
+            )
+            .is_some()
+        }));
+        output.drop_without_applying_deltas();
+    }
+}
+
+#[test]
+fn typing_invalid_current_hp_clears_the_calculated_state_in_the_same_frame() {
+    let servant = low_hp_servant(Some(100));
+    let mut turn = TurnSelection::default_for(&servant).unwrap();
+    let ctx = egui::Context::default();
+    let output = ctx.run_ui(input(328.0, vec![]), |ui| {
+        hp_settings(ui, &servant, &mut turn);
+    });
+    let current_position = output
+        .shapes
+        .iter()
+        .rev()
+        .find_map(|shape| painted_text_rect(&shape.shape, "100"))
+        .expect("current HP is painted")
+        .center();
+    output.drop_without_applying_deltas();
+    assert_eq!(turn.attacker_hp, Some(AttackerHp::new(100, 100).unwrap()));
+    for pressed in [true, false] {
+        ctx.run_ui(input(328.0, pointer(current_position, pressed)), |ui| {
+            hp_settings(ui, &servant, &mut turn);
+        })
+        .drop_without_applying_deltas();
+    }
+    let select_all = egui::Event::Key {
+        key: egui::Key::A,
+        physical_key: None,
+        pressed: true,
+        repeat: false,
+        modifiers: egui::Modifiers {
+            ctrl: true,
+            command: true,
+            ..Default::default()
+        },
+    };
+    let output = ctx.run_ui(
+        input(328.0, vec![select_all, egui::Event::Text("101".into())]),
+        |ui| {
+            hp_settings(ui, &servant, &mut turn);
+        },
+    );
+    output.drop_without_applying_deltas();
+    let text = ctx
+        .data(|data| data.get_temp::<HpInputs>(hp_inputs_id(servant.id)))
+        .unwrap();
+    assert_eq!(text.current, "101");
+    assert_eq!(turn.attacker_hp, None);
+}
