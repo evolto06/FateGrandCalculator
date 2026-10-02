@@ -173,7 +173,11 @@ pub fn calculate_turn(
                         .iter()
                         .map(|component| {
                             let multiplier = component
-                                .multiplier(selection.np_level, selection.overcharge_level)
+                                .effective_multiplier(
+                                    selection.np_level,
+                                    selection.overcharge_level,
+                                    selection.attacker_hp,
+                                )
                                 .expect("validated NP coverage");
                             turn_card(
                                 servant,

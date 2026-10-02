@@ -321,7 +321,30 @@ impl CalculatorApp {
     fn poll_update_result(&mut self, context: &egui::Context) {
         match self.update_receiver.try_recv() {
             Ok(Ok(report)) => {
+                let resets_hp = ui::has_hp_inputs(context, self.selected_servant_id)
+                    || self
+                        .game_data
+                        .as_ref()
+                        .ok()
+                        .and_then(|data| data.servant(self.selected_servant_id))
+                        .zip(self.turn_selection.as_ref())
+                        .is_some_and(|(servant, turn)| {
+                            turn.slots.iter().any(|card| {
+                                if let fate_grand_calculator::model::SelectedCard::NoblePhantasm(
+                                    index,
+                                ) = card
+                                {
+                                    servant
+                                        .noble_phantasms
+                                        .get(*index)
+                                        .is_some_and(|np| np.requires_attacker_hp())
+                                } else {
+                                    false
+                                }
+                            })
+                        });
                 ui::clear_overcharge_feedback(context, self.selected_servant_id);
+                ui::clear_hp_inputs(context, self.selected_servant_id);
                 if report.game_data.servant(self.selected_servant_id).is_none() {
                     self.selected_servant_id = report
                         .game_data
@@ -330,6 +353,7 @@ impl CalculatorApp {
                         .map_or(0, |servant| servant.id);
                 }
                 ui::clear_overcharge_feedback(context, self.selected_servant_id);
+                ui::clear_hp_inputs(context, self.selected_servant_id);
                 let total = report.game_data.servants.len();
                 let skipped = report.skipped_rows;
                 let updated_at = format_retrieved_at(&report.game_data.retrieved_at);
@@ -349,6 +373,13 @@ impl CalculatorApp {
                         "Updated {total} servants · saved locally at {updated_at}. Skipped {skipped} incomplete entries."
                     )
                 };
+                if resets_hp {
+                    self.data_status.push_str(if self.turn_selection.as_ref().is_some_and(|turn| turn.attacker_hp.is_some()) {
+                        " HP inputs reset to full HP from the updated servant data."
+                    } else {
+                        " HP inputs reset. Enter maximum HP manually if the selected NP requires HP."
+                    });
+                }
             }
             Ok(Err(error)) => {
                 self.update_in_progress = false;
@@ -486,5 +517,58 @@ mod tests {
             app.data_status
                 .starts_with("Update failed; current data was kept.")
         );
+    }
+
+    #[test]
+    fn data_update_reports_hp_resets_and_failure_preserves_hp_edits() {
+        use fate_grand_calculator::model::AttackerHp;
+        for invalid_edit in [false, true] {
+            for succeeds in [false, true] {
+                let mut app = app_with_bundled_data();
+                let context = egui::Context::default();
+                let servant_id = app.selected_servant_id;
+                let hp = if invalid_edit {
+                    None
+                } else {
+                    Some(AttackerHp::new(33, 100).unwrap())
+                };
+                app.turn_selection.as_mut().unwrap().attacker_hp = hp;
+                let current_text = if invalid_edit { "not-an-integer" } else { "33" };
+                ui::test_hp_inputs(&context, servant_id, Some((current_text, "100")));
+                if succeeds {
+                    let mut updated = GameData::bundled().unwrap();
+                    updated.servants[0].max_hp = Some(200);
+                    app.update_sender
+                        .send(Ok(UpdateReport {
+                            game_data: updated,
+                            skipped_rows: 0,
+                        }))
+                        .unwrap();
+                } else {
+                    app.update_sender
+                        .send(Err("Test network failure".into()))
+                        .unwrap();
+                }
+                app.poll_update_result(&context);
+                if succeeds {
+                    assert_eq!(
+                        app.turn_selection.as_ref().unwrap().attacker_hp,
+                        Some(AttackerHp::new(200, 200).unwrap())
+                    );
+                    assert!(ui::test_hp_inputs(&context, servant_id, None).is_none());
+                    assert!(
+                        app.data_status
+                            .contains("HP inputs reset to full HP from the updated servant data.")
+                    );
+                } else {
+                    assert_eq!(app.turn_selection.as_ref().unwrap().attacker_hp, hp);
+                    assert_eq!(
+                        ui::test_hp_inputs(&context, servant_id, None),
+                        Some((current_text.into(), "100".into()))
+                    );
+                    assert!(!app.data_status.contains("HP inputs reset"));
+                }
+            }
+        }
     }
 }

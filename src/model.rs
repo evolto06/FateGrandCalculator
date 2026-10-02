@@ -422,12 +422,42 @@ impl SelectedCard {
     }
 }
 
+/// Manual attacker HP at NP damage time, after any preceding HP changes.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct AttackerHp {
+    pub current: u32,
+    pub max: u32,
+}
+
+impl AttackerHp {
+    pub fn new(current: u32, max: u32) -> Result<Self, String> {
+        let hp = Self { current, max };
+        hp.validate()?;
+        Ok(hp)
+    }
+
+    pub fn validate(&self) -> Result<(), String> {
+        if self.max == 0 {
+            return Err("Maximum HP must be greater than zero.".into());
+        }
+        if self.current == 0 || self.current > self.max {
+            return Err("Current HP must be between 1 and maximum HP.".into());
+        }
+        Ok(())
+    }
+
+    pub fn ratio(&self) -> f64 {
+        f64::from(self.current) / f64::from(self.max)
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TurnSelection {
     pub slots: [SelectedCard; 3],
     pub np_level: u8,
     pub overcharge_level: u8,
     pub affection_level: u8,
+    pub attacker_hp: Option<AttackerHp>,
 }
 
 impl TurnSelection {
@@ -453,6 +483,9 @@ impl TurnSelection {
             np_level: 1,
             overcharge_level: 1,
             affection_level: 1,
+            attacker_hp: servant
+                .max_hp
+                .and_then(|max| AttackerHp::new(max, max).ok()),
         })
     }
 
@@ -489,6 +522,14 @@ impl TurnSelection {
                         return Err("Select at most one supported damaging NP.".into());
                     }
                     np_used = true;
+                    if !servant.noble_phantasms[index].valid_components() {
+                        return Err("This NP has invalid damage data. Update servant data.".into());
+                    }
+                    if servant.noble_phantasms[index].requires_attacker_hp() {
+                        self.attacker_hp
+                            .ok_or("Enter current and maximum HP at NP damage time.")?
+                            .validate()?;
+                    }
                     if servant.noble_phantasms[index]
                         .base_multiplier(self.np_level, self.overcharge_level)
                         .is_none()

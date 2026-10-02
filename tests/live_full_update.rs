@@ -22,4 +22,22 @@ fn current_na_update_saves_the_complete_additional_servant_catalog() {
         loaded.servant(3300200).unwrap().np_status,
         NpStatus::Damaging
     );
+    for (servant_id, np_ids) in [
+        (202500, vec![202501]),
+        (203300, vec![203301]),
+        (400900, vec![400901, 400902]),
+        (702500, vec![702501, 702502]),
+    ] {
+        let servant = loaded.servant(servant_id).unwrap();
+        assert!(servant.max_hp.is_some_and(|hp| hp > 0));
+        for id in np_ids {
+            let np = servant
+                .noble_phantasms
+                .iter()
+                .find(|np| np.id == id)
+                .unwrap();
+            assert!(np.requires_attacker_hp());
+            assert_eq!(np.available_overcharges(), [1, 2, 3, 4, 5]);
+        }
+    }
 }

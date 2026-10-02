@@ -80,6 +80,7 @@ fn run(
             np_level: level,
             overcharge_level: oc,
             affection_level: affection,
+            attacker_hp: None,
         },
         buffs,
         ClassType::Saber,

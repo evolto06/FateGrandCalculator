@@ -20,6 +20,7 @@ fn run(
             np_level: 1,
             overcharge_level: 1,
             affection_level: 1,
+            attacker_hp: None,
         },
         buffs,
         ClassType::Saber,
@@ -111,6 +112,7 @@ fn np_level_and_upgrade_select_independent_multipliers() {
         np_level: 5,
         overcharge_level: 1,
         affection_level: 1,
+        attacker_hp: None,
     };
     let result = calculate_turn(
         &base,
