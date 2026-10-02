@@ -11,6 +11,8 @@
 //! buff consumption, ally sacrifice, or death. RNG correlation is not modeled;
 //! adding separately floored endpoint damages establishes the possible range.
 
+use super::low_hp::{LowHpBreakdown, LowHpScaling};
+use crate::model::AttackerHp;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
@@ -27,6 +29,8 @@ fn guaranteed_rates() -> [u16; 5] {
 #[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
 pub struct NpDamageValues {
     pub multipliers: [f64; 5],
+    #[serde(default)]
+    pub low_hp: Option<LowHpScaling>,
     #[serde(default = "guaranteed_rates")]
     pub rates: [u16; 5],
     #[serde(default)]
@@ -37,19 +41,23 @@ impl NpDamageValues {
     pub fn guaranteed(multipliers: [f64; 5]) -> Self {
         Self {
             multipliers,
+            low_hp: None,
             rates: guaranteed_rates(),
             check_dead: [false; 5],
         }
     }
 
     pub fn is_valid(&self) -> bool {
-        (0..5).all(|level| {
-            let value = self.multipliers[level];
-            value.is_finite()
-                && value >= 0.0
-                && matches!(self.rates[level], 0 | 1000)
-                && (self.rates[level] != 0 || value == 0.0)
-        })
+        self.low_hp
+            .as_ref()
+            .is_none_or(|scaling| scaling.is_valid_for(&self.multipliers, &self.rates))
+            && (0..5).all(|level| {
+                let value = self.multipliers[level];
+                value.is_finite()
+                    && value >= 0.0
+                    && matches!(self.rates[level], 0 | 1000)
+                    && (self.rates[level] != 0 || value == 0.0)
+            })
     }
 }
 
@@ -89,12 +97,50 @@ impl NpDamageComponent {
     }
 
     pub fn is_valid(&self) -> bool {
-        self.overcharge[0].is_some()
-            && self
-                .overcharge
-                .iter()
-                .flatten()
-                .all(NpDamageValues::is_valid)
+        let Some(first) = &self.overcharge[0] else {
+            return false;
+        };
+        self.overcharge
+            .iter()
+            .flatten()
+            .all(|row| row.low_hp.is_some() == first.low_hp.is_some() && row.is_valid())
+    }
+
+    pub fn low_hp_breakdown(
+        &self,
+        np_level: u8,
+        overcharge: u8,
+        hp: AttackerHp,
+    ) -> Option<LowHpBreakdown> {
+        let row = self
+            .overcharge
+            .get(usize::from(overcharge.checked_sub(1)?))?
+            .as_ref()?;
+        if !row.is_valid() {
+            return None;
+        }
+        row.low_hp.as_ref()?.breakdown(np_level, hp)
+    }
+
+    pub fn effective_multiplier(
+        &self,
+        np_level: u8,
+        overcharge: u8,
+        hp: Option<AttackerHp>,
+    ) -> Option<f64> {
+        let row = self
+            .overcharge
+            .get(usize::from(overcharge.checked_sub(1)?))?
+            .as_ref()?;
+        if !row.is_valid() {
+            return None;
+        }
+        if row.low_hp.is_some() {
+            self.low_hp_breakdown(np_level, overcharge, hp?)
+                .map(|result| result.effective_multiplier)
+        } else {
+            self.multiplier(np_level, overcharge)
+        }
     }
 }
 

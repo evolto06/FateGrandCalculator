@@ -142,7 +142,6 @@ fn invalid_piercing_multiplier_data_is_unavailable_instead_of_guessed() {
 #[test]
 fn support_and_other_audited_mechanics_are_not_imported_as_piercing_base_damage() {
     for kind in [
-        "damageNpHpratioLow",
         "damageNpIndividualSum",
         "damageNpStateIndividualFix",
         "damageNpRare",

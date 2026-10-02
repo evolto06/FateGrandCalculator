@@ -7,6 +7,7 @@ use serde_json::Value;
 use crate::loader::{GameData, ServantRecord};
 use crate::model::{AttributeType, ClassType};
 use crate::np_mechanics::components::{NpDamageComponent, NpDamageValues, NpTarget};
+use crate::np_mechanics::low_hp::LowHpScaling;
 use crate::np_mechanics::{self, NpDamageKind};
 
 const REGION: &str = "NA";
@@ -26,6 +27,8 @@ struct AtlasBasicServant {
     attribute: Option<String>,
     #[serde(rename = "atkMax")]
     max_attack: Option<u32>,
+    #[serde(rename = "hpMax")]
+    max_hp: Option<u32>,
     #[serde(rename = "lvMax", alias = "maxLevel")]
     max_level: Option<u32>,
 }
@@ -72,7 +75,7 @@ pub fn normalize_atlas_export(payload: &Value) -> Result<NormalizationReport, St
             skipped_rows += 1;
             continue;
         };
-        if source.max_level == Some(0) {
+        if source.max_level == Some(0) || source.max_hp == Some(0) {
             skipped_rows += 1;
             continue;
         }
@@ -88,6 +91,7 @@ pub fn normalize_atlas_export(payload: &Value) -> Result<NormalizationReport, St
             name,
             level: source.max_level,
             attack,
+            max_hp: source.max_hp,
             class,
             attribute,
             deck: Vec::new(),
@@ -191,6 +195,18 @@ pub fn enrich_servant(servant: &mut ServantRecord, row: &Value) -> Result<(), St
             "Atlas returned the wrong servant for {}.",
             servant.name
         ));
+    }
+    // Atlas hpMax is the natural maximum-level statistic (hpGrowth[lvMax - 1]
+    // in the audited responses), before player-entered Fous or grail levels.
+    if let Some(hp) = row.get("hpMax") {
+        servant.max_hp = Some(
+            hp.as_u64()
+                .and_then(|hp| u32::try_from(hp).ok())
+                .filter(|hp| *hp > 0)
+                .ok_or_else(|| {
+                    format!("{} has an invalid maximum HP in Atlas data.", servant.name)
+                })?,
+        );
     }
     let cards = row
         .get("cards")
@@ -299,6 +315,7 @@ pub fn enrich_servant(servant: &mut ServantRecord, row: &Value) -> Result<(), St
                     | NpDamageKind::TraitBase
                     | NpDamageKind::DefensePierce
                     | NpDamageKind::SpaceEresh
+                    | NpDamageKind::HpRatioLow
             )
         {
             unsupported = true;
@@ -307,6 +324,11 @@ pub fn enrich_servant(servant: &mut ServantRecord, row: &Value) -> Result<(), St
         let (position, damage) = damage_functions[0];
         let function_type = damage["funcType"].as_str().unwrap_or("");
         let affection_np = damage_kind == NpDamageKind::SpaceEresh;
+        let low_hp_np = damage_kind == NpDamageKind::HpRatioLow;
+        if low_hp_np && !is_low_hp_shape(np, damage) {
+            unsupported = true;
+            continue;
+        }
         let mut components = Vec::new();
         let mut bad_data = false;
         let mut bad_condition = false;
@@ -314,7 +336,7 @@ pub fn enrich_servant(servant: &mut ServantRecord, row: &Value) -> Result<(), St
             let target = match function.get("funcTargetType").and_then(Value::as_str) {
                 Some("enemy") => Some(NpTarget::Enemy),
                 Some("enemyAll") => Some(NpTarget::EnemyAll),
-                None if !multi => None,
+                None if !multi && !low_hp_np => None,
                 _ => {
                     bad_condition = true;
                     break;
@@ -434,6 +456,9 @@ pub fn enrich_servant(servant: &mut ServantRecord, row: &Value) -> Result<(), St
         if affection_np {
             notes.push("Set the affection level at the moment NP damage lands. Higher Overcharge can raise the gauge before damage; adjust the level manually.".into());
         }
+        if low_hp_np {
+            notes.push("Set attacker HP at NP damage time, including preceding HP loss or healing. HP changes and other NP effects are not simulated.".into());
+        }
         if damage_kind == NpDamageKind::DefensePierce {
             notes.push(
                 "Ignores positive enemy Defense; Defense Down still increases damage.".into(),
@@ -539,10 +564,16 @@ fn import_damage_values(
         .filter(|values| values.len() == 5)
         .ok_or(ImportValuesError::Incomplete)?;
     let mut row = NpDamageValues::guaranteed([0.0; 5]);
+    let low_hp = function_type == "damageNpHpratioLow";
+    let mut scaling = LowHpScaling {
+        source_base_rates: [0; 5],
+        coefficients: [0; 5],
+    };
     for (level, value) in values.iter().enumerate() {
         let object = value.as_object().ok_or(ImportValuesError::Incomplete)?;
         // The ordinary trait and affection fields have separate, explicit handling.
         let allowed: &[&str] = match function_type {
+            "damageNpHpratioLow" => &["Value", "Rate", "Target"],
             "damageNpIndividual" => &[
                 "Value",
                 "Rate",
@@ -556,6 +587,24 @@ fn import_damage_values(
         };
         if object.keys().any(|key| !allowed.contains(&key.as_str())) {
             return Err(ImportValuesError::Unsupported);
+        }
+        if low_hp {
+            let source_value = value
+                .get("Value")
+                .and_then(Value::as_u64)
+                .and_then(|value| u32::try_from(value).ok())
+                .filter(|value| *value > 0)
+                .ok_or(ImportValuesError::Incomplete)?;
+            let coefficient = value
+                .get("Target")
+                .and_then(Value::as_u64)
+                .and_then(|value| u32::try_from(value).ok())
+                .ok_or(ImportValuesError::Incomplete)?;
+            if value.get("Rate").and_then(Value::as_u64) != Some(1000) {
+                return Err(ImportValuesError::Unsupported);
+            }
+            scaling.source_base_rates[level] = source_value;
+            scaling.coefficients[level] = coefficient;
         }
         let multiplier = value
             .get("Value")
@@ -585,5 +634,63 @@ fn import_damage_values(
         row.rates[level] = rate;
         row.check_dead[level] = check_dead;
     }
+    if low_hp {
+        row.low_hp = Some(scaling);
+    }
     Ok(row)
+}
+
+/// Only the audited unconditional low-HP contract is understood. Unexpected
+/// function fields, targeting changes, scripts or conditions must not turn into
+/// an apparently ordinary NP. Other NP effects are retained as manual notes.
+fn is_low_hp_shape(np: &Value, function: &Value) -> bool {
+    let Some(object) = function.as_object() else {
+        return false;
+    };
+    let fields = [
+        "funcId",
+        "funcType",
+        "funcTargetType",
+        "funcTargetTeam",
+        "funcPopupText",
+        "functvals",
+        "overWriteTvalsList",
+        "funcquestTvals",
+        "funcGroup",
+        "traitVals",
+        "buffs",
+        "script",
+        "svals",
+        "svals2",
+        "svals3",
+        "svals4",
+        "svals5",
+    ];
+    object.keys().all(|key| fields.contains(&key.as_str()))
+        && matches!(
+            function["funcTargetType"].as_str(),
+            Some("enemy" | "enemyAll")
+        )
+        && function
+            .get("funcTargetTeam")
+            .is_none_or(|team| team.as_str() == Some("playerAndEnemy"))
+        && [
+            "functvals",
+            "overWriteTvalsList",
+            "funcquestTvals",
+            "funcGroup",
+            "traitVals",
+            "buffs",
+        ]
+        .iter()
+        .all(|key| {
+            function
+                .get(*key)
+                .is_none_or(|value| value.as_array().is_some_and(Vec::is_empty))
+        })
+        && [np, function].iter().all(|value| {
+            value
+                .get("script")
+                .is_none_or(|script| script.as_object().is_some_and(serde_json::Map::is_empty))
+        })
 }

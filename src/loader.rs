@@ -24,6 +24,8 @@ pub struct ServantRecord {
     pub name: String,
     pub level: Option<u32>,
     pub attack: u32,
+    #[serde(default)]
+    pub max_hp: Option<u32>,
     pub class: ClassType,
     pub attribute: AttributeType,
     pub source_url: String,
@@ -90,6 +92,7 @@ impl<'de> Deserialize<'de> for NoblePhantasmRecord {
                     overcharge: [
                         Some(NpDamageValues {
                             multipliers,
+                            low_hp: None,
                             rates: [1000; 5],
                             check_dead: [false; 5],
                         }),
@@ -113,6 +116,16 @@ impl<'de> Deserialize<'de> for NoblePhantasmRecord {
 }
 
 impl NoblePhantasmRecord {
+    pub fn requires_attacker_hp(&self) -> bool {
+        self.components.iter().any(|component| {
+            component
+                .overcharge
+                .iter()
+                .flatten()
+                .any(|row| row.low_hp.is_some())
+        })
+    }
+
     pub fn available_overcharges(&self) -> Vec<u8> {
         (1..=5)
             .filter(|&overcharge| {
@@ -132,11 +145,7 @@ impl NoblePhantasmRecord {
             let row = component.overcharge[oc].as_ref()?;
             let value = row.multipliers[level];
             let rate = row.rates[level];
-            if !value.is_finite()
-                || value < 0.0
-                || !matches!(rate, 0 | 1000)
-                || (rate == 0 && value != 0.0)
-            {
+            if !row.is_valid() {
                 return None;
             }
             if rate == 1000 {
@@ -146,7 +155,7 @@ impl NoblePhantasmRecord {
         (total.is_finite() && total > 0.0).then_some(total)
     }
 
-    fn valid_components(&self) -> bool {
+    pub(crate) fn valid_components(&self) -> bool {
         crate::np_mechanics::components::components_are_valid(&self.components)
     }
 }
@@ -244,6 +253,12 @@ impl GameData {
                 || servant.source_url.trim().is_empty()
             {
                 return Err("Game data contains a servant with missing required values.".into());
+            }
+            if servant.max_hp == Some(0) {
+                return Err(format!(
+                    "{} has invalid maximum HP in game data.",
+                    servant.name
+                ));
             }
             if servant.level == Some(0) {
                 return Err(format!(

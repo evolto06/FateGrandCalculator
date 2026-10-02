@@ -37,6 +37,7 @@ fn damage(
         np_level: 1,
         overcharge_level: 1,
         affection_level,
+        attacker_hp: None,
     };
     calculate_turn(
         &servant,
