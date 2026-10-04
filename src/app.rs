@@ -321,6 +321,7 @@ impl CalculatorApp {
     fn poll_update_result(&mut self, context: &egui::Context) {
         match self.update_receiver.try_recv() {
             Ok(Ok(report)) => {
+                ui::reset_enemy_status_for_catalog(context);
                 let resets_hp = ui::has_hp_inputs(context, self.selected_servant_id)
                     || self
                         .game_data
@@ -380,6 +381,8 @@ impl CalculatorApp {
                         " HP inputs reset. Enter maximum HP manually if the selected NP requires HP."
                     });
                 }
+                self.data_status
+                    .push_str(" Enemy status reset to absent after the servant data update.");
             }
             Ok(Err(error)) => {
                 self.update_in_progress = false;
@@ -517,6 +520,38 @@ mod tests {
             app.data_status
                 .starts_with("Update failed; current data was kept.")
         );
+    }
+
+    #[test]
+    fn catalog_update_resets_status_and_failed_update_keeps_assumption() {
+        use fate_grand_calculator::np_mechanics::enemy_status::EnemyStatus;
+        for succeeds in [false, true] {
+            let mut app = app_with_bundled_data();
+            let context = egui::Context::default();
+            app.turn_selection.as_mut().unwrap().enemy_status = Some(EnemyStatus::Poison);
+            let update = if succeeds {
+                Ok(UpdateReport {
+                    game_data: GameData::bundled().unwrap(),
+                    skipped_rows: 0,
+                })
+            } else {
+                Err("Test failure".into())
+            };
+            app.update_sender.send(update).unwrap();
+            app.poll_update_result(&context);
+            assert_eq!(
+                app.turn_selection.as_ref().unwrap().enemy_status,
+                if succeeds {
+                    None
+                } else {
+                    Some(EnemyStatus::Poison)
+                }
+            );
+            assert_eq!(
+                app.data_status.contains("Enemy status reset to absent"),
+                succeeds
+            );
+        }
     }
 
     #[test]

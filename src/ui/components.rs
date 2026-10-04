@@ -6,6 +6,7 @@ use fate_grand_calculator::loader::{GameData, NpStatus, ServantRecord};
 use fate_grand_calculator::model::{
     AttackerHp, AttributeType, CardType, ClassType, SelectedCard, TurnSelection,
 };
+use fate_grand_calculator::np_mechanics::enemy_status::EnemyStatus;
 
 use super::theme::{
     ACCENT, ARTS, BACKGROUND, BUSTER, ERROR, PANEL, PANEL_MUTED, QUICK, RESULT_PANEL, TEXT_MUTED,
@@ -251,6 +252,15 @@ pub fn result_panel(
                             .size(12.0)
                             .color(TEXT_MUTED),
                         );
+                        for (component_index, part) in np.components.iter().enumerate() {
+                            if let Some(values) = part.enemy_status_breakdown(selection.np_level, selection.overcharge_level, selection.enemy_status) {
+                                ui.label(RichText::new(format!(
+                                    "Component {} · {} {} · base ×{:.3} · conditional ×{:.3} · applied ×{:.3} · effective ×{:.3}",
+                                    component_index + 1, values.condition.label(), if values.active { "present" } else { "absent" },
+                                    values.base_multiplier, values.conditional_multiplier, values.applied_multiplier, values.effective_multiplier,
+                                )).size(12.0).color(TEXT_MUTED));
+                            }
+                        }
                         if let Some(hp) = selection.attacker_hp {
                             for part in &np.components {
                                 if let Some(values) = part.low_hp_breakdown(
@@ -762,7 +772,126 @@ fn hp_settings(ui: &mut egui::Ui, servant: &ServantRecord, turn: &mut TurnSelect
     ui.ctx().data_mut(|data| data.insert_temp(id, inputs));
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+struct EnemyStatusBinding {
+    servant_id: u32,
+    np_id: u32,
+    condition: Option<EnemyStatus>,
+}
+
+#[derive(Clone, Default)]
+struct EnemyStatusUiState {
+    initialized: bool,
+    binding: Option<EnemyStatusBinding>,
+    reset_feedback: Option<String>,
+}
+
+fn enemy_status_ui_id() -> egui::Id {
+    egui::Id::new("enemy_status_assumption")
+}
+
+pub(crate) fn reset_enemy_status_for_catalog(context: &egui::Context) {
+    context.data_mut(|data| {
+        data.insert_temp(
+            enemy_status_ui_id(),
+            EnemyStatusUiState {
+                initialized: false,
+                binding: None,
+                reset_feedback: Some(
+                    "Enemy status reset to absent after the servant data update.".into(),
+                ),
+            },
+        );
+    });
+}
+
+fn sync_enemy_status(context: &egui::Context, servant: &ServantRecord, turn: &mut TurnSelection) {
+    let binding = turn.slots.iter().find_map(|card| {
+        let SelectedCard::NoblePhantasm(index) = card else {
+            return None;
+        };
+        let np = servant.noble_phantasms.get(*index)?;
+        Some(EnemyStatusBinding {
+            servant_id: servant.id,
+            np_id: np.id,
+            condition: np.enemy_status_condition(),
+        })
+    });
+    let mut state = context
+        .data(|data| data.get_temp::<EnemyStatusUiState>(enemy_status_ui_id()))
+        .unwrap_or_default();
+    if state.binding != binding {
+        if state.initialized {
+            state.reset_feedback = Some(
+                "Enemy status reset to absent because the servant, NP, or condition changed."
+                    .into(),
+            );
+        }
+        turn.enemy_status = None;
+        state.binding = binding;
+    }
+    state.initialized = true;
+    context.data_mut(|data| data.insert_temp(enemy_status_ui_id(), state));
+}
+
+fn enemy_status_settings(
+    ui: &mut egui::Ui,
+    servant: &ServantRecord,
+    turn: &mut TurnSelection,
+) -> Option<egui::Response> {
+    sync_enemy_status(ui.ctx(), servant, turn);
+    let state = ui
+        .ctx()
+        .data(|data| data.get_temp::<EnemyStatusUiState>(enemy_status_ui_id()))
+        .unwrap_or_default();
+    if let Some(message) = state.reset_feedback {
+        status_message(ui, &message);
+    }
+    let binding = state.binding?;
+    let condition = binding.condition?;
+    ui.label(RichText::new("Enemy status at NP damage time").strong());
+    let mut present = turn.enemy_status == Some(condition);
+    let response = ui.checkbox(
+        &mut present,
+        format!("Matching {} present", condition.label()),
+    );
+    if response.changed() {
+        turn.enemy_status = present.then_some(condition);
+        ui.ctx().data_mut(|data| {
+            let mut state = data
+                .get_temp::<EnemyStatusUiState>(enemy_status_ui_id())
+                .unwrap_or_default();
+            state.reset_feedback = None;
+            data.insert_temp(enemy_status_ui_id(), state);
+        });
+    }
+    ui.label(
+        RichText::new(if present {
+            "Condition present: conditional NP multiplier applies."
+        } else {
+            "Condition absent: base NP damage applies."
+        })
+        .size(12.0)
+        .color(TEXT_MUTED),
+    );
+    ui.label(RichText::new("Set present only if the status actually landed before damage. Status application and success probability are not simulated; effects after damage do not activate this bonus.").size(12.0).color(TEXT_MUTED));
+    ui.label(
+        RichText::new(if condition.includes_ignored_individuality() {
+            "Also counts effects excluded from normal trait matching."
+        } else {
+            "Effects excluded from trait matching do not count."
+        })
+        .size(12.0)
+        .color(TEXT_MUTED),
+    );
+    if condition == EnemyStatus::DefenseUp {
+        ui.label(RichText::new("Defense Up presence is separate from Enemy defense (%). This checkbox does not change the numeric defense value; enter it separately.").size(12.0).color(TEXT_MUTED));
+    }
+    Some(response)
+}
+
 fn np_settings(ui: &mut egui::Ui, servant: &ServantRecord, turn: &mut TurnSelection) {
+    enemy_status_settings(ui, servant, turn);
     if turn
         .slots
         .iter()
