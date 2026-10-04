@@ -68,18 +68,29 @@ source value from thousandths to a multiplier. Users enter attacker HP at the
 moment NP damage lands; preceding healing or HP loss remains manual. The supported
 variants, defaults, and formula are documented in [low-HP NP support](low-hp-nps.md).
 
+## Enemy-status NP scaling
+
+Seven audited `damageNpStateIndividualFix` NPs apply a source `Correction` only
+when their matching enemy status is explicitly selected as present at damage
+time. The imported base `Value` and conditional correction remain separate, and
+the status factor applies only to that NP component. The supported servants,
+matching rules, timing assumptions, and formula are documented in
+[enemy-status NP support](enemy-status-nps.md).
+
 ## Coverage and migration
 
 NP level and Overcharge are independent, each ranging from 1 to 5. A component
 stores an explicit OC row containing five NP-level values and execution metadata.
 Missing OC rows remain unavailable rather than copying OC1.
 
-Snapshot format v4 retains component and optional low-HP metadata. The app reads
-v1/v2/v3 snapshots; records without low-HP metadata retain ordinary component
-behavior. Older records with five base multipliers migrate to a single OC1-only
-component, preserving affection, defense-piercing flags, and notes. Updating
-servant data loads explicitly available higher-OC values. An unsuccessful update
-preserves the prior snapshot.
+Snapshot format v5 retains component, optional low-HP, and optional enemy-status
+metadata. The app reads v1–v5 snapshots; snapshots without enemy-status metadata
+preserve their existing NP mechanics, and no status bonus is inferred. Choose
+**Update servant data** to fetch newly supported NP profiles. Older records with
+five base multipliers migrate to a single OC1-only component, preserving
+affection, defense-piercing flags, and notes. Updating servant data loads
+explicitly available higher-OC values. An unsuccessful update preserves the
+prior snapshot.
 
 Overcharge selection changes only imported damage values. It does not calculate
 NP gauge, chain-based Overcharge gain, automatic pre-damage buffs, conditional
