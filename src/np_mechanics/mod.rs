@@ -4,6 +4,7 @@
 
 pub mod components;
 pub mod defense_pierce;
+pub mod enemy_status;
 pub mod low_hp;
 pub mod multi_import;
 pub mod space_eresh;

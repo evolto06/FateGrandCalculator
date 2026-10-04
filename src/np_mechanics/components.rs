@@ -11,6 +11,7 @@
 //! buff consumption, ally sacrifice, or death. RNG correlation is not modeled;
 //! adding separately floored endpoint damages establishes the possible range.
 
+use super::enemy_status::{EnemyStatus, EnemyStatusBreakdown, EnemyStatusScaling};
 use super::low_hp::{LowHpBreakdown, LowHpScaling};
 use crate::model::AttackerHp;
 use serde::{Deserialize, Serialize};
@@ -31,6 +32,8 @@ pub struct NpDamageValues {
     pub multipliers: [f64; 5],
     #[serde(default)]
     pub low_hp: Option<LowHpScaling>,
+    #[serde(default)]
+    pub enemy_status: Option<EnemyStatusScaling>,
     #[serde(default = "guaranteed_rates")]
     pub rates: [u16; 5],
     #[serde(default)]
@@ -42,15 +45,24 @@ impl NpDamageValues {
         Self {
             multipliers,
             low_hp: None,
+            enemy_status: None,
             rates: guaranteed_rates(),
             check_dead: [false; 5],
         }
     }
 
     pub fn is_valid(&self) -> bool {
-        self.low_hp
+        self.enemy_status
             .as_ref()
-            .is_none_or(|scaling| scaling.is_valid_for(&self.multipliers, &self.rates))
+            .is_none_or(EnemyStatusScaling::is_valid)
+            && (self.enemy_status.is_none()
+                || (self.low_hp.is_none()
+                    && self.rates == [1000; 5]
+                    && self.multipliers.iter().all(|value| *value > 0.0)))
+            && self
+                .low_hp
+                .as_ref()
+                .is_none_or(|scaling| scaling.is_valid_for(&self.multipliers, &self.rates))
             && (0..5).all(|level| {
                 let value = self.multipliers[level];
                 value.is_finite()
@@ -100,10 +112,61 @@ impl NpDamageComponent {
         let Some(first) = &self.overcharge[0] else {
             return false;
         };
-        self.overcharge
-            .iter()
-            .flatten()
-            .all(|row| row.low_hp.is_some() == first.low_hp.is_some() && row.is_valid())
+        self.overcharge.iter().flatten().all(|row| {
+            row.low_hp.is_some() == first.low_hp.is_some()
+                && row.enemy_status.as_ref().map(|status| status.condition)
+                    == first.enemy_status.as_ref().map(|status| status.condition)
+                && row.is_valid()
+        })
+    }
+
+    pub fn enemy_status_condition(&self) -> Option<EnemyStatus> {
+        self.overcharge[0]
+            .as_ref()?
+            .enemy_status
+            .as_ref()
+            .map(|status| status.condition)
+    }
+
+    pub fn enemy_status_breakdown(
+        &self,
+        np_level: u8,
+        overcharge: u8,
+        assumption: Option<EnemyStatus>,
+    ) -> Option<EnemyStatusBreakdown> {
+        let row = self
+            .overcharge
+            .get(usize::from(overcharge.checked_sub(1)?))?
+            .as_ref()?;
+        if !row.is_valid() {
+            return None;
+        }
+        let base_multiplier = self.multiplier(np_level, overcharge)?;
+        row.enemy_status
+            .as_ref()?
+            .breakdown(np_level, base_multiplier, assumption)
+    }
+
+    /// The specific-attack correction is separate from the NP's base rate.
+    pub fn enemy_status_multiplier(
+        &self,
+        np_level: u8,
+        overcharge: u8,
+        assumption: Option<EnemyStatus>,
+    ) -> Option<f64> {
+        let row = self
+            .overcharge
+            .get(usize::from(overcharge.checked_sub(1)?))?
+            .as_ref()?;
+        if !row.is_valid() || !(1..=5).contains(&np_level) {
+            return None;
+        }
+        match &row.enemy_status {
+            Some(status) => status
+                .breakdown(np_level, self.multiplier(np_level, overcharge)?, assumption)
+                .map(|result| result.applied_multiplier),
+            None => Some(1.0),
+        }
     }
 
     pub fn low_hp_breakdown(
@@ -156,6 +219,16 @@ pub fn components_are_valid(components: &[NpDamageComponent]) -> bool {
                 || components
                     .iter()
                     .any(|component| component.target != first.target)))
+    {
+        return false;
+    }
+    let condition = components
+        .iter()
+        .find_map(NpDamageComponent::enemy_status_condition);
+    if components
+        .iter()
+        .filter_map(NpDamageComponent::enemy_status_condition)
+        .any(|component_condition| Some(component_condition) != condition)
     {
         return false;
     }

@@ -1,0 +1,3527 @@
+{
+  "provenance": "Atlas NA nice-servant responses refreshed 2026-10-05; seven audited variants; complete damage definitions and all non-damage effects retained. Source Target is a positive buff individuality; IncludeIgnoreIndividuality is preserved separately from removability.",
+  "reference": "https://github.com/chaldea-center/chaldea/tree/daf4e0af5ec6b4ae42f3e9410b26ae143aa3d725",
+  "source_sha256": [
+    {
+      "id": 200300,
+      "sha256": "00d86123b11cea83f080660837b84f4be0f94005e54d984af4c3b678262d5abe"
+    },
+    {
+      "id": 504800,
+      "sha256": "e8c7a3e6458194d186862c74b92787a1a58d0b7dbffd4c4345ada5eea4b2e7bd"
+    },
+    {
+      "id": 604900,
+      "sha256": "5b82f6a736daaa13d952eba7e7fdcde19a70b37f39b6c429c14d31d620aac87d"
+    },
+    {
+      "id": 704900,
+      "sha256": "4bb55b7ee240dcf8568663a5926b5f48d4283e18adfd0cece370841389866d14"
+    },
+    {
+      "id": 1101100,
+      "sha256": "c86c069f6e982bbc6996050d8f06218342c214685b42b5952fd20273c8e428d3"
+    },
+    {
+      "id": 1101400,
+      "sha256": "259adf62e286cc56235c0c291491efca68d0b3ffcf1844428971247fff7954ce"
+    },
+    {
+      "id": 2500400,
+      "sha256": "c7541552fc5a489fb2327acafa6ade830ac91c8b3f7e593fe337e6e1455b9edf"
+    }
+  ],
+  "servants": [
+    {
+      "id": 200300,
+      "name": "Robin Hood",
+      "className": "archer",
+      "attribute": "human",
+      "atkMax": 6715,
+      "hpMax": 10187,
+      "lvMax": 70,
+      "cards": [
+        "3",
+        "3",
+        "1",
+        "1",
+        "2"
+      ],
+      "source": "https://api.atlasacademy.io/nice/NA/servant/200300",
+      "noblePhantasms": [
+        {
+          "id": 200301,
+          "name": "Yew Bow",
+          "card": "1",
+          "strengthStatus": 0,
+          "effectFlags": [
+            "attackEnemyOne"
+          ],
+          "script": {},
+          "functions": [
+            {
+              "funcId": 24,
+              "funcType": "damageNpStateIndividualFix",
+              "funcTargetType": "enemy",
+              "funcTargetTeam": "playerAndEnemy",
+              "funcPopupText": "None",
+              "functvals": [],
+              "overWriteTvalsList": [],
+              "funcquestTvals": [],
+              "script": {},
+              "funcGroup": [],
+              "buffs": [],
+              "svals": [
+                {
+                  "Rate": 1000,
+                  "Value": 9000,
+                  "Target": 3011,
+                  "Correction": 2000
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 12000,
+                  "Target": 3011,
+                  "Correction": 2000
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 13500,
+                  "Target": 3011,
+                  "Correction": 2000
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 14250,
+                  "Target": 3011,
+                  "Correction": 2000
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 15000,
+                  "Target": 3011,
+                  "Correction": 2000
+                }
+              ],
+              "svals2": [
+                {
+                  "Rate": 1000,
+                  "Value": 9000,
+                  "Target": 3011,
+                  "Correction": 2125
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 12000,
+                  "Target": 3011,
+                  "Correction": 2125
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 13500,
+                  "Target": 3011,
+                  "Correction": 2125
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 14250,
+                  "Target": 3011,
+                  "Correction": 2125
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 15000,
+                  "Target": 3011,
+                  "Correction": 2125
+                }
+              ],
+              "svals3": [
+                {
+                  "Rate": 1000,
+                  "Value": 9000,
+                  "Target": 3011,
+                  "Correction": 2250
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 12000,
+                  "Target": 3011,
+                  "Correction": 2250
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 13500,
+                  "Target": 3011,
+                  "Correction": 2250
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 14250,
+                  "Target": 3011,
+                  "Correction": 2250
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 15000,
+                  "Target": 3011,
+                  "Correction": 2250
+                }
+              ],
+              "svals4": [
+                {
+                  "Rate": 1000,
+                  "Value": 9000,
+                  "Target": 3011,
+                  "Correction": 2375
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 12000,
+                  "Target": 3011,
+                  "Correction": 2375
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 13500,
+                  "Target": 3011,
+                  "Correction": 2375
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 14250,
+                  "Target": 3011,
+                  "Correction": 2375
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 15000,
+                  "Target": 3011,
+                  "Correction": 2375
+                }
+              ],
+              "svals5": [
+                {
+                  "Rate": 1000,
+                  "Value": 9000,
+                  "Target": 3011,
+                  "Correction": 2500
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 12000,
+                  "Target": 3011,
+                  "Correction": 2500
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 13500,
+                  "Target": 3011,
+                  "Correction": 2500
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 14250,
+                  "Target": 3011,
+                  "Correction": 2500
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 15000,
+                  "Target": 3011,
+                  "Correction": 2500
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 504800,
+      "name": "Charlotte Corday (Caster)",
+      "className": "caster",
+      "attribute": "human",
+      "atkMax": 8417,
+      "hpMax": 11882,
+      "lvMax": 80,
+      "cards": [
+        "3",
+        "1",
+        "1",
+        "1",
+        "2"
+      ],
+      "source": "https://api.atlasacademy.io/nice/NA/servant/504800",
+      "noblePhantasms": [
+        {
+          "id": 504801,
+          "name": "La F\u00e9erie d'une Nuit",
+          "card": "1",
+          "strengthStatus": 0,
+          "effectFlags": [
+            "attackEnemyOne"
+          ],
+          "script": {},
+          "functions": [
+            {
+              "funcId": 24,
+              "funcType": "damageNpStateIndividualFix",
+              "funcTargetType": "enemy",
+              "funcTargetTeam": "playerAndEnemy",
+              "funcPopupText": "None",
+              "functvals": [],
+              "overWriteTvalsList": [],
+              "funcquestTvals": [],
+              "script": {},
+              "funcGroup": [],
+              "buffs": [],
+              "svals": [
+                {
+                  "Rate": 1000,
+                  "Value": 9000,
+                  "Target": 3025,
+                  "Correction": 1500,
+                  "IncludeIgnoreIndividuality": 1
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 12000,
+                  "Target": 3025,
+                  "Correction": 1500,
+                  "IncludeIgnoreIndividuality": 1
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 13500,
+                  "Target": 3025,
+                  "Correction": 1500,
+                  "IncludeIgnoreIndividuality": 1
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 14250,
+                  "Target": 3025,
+                  "Correction": 1500,
+                  "IncludeIgnoreIndividuality": 1
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 15000,
+                  "Target": 3025,
+                  "Correction": 1500,
+                  "IncludeIgnoreIndividuality": 1
+                }
+              ],
+              "svals2": [
+                {
+                  "Rate": 1000,
+                  "Value": 9000,
+                  "Target": 3025,
+                  "Correction": 1625,
+                  "IncludeIgnoreIndividuality": 1
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 12000,
+                  "Target": 3025,
+                  "Correction": 1625,
+                  "IncludeIgnoreIndividuality": 1
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 13500,
+                  "Target": 3025,
+                  "Correction": 1625,
+                  "IncludeIgnoreIndividuality": 1
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 14250,
+                  "Target": 3025,
+                  "Correction": 1625,
+                  "IncludeIgnoreIndividuality": 1
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 15000,
+                  "Target": 3025,
+                  "Correction": 1625,
+                  "IncludeIgnoreIndividuality": 1
+                }
+              ],
+              "svals3": [
+                {
+                  "Rate": 1000,
+                  "Value": 9000,
+                  "Target": 3025,
+                  "Correction": 1750,
+                  "IncludeIgnoreIndividuality": 1
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 12000,
+                  "Target": 3025,
+                  "Correction": 1750,
+                  "IncludeIgnoreIndividuality": 1
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 13500,
+                  "Target": 3025,
+                  "Correction": 1750,
+                  "IncludeIgnoreIndividuality": 1
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 14250,
+                  "Target": 3025,
+                  "Correction": 1750,
+                  "IncludeIgnoreIndividuality": 1
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 15000,
+                  "Target": 3025,
+                  "Correction": 1750,
+                  "IncludeIgnoreIndividuality": 1
+                }
+              ],
+              "svals4": [
+                {
+                  "Rate": 1000,
+                  "Value": 9000,
+                  "Target": 3025,
+                  "Correction": 1875,
+                  "IncludeIgnoreIndividuality": 1
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 12000,
+                  "Target": 3025,
+                  "Correction": 1875,
+                  "IncludeIgnoreIndividuality": 1
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 13500,
+                  "Target": 3025,
+                  "Correction": 1875,
+                  "IncludeIgnoreIndividuality": 1
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 14250,
+                  "Target": 3025,
+                  "Correction": 1875,
+                  "IncludeIgnoreIndividuality": 1
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 15000,
+                  "Target": 3025,
+                  "Correction": 1875,
+                  "IncludeIgnoreIndividuality": 1
+                }
+              ],
+              "svals5": [
+                {
+                  "Rate": 1000,
+                  "Value": 9000,
+                  "Target": 3025,
+                  "Correction": 2000,
+                  "IncludeIgnoreIndividuality": 1
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 12000,
+                  "Target": 3025,
+                  "Correction": 2000,
+                  "IncludeIgnoreIndividuality": 1
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 13500,
+                  "Target": 3025,
+                  "Correction": 2000,
+                  "IncludeIgnoreIndividuality": 1
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 14250,
+                  "Target": 3025,
+                  "Correction": 2000,
+                  "IncludeIgnoreIndividuality": 1
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 15000,
+                  "Target": 3025,
+                  "Correction": 2000,
+                  "IncludeIgnoreIndividuality": 1
+                }
+              ]
+            },
+            {
+              "funcId": 476,
+              "funcType": "gainStar",
+              "funcTargetType": "self",
+              "funcTargetTeam": "player",
+              "funcPopupText": "C. Star Gain",
+              "functvals": [],
+              "overWriteTvalsList": [],
+              "funcquestTvals": [],
+              "script": {},
+              "funcGroup": [],
+              "buffs": [],
+              "svals": [
+                {
+                  "Rate": 1000,
+                  "Value": 20
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 20
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 20
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 20
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 20
+                }
+              ],
+              "svals2": [
+                {
+                  "Rate": 1000,
+                  "Value": 20
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 20
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 20
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 20
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 20
+                }
+              ],
+              "svals3": [
+                {
+                  "Rate": 1000,
+                  "Value": 20
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 20
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 20
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 20
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 20
+                }
+              ],
+              "svals4": [
+                {
+                  "Rate": 1000,
+                  "Value": 20
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 20
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 20
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 20
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 20
+                }
+              ],
+              "svals5": [
+                {
+                  "Rate": 1000,
+                  "Value": 20
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 20
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 20
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 20
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 20
+                }
+              ]
+            },
+            {
+              "funcId": 215,
+              "funcType": "addStateShort",
+              "funcTargetType": "self",
+              "funcTargetTeam": "enemy",
+              "funcPopupText": "Critical Rate\nUp",
+              "funcPopupIcon": "https://static.atlasacademy.io/NA/BuffIcons/bufficon_327.png",
+              "functvals": [],
+              "overWriteTvalsList": [],
+              "funcquestTvals": [],
+              "script": {},
+              "funcGroup": [],
+              "buffs": [
+                {
+                  "id": 144,
+                  "name": "Critical Hit Rate Up",
+                  "originalName": "Critical Hit Rate Up",
+                  "detail": "Increase Critical Hit rate",
+                  "icon": "https://static.atlasacademy.io/NA/BuffIcons/bufficon_327.png",
+                  "type": "upCriticalrate",
+                  "buffGroup": 0,
+                  "script": {
+                    "ProgressSelfTurn": 1
+                  },
+                  "originalScript": {
+                    "ProgressSelfTurn": 1
+                  },
+                  "vals": [
+                    {
+                      "id": 3004,
+                      "name": "buffPositiveEffect"
+                    },
+                    {
+                      "id": 3006,
+                      "name": "buffIncreaseDamage"
+                    },
+                    {
+                      "id": 3032,
+                      "name": "buffCritRateUp"
+                    }
+                  ],
+                  "tvals": [],
+                  "ckSelfIndv": [],
+                  "ckOpIndv": [],
+                  "maxRate": 5000
+                }
+              ],
+              "svals": [
+                {
+                  "Rate": 1000,
+                  "Turn": 2,
+                  "Count": -1,
+                  "Value": 200
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 2,
+                  "Count": -1,
+                  "Value": 200
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 2,
+                  "Count": -1,
+                  "Value": 200
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 2,
+                  "Count": -1,
+                  "Value": 200
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 2,
+                  "Count": -1,
+                  "Value": 200
+                }
+              ],
+              "svals2": [
+                {
+                  "Rate": 1000,
+                  "Turn": 2,
+                  "Count": -1,
+                  "Value": 200
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 2,
+                  "Count": -1,
+                  "Value": 200
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 2,
+                  "Count": -1,
+                  "Value": 200
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 2,
+                  "Count": -1,
+                  "Value": 200
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 2,
+                  "Count": -1,
+                  "Value": 200
+                }
+              ],
+              "svals3": [
+                {
+                  "Rate": 1000,
+                  "Turn": 2,
+                  "Count": -1,
+                  "Value": 200
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 2,
+                  "Count": -1,
+                  "Value": 200
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 2,
+                  "Count": -1,
+                  "Value": 200
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 2,
+                  "Count": -1,
+                  "Value": 200
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 2,
+                  "Count": -1,
+                  "Value": 200
+                }
+              ],
+              "svals4": [
+                {
+                  "Rate": 1000,
+                  "Turn": 2,
+                  "Count": -1,
+                  "Value": 200
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 2,
+                  "Count": -1,
+                  "Value": 200
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 2,
+                  "Count": -1,
+                  "Value": 200
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 2,
+                  "Count": -1,
+                  "Value": 200
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 2,
+                  "Count": -1,
+                  "Value": 200
+                }
+              ],
+              "svals5": [
+                {
+                  "Rate": 1000,
+                  "Turn": 2,
+                  "Count": -1,
+                  "Value": 200
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 2,
+                  "Count": -1,
+                  "Value": 200
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 2,
+                  "Count": -1,
+                  "Value": 200
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 2,
+                  "Count": -1,
+                  "Value": 200
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 2,
+                  "Count": -1,
+                  "Value": 200
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 604900,
+      "name": "Kashin Koji",
+      "className": "assassin",
+      "attribute": "earth",
+      "atkMax": 11674,
+      "hpMax": 12568,
+      "lvMax": 90,
+      "cards": [
+        "3",
+        "3",
+        "1",
+        "1",
+        "2"
+      ],
+      "source": "https://api.atlasacademy.io/nice/NA/servant/604900",
+      "noblePhantasms": [
+        {
+          "id": 604901,
+          "name": "Karakuri Gehou: Frenzied Force",
+          "card": "3",
+          "strengthStatus": 0,
+          "effectFlags": [
+            "attackEnemyAll"
+          ],
+          "script": {},
+          "functions": [
+            {
+              "funcId": 20900,
+              "funcType": "addState",
+              "funcTargetType": "enemyAll",
+              "funcTargetTeam": "playerAndEnemy",
+              "funcPopupText": "Bind",
+              "funcPopupIcon": "https://static.atlasacademy.io/NA/BuffIcons/bufficon_501.png",
+              "functvals": [],
+              "overWriteTvalsList": [],
+              "funcquestTvals": [],
+              "script": {},
+              "funcGroup": [],
+              "buffs": [
+                {
+                  "id": 177,
+                  "name": "Bind",
+                  "originalName": "Bind",
+                  "detail": "Unable to act",
+                  "icon": "https://static.atlasacademy.io/NA/BuffIcons/bufficon_501.png",
+                  "type": "donotAct",
+                  "buffGroup": 500,
+                  "script": {},
+                  "originalScript": {},
+                  "vals": [
+                    {
+                      "id": 3005,
+                      "name": "buffNegativeEffect"
+                    },
+                    {
+                      "id": 3087,
+                      "name": "buffBound"
+                    },
+                    {
+                      "id": 3045,
+                      "name": "buffImmobilize"
+                    }
+                  ],
+                  "tvals": [],
+                  "ckSelfIndv": [],
+                  "ckOpIndv": [],
+                  "maxRate": 0
+                }
+              ],
+              "svals": [
+                {
+                  "Rate": 600,
+                  "Turn": 1,
+                  "Count": -1
+                },
+                {
+                  "Rate": 600,
+                  "Turn": 1,
+                  "Count": -1
+                },
+                {
+                  "Rate": 600,
+                  "Turn": 1,
+                  "Count": -1
+                },
+                {
+                  "Rate": 600,
+                  "Turn": 1,
+                  "Count": -1
+                },
+                {
+                  "Rate": 600,
+                  "Turn": 1,
+                  "Count": -1
+                }
+              ],
+              "svals2": [
+                {
+                  "Rate": 700,
+                  "Turn": 1,
+                  "Count": -1
+                },
+                {
+                  "Rate": 700,
+                  "Turn": 1,
+                  "Count": -1
+                },
+                {
+                  "Rate": 700,
+                  "Turn": 1,
+                  "Count": -1
+                },
+                {
+                  "Rate": 700,
+                  "Turn": 1,
+                  "Count": -1
+                },
+                {
+                  "Rate": 700,
+                  "Turn": 1,
+                  "Count": -1
+                }
+              ],
+              "svals3": [
+                {
+                  "Rate": 800,
+                  "Turn": 1,
+                  "Count": -1
+                },
+                {
+                  "Rate": 800,
+                  "Turn": 1,
+                  "Count": -1
+                },
+                {
+                  "Rate": 800,
+                  "Turn": 1,
+                  "Count": -1
+                },
+                {
+                  "Rate": 800,
+                  "Turn": 1,
+                  "Count": -1
+                },
+                {
+                  "Rate": 800,
+                  "Turn": 1,
+                  "Count": -1
+                }
+              ],
+              "svals4": [
+                {
+                  "Rate": 900,
+                  "Turn": 1,
+                  "Count": -1
+                },
+                {
+                  "Rate": 900,
+                  "Turn": 1,
+                  "Count": -1
+                },
+                {
+                  "Rate": 900,
+                  "Turn": 1,
+                  "Count": -1
+                },
+                {
+                  "Rate": 900,
+                  "Turn": 1,
+                  "Count": -1
+                },
+                {
+                  "Rate": 900,
+                  "Turn": 1,
+                  "Count": -1
+                }
+              ],
+              "svals5": [
+                {
+                  "Rate": 1000,
+                  "Turn": 1,
+                  "Count": -1
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 1,
+                  "Count": -1
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 1,
+                  "Count": -1
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 1,
+                  "Count": -1
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 1,
+                  "Count": -1
+                }
+              ]
+            },
+            {
+              "funcId": 25,
+              "funcType": "damageNpStateIndividualFix",
+              "funcTargetType": "enemyAll",
+              "funcTargetTeam": "playerAndEnemy",
+              "funcPopupText": "None",
+              "functvals": [],
+              "overWriteTvalsList": [],
+              "funcquestTvals": [],
+              "script": {},
+              "funcGroup": [],
+              "buffs": [],
+              "svals": [
+                {
+                  "Rate": 1000,
+                  "Value": 6000,
+                  "Target": 3087,
+                  "Correction": 1500,
+                  "IncludeIgnoreIndividuality": 1
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 8000,
+                  "Target": 3087,
+                  "Correction": 1500,
+                  "IncludeIgnoreIndividuality": 1
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 9000,
+                  "Target": 3087,
+                  "Correction": 1500,
+                  "IncludeIgnoreIndividuality": 1
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 9500,
+                  "Target": 3087,
+                  "Correction": 1500,
+                  "IncludeIgnoreIndividuality": 1
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 10000,
+                  "Target": 3087,
+                  "Correction": 1500,
+                  "IncludeIgnoreIndividuality": 1
+                }
+              ],
+              "svals2": [
+                {
+                  "Rate": 1000,
+                  "Value": 6000,
+                  "Target": 3087,
+                  "Correction": 1625,
+                  "IncludeIgnoreIndividuality": 1
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 8000,
+                  "Target": 3087,
+                  "Correction": 1625,
+                  "IncludeIgnoreIndividuality": 1
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 9000,
+                  "Target": 3087,
+                  "Correction": 1625,
+                  "IncludeIgnoreIndividuality": 1
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 9500,
+                  "Target": 3087,
+                  "Correction": 1625,
+                  "IncludeIgnoreIndividuality": 1
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 10000,
+                  "Target": 3087,
+                  "Correction": 1625,
+                  "IncludeIgnoreIndividuality": 1
+                }
+              ],
+              "svals3": [
+                {
+                  "Rate": 1000,
+                  "Value": 6000,
+                  "Target": 3087,
+                  "Correction": 1750,
+                  "IncludeIgnoreIndividuality": 1
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 8000,
+                  "Target": 3087,
+                  "Correction": 1750,
+                  "IncludeIgnoreIndividuality": 1
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 9000,
+                  "Target": 3087,
+                  "Correction": 1750,
+                  "IncludeIgnoreIndividuality": 1
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 9500,
+                  "Target": 3087,
+                  "Correction": 1750,
+                  "IncludeIgnoreIndividuality": 1
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 10000,
+                  "Target": 3087,
+                  "Correction": 1750,
+                  "IncludeIgnoreIndividuality": 1
+                }
+              ],
+              "svals4": [
+                {
+                  "Rate": 1000,
+                  "Value": 6000,
+                  "Target": 3087,
+                  "Correction": 1875,
+                  "IncludeIgnoreIndividuality": 1
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 8000,
+                  "Target": 3087,
+                  "Correction": 1875,
+                  "IncludeIgnoreIndividuality": 1
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 9000,
+                  "Target": 3087,
+                  "Correction": 1875,
+                  "IncludeIgnoreIndividuality": 1
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 9500,
+                  "Target": 3087,
+                  "Correction": 1875,
+                  "IncludeIgnoreIndividuality": 1
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 10000,
+                  "Target": 3087,
+                  "Correction": 1875,
+                  "IncludeIgnoreIndividuality": 1
+                }
+              ],
+              "svals5": [
+                {
+                  "Rate": 1000,
+                  "Value": 6000,
+                  "Target": 3087,
+                  "Correction": 2000,
+                  "IncludeIgnoreIndividuality": 1
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 8000,
+                  "Target": 3087,
+                  "Correction": 2000,
+                  "IncludeIgnoreIndividuality": 1
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 9000,
+                  "Target": 3087,
+                  "Correction": 2000,
+                  "IncludeIgnoreIndividuality": 1
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 9500,
+                  "Target": 3087,
+                  "Correction": 2000,
+                  "IncludeIgnoreIndividuality": 1
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 10000,
+                  "Target": 3087,
+                  "Correction": 2000,
+                  "IncludeIgnoreIndividuality": 1
+                }
+              ]
+            },
+            {
+              "funcId": 632,
+              "funcType": "instantDeath",
+              "funcTargetType": "enemyAll",
+              "funcTargetTeam": "playerAndEnemy",
+              "funcPopupText": "Death",
+              "functvals": [],
+              "overWriteTvalsList": [],
+              "funcquestTvals": [],
+              "script": {},
+              "funcGroup": [],
+              "buffs": [],
+              "svals": [
+                {
+                  "Rate": 400
+                },
+                {
+                  "Rate": 400
+                },
+                {
+                  "Rate": 400
+                },
+                {
+                  "Rate": 400
+                },
+                {
+                  "Rate": 400
+                }
+              ],
+              "svals2": [
+                {
+                  "Rate": 400
+                },
+                {
+                  "Rate": 400
+                },
+                {
+                  "Rate": 400
+                },
+                {
+                  "Rate": 400
+                },
+                {
+                  "Rate": 400
+                }
+              ],
+              "svals3": [
+                {
+                  "Rate": 400
+                },
+                {
+                  "Rate": 400
+                },
+                {
+                  "Rate": 400
+                },
+                {
+                  "Rate": 400
+                },
+                {
+                  "Rate": 400
+                }
+              ],
+              "svals4": [
+                {
+                  "Rate": 400
+                },
+                {
+                  "Rate": 400
+                },
+                {
+                  "Rate": 400
+                },
+                {
+                  "Rate": 400
+                },
+                {
+                  "Rate": 400
+                }
+              ],
+              "svals5": [
+                {
+                  "Rate": 400
+                },
+                {
+                  "Rate": 400
+                },
+                {
+                  "Rate": 400
+                },
+                {
+                  "Rate": 400
+                },
+                {
+                  "Rate": 400
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 704900,
+      "name": "Sizuki Soujyuro",
+      "className": "berserker",
+      "attribute": "human",
+      "atkMax": 9954,
+      "hpMax": 10099,
+      "lvMax": 80,
+      "cards": [
+        "3",
+        "1",
+        "1",
+        "2",
+        "2"
+      ],
+      "source": "https://api.atlasacademy.io/nice/NA/servant/704900",
+      "noblePhantasms": [
+        {
+          "id": 704901,
+          "name": "Unknown \u25a0\u25a0, Evil Spirit \u25a0\u25a0er",
+          "card": "2",
+          "strengthStatus": 0,
+          "effectFlags": [
+            "attackEnemyOne"
+          ],
+          "script": {},
+          "functions": [
+            {
+              "funcId": 146,
+              "funcType": "addStateShort",
+              "funcTargetType": "self",
+              "funcTargetTeam": "playerAndEnemy",
+              "funcPopupText": "ATK Up",
+              "funcPopupIcon": "https://static.atlasacademy.io/NA/BuffIcons/bufficon_300.png",
+              "functvals": [],
+              "overWriteTvalsList": [],
+              "funcquestTvals": [],
+              "script": {},
+              "funcGroup": [],
+              "buffs": [
+                {
+                  "id": 126,
+                  "name": "ATK Up",
+                  "originalName": "ATK Up",
+                  "detail": "Increase ATK",
+                  "icon": "https://static.atlasacademy.io/NA/BuffIcons/bufficon_300.png",
+                  "type": "upAtk",
+                  "buffGroup": 0,
+                  "script": {
+                    "ProgressSelfTurn": 1
+                  },
+                  "originalScript": {
+                    "ProgressSelfTurn": 1
+                  },
+                  "vals": [
+                    {
+                      "id": 3004,
+                      "name": "buffPositiveEffect"
+                    },
+                    {
+                      "id": 3006,
+                      "name": "buffIncreaseDamage"
+                    },
+                    {
+                      "id": 3027,
+                      "name": "buffAtkUp"
+                    }
+                  ],
+                  "tvals": [],
+                  "ckSelfIndv": [],
+                  "ckOpIndv": [],
+                  "maxRate": 5000
+                }
+              ],
+              "svals": [
+                {
+                  "Rate": 1000,
+                  "Turn": 1,
+                  "Count": -1,
+                  "Value": 100
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 1,
+                  "Count": -1,
+                  "Value": 100
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 1,
+                  "Count": -1,
+                  "Value": 100
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 1,
+                  "Count": -1,
+                  "Value": 100
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 1,
+                  "Count": -1,
+                  "Value": 100
+                }
+              ],
+              "svals2": [
+                {
+                  "Rate": 1000,
+                  "Turn": 1,
+                  "Count": -1,
+                  "Value": 200
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 1,
+                  "Count": -1,
+                  "Value": 200
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 1,
+                  "Count": -1,
+                  "Value": 200
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 1,
+                  "Count": -1,
+                  "Value": 200
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 1,
+                  "Count": -1,
+                  "Value": 200
+                }
+              ],
+              "svals3": [
+                {
+                  "Rate": 1000,
+                  "Turn": 1,
+                  "Count": -1,
+                  "Value": 300
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 1,
+                  "Count": -1,
+                  "Value": 300
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 1,
+                  "Count": -1,
+                  "Value": 300
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 1,
+                  "Count": -1,
+                  "Value": 300
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 1,
+                  "Count": -1,
+                  "Value": 300
+                }
+              ],
+              "svals4": [
+                {
+                  "Rate": 1000,
+                  "Turn": 1,
+                  "Count": -1,
+                  "Value": 400
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 1,
+                  "Count": -1,
+                  "Value": 400
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 1,
+                  "Count": -1,
+                  "Value": 400
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 1,
+                  "Count": -1,
+                  "Value": 400
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 1,
+                  "Count": -1,
+                  "Value": 400
+                }
+              ],
+              "svals5": [
+                {
+                  "Rate": 1000,
+                  "Turn": 1,
+                  "Count": -1,
+                  "Value": 500
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 1,
+                  "Count": -1,
+                  "Value": 500
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 1,
+                  "Count": -1,
+                  "Value": 500
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 1,
+                  "Count": -1,
+                  "Value": 500
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 1,
+                  "Count": -1,
+                  "Value": 500
+                }
+              ]
+            },
+            {
+              "funcId": 510,
+              "funcType": "addStateShort",
+              "funcTargetType": "self",
+              "funcTargetTeam": "playerAndEnemy",
+              "funcPopupText": "Ignore\nInvincible",
+              "funcPopupIcon": "https://static.atlasacademy.io/NA/BuffIcons/bufficon_329.png",
+              "functvals": [],
+              "overWriteTvalsList": [],
+              "funcquestTvals": [],
+              "script": {},
+              "funcGroup": [],
+              "buffs": [
+                {
+                  "id": 189,
+                  "name": "Ignore Invincible",
+                  "originalName": "Ignore Invincible",
+                  "detail": "Ignore Evade and Invincible and inflict damage with attacks",
+                  "icon": "https://static.atlasacademy.io/NA/BuffIcons/bufficon_329.png",
+                  "type": "pierceInvincible",
+                  "buffGroup": 0,
+                  "script": {},
+                  "originalScript": {},
+                  "vals": [
+                    {
+                      "id": 3004,
+                      "name": "buffPositiveEffect"
+                    },
+                    {
+                      "id": 3059,
+                      "name": "buffInvinciblePierce"
+                    },
+                    {
+                      "id": 3006,
+                      "name": "buffIncreaseDamage"
+                    }
+                  ],
+                  "tvals": [],
+                  "ckSelfIndv": [],
+                  "ckOpIndv": [],
+                  "maxRate": 0
+                }
+              ],
+              "svals": [
+                {
+                  "Rate": 1000,
+                  "Turn": 1,
+                  "Count": -1
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 1,
+                  "Count": -1
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 1,
+                  "Count": -1
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 1,
+                  "Count": -1
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 1,
+                  "Count": -1
+                }
+              ],
+              "svals2": [
+                {
+                  "Rate": 1000,
+                  "Turn": 1,
+                  "Count": -1
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 1,
+                  "Count": -1
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 1,
+                  "Count": -1
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 1,
+                  "Count": -1
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 1,
+                  "Count": -1
+                }
+              ],
+              "svals3": [
+                {
+                  "Rate": 1000,
+                  "Turn": 1,
+                  "Count": -1
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 1,
+                  "Count": -1
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 1,
+                  "Count": -1
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 1,
+                  "Count": -1
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 1,
+                  "Count": -1
+                }
+              ],
+              "svals4": [
+                {
+                  "Rate": 1000,
+                  "Turn": 1,
+                  "Count": -1
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 1,
+                  "Count": -1
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 1,
+                  "Count": -1
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 1,
+                  "Count": -1
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 1,
+                  "Count": -1
+                }
+              ],
+              "svals5": [
+                {
+                  "Rate": 1000,
+                  "Turn": 1,
+                  "Count": -1
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 1,
+                  "Count": -1
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 1,
+                  "Count": -1
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 1,
+                  "Count": -1
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 1,
+                  "Count": -1
+                }
+              ]
+            },
+            {
+              "funcId": 21422,
+              "funcType": "addStateShort",
+              "funcTargetType": "self",
+              "funcTargetTeam": "playerAndEnemy",
+              "funcPopupText": "Pierce Damage Cut",
+              "funcPopupIcon": "https://static.atlasacademy.io/NA/BuffIcons/bufficon_351.png",
+              "functvals": [],
+              "overWriteTvalsList": [],
+              "funcquestTvals": [],
+              "script": {},
+              "funcGroup": [],
+              "buffs": [
+                {
+                  "id": 5560,
+                  "name": "Pierce Damage Cut",
+                  "originalName": "Pierce Damage Cut",
+                  "detail": "Ignore Damage Cut and deal ATK damage",
+                  "icon": "https://static.atlasacademy.io/NA/BuffIcons/bufficon_351.png",
+                  "type": "pierceSubdamage",
+                  "buffGroup": 5560,
+                  "script": {},
+                  "originalScript": {},
+                  "vals": [
+                    {
+                      "id": 3004,
+                      "name": "buffPositiveEffect"
+                    },
+                    {
+                      "id": 3006,
+                      "name": "buffIncreaseDamage"
+                    }
+                  ],
+                  "tvals": [],
+                  "ckSelfIndv": [],
+                  "ckOpIndv": [],
+                  "maxRate": 0
+                }
+              ],
+              "svals": [
+                {
+                  "Rate": 1000,
+                  "Turn": 1,
+                  "Count": -1
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 1,
+                  "Count": -1
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 1,
+                  "Count": -1
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 1,
+                  "Count": -1
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 1,
+                  "Count": -1
+                }
+              ],
+              "svals2": [
+                {
+                  "Rate": 1000,
+                  "Turn": 1,
+                  "Count": -1
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 1,
+                  "Count": -1
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 1,
+                  "Count": -1
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 1,
+                  "Count": -1
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 1,
+                  "Count": -1
+                }
+              ],
+              "svals3": [
+                {
+                  "Rate": 1000,
+                  "Turn": 1,
+                  "Count": -1
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 1,
+                  "Count": -1
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 1,
+                  "Count": -1
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 1,
+                  "Count": -1
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 1,
+                  "Count": -1
+                }
+              ],
+              "svals4": [
+                {
+                  "Rate": 1000,
+                  "Turn": 1,
+                  "Count": -1
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 1,
+                  "Count": -1
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 1,
+                  "Count": -1
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 1,
+                  "Count": -1
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 1,
+                  "Count": -1
+                }
+              ],
+              "svals5": [
+                {
+                  "Rate": 1000,
+                  "Turn": 1,
+                  "Count": -1
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 1,
+                  "Count": -1
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 1,
+                  "Count": -1
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 1,
+                  "Count": -1
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 1,
+                  "Count": -1
+                }
+              ]
+            },
+            {
+              "funcId": 24,
+              "funcType": "damageNpStateIndividualFix",
+              "funcTargetType": "enemy",
+              "funcTargetTeam": "playerAndEnemy",
+              "funcPopupText": "None",
+              "functvals": [],
+              "overWriteTvalsList": [],
+              "funcquestTvals": [],
+              "script": {},
+              "funcGroup": [],
+              "buffs": [],
+              "svals": [
+                {
+                  "Rate": 1000,
+                  "Value": 6000,
+                  "Target": 3058,
+                  "Correction": 1500
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 8000,
+                  "Target": 3058,
+                  "Correction": 1500
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 9000,
+                  "Target": 3058,
+                  "Correction": 1500
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 9500,
+                  "Target": 3058,
+                  "Correction": 1500
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 10000,
+                  "Target": 3058,
+                  "Correction": 1500
+                }
+              ],
+              "svals2": [
+                {
+                  "Rate": 1000,
+                  "Value": 6000,
+                  "Target": 3058,
+                  "Correction": 1500
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 8000,
+                  "Target": 3058,
+                  "Correction": 1500
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 9000,
+                  "Target": 3058,
+                  "Correction": 1500
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 9500,
+                  "Target": 3058,
+                  "Correction": 1500
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 10000,
+                  "Target": 3058,
+                  "Correction": 1500
+                }
+              ],
+              "svals3": [
+                {
+                  "Rate": 1000,
+                  "Value": 6000,
+                  "Target": 3058,
+                  "Correction": 1500
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 8000,
+                  "Target": 3058,
+                  "Correction": 1500
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 9000,
+                  "Target": 3058,
+                  "Correction": 1500
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 9500,
+                  "Target": 3058,
+                  "Correction": 1500
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 10000,
+                  "Target": 3058,
+                  "Correction": 1500
+                }
+              ],
+              "svals4": [
+                {
+                  "Rate": 1000,
+                  "Value": 6000,
+                  "Target": 3058,
+                  "Correction": 1500
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 8000,
+                  "Target": 3058,
+                  "Correction": 1500
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 9000,
+                  "Target": 3058,
+                  "Correction": 1500
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 9500,
+                  "Target": 3058,
+                  "Correction": 1500
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 10000,
+                  "Target": 3058,
+                  "Correction": 1500
+                }
+              ],
+              "svals5": [
+                {
+                  "Rate": 1000,
+                  "Value": 6000,
+                  "Target": 3058,
+                  "Correction": 1500
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 8000,
+                  "Target": 3058,
+                  "Correction": 1500
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 9000,
+                  "Target": 3058,
+                  "Correction": 1500
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 9500,
+                  "Target": 3058,
+                  "Correction": 1500
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 10000,
+                  "Target": 3058,
+                  "Correction": 1500
+                }
+              ]
+            },
+            {
+              "funcId": 5826,
+              "funcType": "forceInstantDeath",
+              "funcTargetType": "self",
+              "funcTargetTeam": "playerAndEnemy",
+              "funcPopupText": "",
+              "functvals": [],
+              "overWriteTvalsList": [],
+              "funcquestTvals": [],
+              "script": {},
+              "funcGroup": [],
+              "buffs": [],
+              "svals": [
+                {
+                  "Rate": 5000
+                },
+                {
+                  "Rate": 5000
+                },
+                {
+                  "Rate": 5000
+                },
+                {
+                  "Rate": 5000
+                },
+                {
+                  "Rate": 5000
+                }
+              ],
+              "svals2": [
+                {
+                  "Rate": 5000
+                },
+                {
+                  "Rate": 5000
+                },
+                {
+                  "Rate": 5000
+                },
+                {
+                  "Rate": 5000
+                },
+                {
+                  "Rate": 5000
+                }
+              ],
+              "svals3": [
+                {
+                  "Rate": 5000
+                },
+                {
+                  "Rate": 5000
+                },
+                {
+                  "Rate": 5000
+                },
+                {
+                  "Rate": 5000
+                },
+                {
+                  "Rate": 5000
+                }
+              ],
+              "svals4": [
+                {
+                  "Rate": 5000
+                },
+                {
+                  "Rate": 5000
+                },
+                {
+                  "Rate": 5000
+                },
+                {
+                  "Rate": 5000
+                },
+                {
+                  "Rate": 5000
+                }
+              ],
+              "svals5": [
+                {
+                  "Rate": 5000
+                },
+                {
+                  "Rate": 5000
+                },
+                {
+                  "Rate": 5000
+                },
+                {
+                  "Rate": 5000
+                },
+                {
+                  "Rate": 5000
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 1101100,
+      "name": "Kama (Avenger)",
+      "className": "avenger",
+      "attribute": "sky",
+      "atkMax": 13213,
+      "hpMax": 11790,
+      "lvMax": 90,
+      "cards": [
+        "3",
+        "3",
+        "1",
+        "1",
+        "2"
+      ],
+      "source": "https://api.atlasacademy.io/nice/NA/servant/1101100",
+      "noblePhantasms": [
+        {
+          "id": 1101101,
+          "name": "Kama R\u016bp\u0101stra",
+          "card": "1",
+          "strengthStatus": 0,
+          "effectFlags": [
+            "attackEnemyAll"
+          ],
+          "script": {},
+          "functions": [
+            {
+              "funcId": 25,
+              "funcType": "damageNpStateIndividualFix",
+              "funcTargetType": "enemyAll",
+              "funcTargetTeam": "playerAndEnemy",
+              "funcPopupText": "None",
+              "functvals": [],
+              "overWriteTvalsList": [],
+              "funcquestTvals": [],
+              "script": {},
+              "funcGroup": [],
+              "buffs": [],
+              "svals": [
+                {
+                  "Rate": 1000,
+                  "Value": 4500,
+                  "Target": 3012,
+                  "Correction": 1500,
+                  "IncludeIgnoreIndividuality": 1
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 6000,
+                  "Target": 3012,
+                  "Correction": 1500,
+                  "IncludeIgnoreIndividuality": 1
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 6750,
+                  "Target": 3012,
+                  "Correction": 1500,
+                  "IncludeIgnoreIndividuality": 1
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 7125,
+                  "Target": 3012,
+                  "Correction": 1500,
+                  "IncludeIgnoreIndividuality": 1
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 7500,
+                  "Target": 3012,
+                  "Correction": 1500,
+                  "IncludeIgnoreIndividuality": 1
+                }
+              ],
+              "svals2": [
+                {
+                  "Rate": 1000,
+                  "Value": 4500,
+                  "Target": 3012,
+                  "Correction": 1625,
+                  "IncludeIgnoreIndividuality": 1
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 6000,
+                  "Target": 3012,
+                  "Correction": 1625,
+                  "IncludeIgnoreIndividuality": 1
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 6750,
+                  "Target": 3012,
+                  "Correction": 1625,
+                  "IncludeIgnoreIndividuality": 1
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 7125,
+                  "Target": 3012,
+                  "Correction": 1625,
+                  "IncludeIgnoreIndividuality": 1
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 7500,
+                  "Target": 3012,
+                  "Correction": 1625,
+                  "IncludeIgnoreIndividuality": 1
+                }
+              ],
+              "svals3": [
+                {
+                  "Rate": 1000,
+                  "Value": 4500,
+                  "Target": 3012,
+                  "Correction": 1750,
+                  "IncludeIgnoreIndividuality": 1
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 6000,
+                  "Target": 3012,
+                  "Correction": 1750,
+                  "IncludeIgnoreIndividuality": 1
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 6750,
+                  "Target": 3012,
+                  "Correction": 1750,
+                  "IncludeIgnoreIndividuality": 1
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 7125,
+                  "Target": 3012,
+                  "Correction": 1750,
+                  "IncludeIgnoreIndividuality": 1
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 7500,
+                  "Target": 3012,
+                  "Correction": 1750,
+                  "IncludeIgnoreIndividuality": 1
+                }
+              ],
+              "svals4": [
+                {
+                  "Rate": 1000,
+                  "Value": 4500,
+                  "Target": 3012,
+                  "Correction": 1875,
+                  "IncludeIgnoreIndividuality": 1
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 6000,
+                  "Target": 3012,
+                  "Correction": 1875,
+                  "IncludeIgnoreIndividuality": 1
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 6750,
+                  "Target": 3012,
+                  "Correction": 1875,
+                  "IncludeIgnoreIndividuality": 1
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 7125,
+                  "Target": 3012,
+                  "Correction": 1875,
+                  "IncludeIgnoreIndividuality": 1
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 7500,
+                  "Target": 3012,
+                  "Correction": 1875,
+                  "IncludeIgnoreIndividuality": 1
+                }
+              ],
+              "svals5": [
+                {
+                  "Rate": 1000,
+                  "Value": 4500,
+                  "Target": 3012,
+                  "Correction": 2000,
+                  "IncludeIgnoreIndividuality": 1
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 6000,
+                  "Target": 3012,
+                  "Correction": 2000,
+                  "IncludeIgnoreIndividuality": 1
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 6750,
+                  "Target": 3012,
+                  "Correction": 2000,
+                  "IncludeIgnoreIndividuality": 1
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 7125,
+                  "Target": 3012,
+                  "Correction": 2000,
+                  "IncludeIgnoreIndividuality": 1
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 7500,
+                  "Target": 3012,
+                  "Correction": 2000,
+                  "IncludeIgnoreIndividuality": 1
+                }
+              ]
+            },
+            {
+              "funcId": 197,
+              "funcType": "addStateShort",
+              "funcTargetType": "enemyAll",
+              "funcTargetTeam": "playerAndEnemy",
+              "funcPopupText": "DEF Down",
+              "funcPopupIcon": "https://static.atlasacademy.io/NA/BuffIcons/bufficon_504.png",
+              "functvals": [],
+              "overWriteTvalsList": [],
+              "funcquestTvals": [],
+              "script": {},
+              "funcGroup": [],
+              "buffs": [
+                {
+                  "id": 148,
+                  "name": "DEF Down",
+                  "originalName": "DEF Down",
+                  "detail": "Decrease DEF",
+                  "icon": "https://static.atlasacademy.io/NA/BuffIcons/bufficon_504.png",
+                  "type": "downDefence",
+                  "buffGroup": 0,
+                  "script": {
+                    "ProgressSelfTurn": 0
+                  },
+                  "originalScript": {
+                    "ProgressSelfTurn": 0
+                  },
+                  "vals": [
+                    {
+                      "id": 3005,
+                      "name": "buffNegativeEffect"
+                    },
+                    {
+                      "id": 3009,
+                      "name": "buffDecreaseDefence"
+                    }
+                  ],
+                  "tvals": [],
+                  "ckSelfIndv": [],
+                  "ckOpIndv": [],
+                  "maxRate": 5000
+                }
+              ],
+              "svals": [
+                {
+                  "Rate": 1000,
+                  "Turn": 3,
+                  "Count": -1,
+                  "Value": 200
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 3,
+                  "Count": -1,
+                  "Value": 200
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 3,
+                  "Count": -1,
+                  "Value": 200
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 3,
+                  "Count": -1,
+                  "Value": 200
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 3,
+                  "Count": -1,
+                  "Value": 200
+                }
+              ],
+              "svals2": [
+                {
+                  "Rate": 1000,
+                  "Turn": 3,
+                  "Count": -1,
+                  "Value": 200
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 3,
+                  "Count": -1,
+                  "Value": 200
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 3,
+                  "Count": -1,
+                  "Value": 200
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 3,
+                  "Count": -1,
+                  "Value": 200
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 3,
+                  "Count": -1,
+                  "Value": 200
+                }
+              ],
+              "svals3": [
+                {
+                  "Rate": 1000,
+                  "Turn": 3,
+                  "Count": -1,
+                  "Value": 200
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 3,
+                  "Count": -1,
+                  "Value": 200
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 3,
+                  "Count": -1,
+                  "Value": 200
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 3,
+                  "Count": -1,
+                  "Value": 200
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 3,
+                  "Count": -1,
+                  "Value": 200
+                }
+              ],
+              "svals4": [
+                {
+                  "Rate": 1000,
+                  "Turn": 3,
+                  "Count": -1,
+                  "Value": 200
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 3,
+                  "Count": -1,
+                  "Value": 200
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 3,
+                  "Count": -1,
+                  "Value": 200
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 3,
+                  "Count": -1,
+                  "Value": 200
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 3,
+                  "Count": -1,
+                  "Value": 200
+                }
+              ],
+              "svals5": [
+                {
+                  "Rate": 1000,
+                  "Turn": 3,
+                  "Count": -1,
+                  "Value": 200
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 3,
+                  "Count": -1,
+                  "Value": 200
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 3,
+                  "Count": -1,
+                  "Value": 200
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 3,
+                  "Count": -1,
+                  "Value": 200
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 3,
+                  "Count": -1,
+                  "Value": 200
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 1101400,
+      "name": "Utsumi Erice (Avenger)",
+      "className": "avenger",
+      "attribute": "human",
+      "atkMax": 10239,
+      "hpMax": 9801,
+      "lvMax": 80,
+      "cards": [
+        "3",
+        "3",
+        "1",
+        "1",
+        "2"
+      ],
+      "source": "https://api.atlasacademy.io/nice/NA/servant/1101400",
+      "noblePhantasms": [
+        {
+          "id": 1101401,
+          "name": "Ame-no-Kagami-no-Fune",
+          "card": "1",
+          "strengthStatus": 0,
+          "effectFlags": [
+            "attackEnemyOne"
+          ],
+          "script": {},
+          "functions": [
+            {
+              "funcId": 110,
+              "funcType": "addStateShort",
+              "funcTargetType": "self",
+              "funcTargetTeam": "playerAndEnemy",
+              "funcPopupText": "Arts Up",
+              "funcPopupIcon": "https://static.atlasacademy.io/NA/BuffIcons/bufficon_313.png",
+              "functvals": [],
+              "overWriteTvalsList": [],
+              "funcquestTvals": [],
+              "script": {},
+              "funcGroup": [],
+              "buffs": [
+                {
+                  "id": 101,
+                  "name": "Arts Up",
+                  "originalName": "Arts Up",
+                  "detail": "Increase Arts Card effectiveness",
+                  "icon": "https://static.atlasacademy.io/NA/BuffIcons/bufficon_313.png",
+                  "type": "upCommandall",
+                  "buffGroup": 0,
+                  "script": {},
+                  "originalScript": {},
+                  "vals": [
+                    {
+                      "id": 3004,
+                      "name": "buffPositiveEffect"
+                    },
+                    {
+                      "id": 3006,
+                      "name": "buffIncreaseDamage"
+                    },
+                    {
+                      "id": 3092,
+                      "name": "artsBuff"
+                    }
+                  ],
+                  "tvals": [
+                    {
+                      "id": 5000,
+                      "name": "canBeInBattle"
+                    },
+                    {
+                      "id": 4001,
+                      "name": "cardArts"
+                    }
+                  ],
+                  "ckSelfIndv": [
+                    {
+                      "id": 4001,
+                      "name": "cardArts"
+                    }
+                  ],
+                  "ckOpIndv": [],
+                  "maxRate": 5000
+                }
+              ],
+              "svals": [
+                {
+                  "Rate": 1000,
+                  "Turn": 1,
+                  "Count": -1,
+                  "Value": 100
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 1,
+                  "Count": -1,
+                  "Value": 100
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 1,
+                  "Count": -1,
+                  "Value": 100
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 1,
+                  "Count": -1,
+                  "Value": 100
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 1,
+                  "Count": -1,
+                  "Value": 100
+                }
+              ],
+              "svals2": [
+                {
+                  "Rate": 1000,
+                  "Turn": 1,
+                  "Count": -1,
+                  "Value": 150
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 1,
+                  "Count": -1,
+                  "Value": 150
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 1,
+                  "Count": -1,
+                  "Value": 150
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 1,
+                  "Count": -1,
+                  "Value": 150
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 1,
+                  "Count": -1,
+                  "Value": 150
+                }
+              ],
+              "svals3": [
+                {
+                  "Rate": 1000,
+                  "Turn": 1,
+                  "Count": -1,
+                  "Value": 200
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 1,
+                  "Count": -1,
+                  "Value": 200
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 1,
+                  "Count": -1,
+                  "Value": 200
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 1,
+                  "Count": -1,
+                  "Value": 200
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 1,
+                  "Count": -1,
+                  "Value": 200
+                }
+              ],
+              "svals4": [
+                {
+                  "Rate": 1000,
+                  "Turn": 1,
+                  "Count": -1,
+                  "Value": 250
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 1,
+                  "Count": -1,
+                  "Value": 250
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 1,
+                  "Count": -1,
+                  "Value": 250
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 1,
+                  "Count": -1,
+                  "Value": 250
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 1,
+                  "Count": -1,
+                  "Value": 250
+                }
+              ],
+              "svals5": [
+                {
+                  "Rate": 1000,
+                  "Turn": 1,
+                  "Count": -1,
+                  "Value": 300
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 1,
+                  "Count": -1,
+                  "Value": 300
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 1,
+                  "Count": -1,
+                  "Value": 300
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 1,
+                  "Count": -1,
+                  "Value": 300
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 1,
+                  "Count": -1,
+                  "Value": 300
+                }
+              ]
+            },
+            {
+              "funcId": 24,
+              "funcType": "damageNpStateIndividualFix",
+              "funcTargetType": "enemy",
+              "funcTargetTeam": "playerAndEnemy",
+              "funcPopupText": "None",
+              "functvals": [],
+              "overWriteTvalsList": [],
+              "funcquestTvals": [],
+              "script": {},
+              "funcGroup": [],
+              "buffs": [],
+              "svals": [
+                {
+                  "Rate": 1000,
+                  "Value": 9000,
+                  "Target": 3026,
+                  "Correction": 1500
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 12000,
+                  "Target": 3026,
+                  "Correction": 1500
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 13500,
+                  "Target": 3026,
+                  "Correction": 1500
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 14250,
+                  "Target": 3026,
+                  "Correction": 1500
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 15000,
+                  "Target": 3026,
+                  "Correction": 1500
+                }
+              ],
+              "svals2": [
+                {
+                  "Rate": 1000,
+                  "Value": 9000,
+                  "Target": 3026,
+                  "Correction": 1500
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 12000,
+                  "Target": 3026,
+                  "Correction": 1500
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 13500,
+                  "Target": 3026,
+                  "Correction": 1500
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 14250,
+                  "Target": 3026,
+                  "Correction": 1500
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 15000,
+                  "Target": 3026,
+                  "Correction": 1500
+                }
+              ],
+              "svals3": [
+                {
+                  "Rate": 1000,
+                  "Value": 9000,
+                  "Target": 3026,
+                  "Correction": 1500
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 12000,
+                  "Target": 3026,
+                  "Correction": 1500
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 13500,
+                  "Target": 3026,
+                  "Correction": 1500
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 14250,
+                  "Target": 3026,
+                  "Correction": 1500
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 15000,
+                  "Target": 3026,
+                  "Correction": 1500
+                }
+              ],
+              "svals4": [
+                {
+                  "Rate": 1000,
+                  "Value": 9000,
+                  "Target": 3026,
+                  "Correction": 1500
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 12000,
+                  "Target": 3026,
+                  "Correction": 1500
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 13500,
+                  "Target": 3026,
+                  "Correction": 1500
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 14250,
+                  "Target": 3026,
+                  "Correction": 1500
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 15000,
+                  "Target": 3026,
+                  "Correction": 1500
+                }
+              ],
+              "svals5": [
+                {
+                  "Rate": 1000,
+                  "Value": 9000,
+                  "Target": 3026,
+                  "Correction": 1500
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 12000,
+                  "Target": 3026,
+                  "Correction": 1500
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 13500,
+                  "Target": 3026,
+                  "Correction": 1500
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 14250,
+                  "Target": 3026,
+                  "Correction": 1500
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 15000,
+                  "Target": 3026,
+                  "Correction": 1500
+                }
+              ]
+            },
+            {
+              "funcId": 479,
+              "funcType": "instantDeath",
+              "funcTargetType": "enemy",
+              "funcTargetTeam": "playerAndEnemy",
+              "funcPopupText": "Death",
+              "functvals": [],
+              "overWriteTvalsList": [],
+              "funcquestTvals": [],
+              "script": {},
+              "funcGroup": [],
+              "buffs": [],
+              "svals": [
+                {
+                  "Rate": 800
+                },
+                {
+                  "Rate": 800
+                },
+                {
+                  "Rate": 800
+                },
+                {
+                  "Rate": 800
+                },
+                {
+                  "Rate": 800
+                }
+              ],
+              "svals2": [
+                {
+                  "Rate": 800
+                },
+                {
+                  "Rate": 800
+                },
+                {
+                  "Rate": 800
+                },
+                {
+                  "Rate": 800
+                },
+                {
+                  "Rate": 800
+                }
+              ],
+              "svals3": [
+                {
+                  "Rate": 800
+                },
+                {
+                  "Rate": 800
+                },
+                {
+                  "Rate": 800
+                },
+                {
+                  "Rate": 800
+                },
+                {
+                  "Rate": 800
+                }
+              ],
+              "svals4": [
+                {
+                  "Rate": 800
+                },
+                {
+                  "Rate": 800
+                },
+                {
+                  "Rate": 800
+                },
+                {
+                  "Rate": 800
+                },
+                {
+                  "Rate": 800
+                }
+              ],
+              "svals5": [
+                {
+                  "Rate": 800
+                },
+                {
+                  "Rate": 800
+                },
+                {
+                  "Rate": 800
+                },
+                {
+                  "Rate": 800
+                },
+                {
+                  "Rate": 800
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2500400,
+      "name": "Yang Guifei",
+      "className": "foreigner",
+      "attribute": "human",
+      "atkMax": 12342,
+      "hpMax": 13365,
+      "lvMax": 90,
+      "cards": [
+        "3",
+        "3",
+        "1",
+        "1",
+        "2"
+      ],
+      "source": "https://api.atlasacademy.io/nice/NA/servant/2500400",
+      "noblePhantasms": [
+        {
+          "id": 2500401,
+          "name": "Rainbow Feathered Robe, Vow of Eternal Love",
+          "card": "1",
+          "strengthStatus": 0,
+          "effectFlags": [
+            "attackEnemyOne"
+          ],
+          "script": {},
+          "functions": [
+            {
+              "funcId": 24,
+              "funcType": "damageNpStateIndividualFix",
+              "funcTargetType": "enemy",
+              "funcTargetTeam": "playerAndEnemy",
+              "funcPopupText": "None",
+              "functvals": [],
+              "overWriteTvalsList": [],
+              "funcquestTvals": [],
+              "script": {},
+              "funcGroup": [],
+              "buffs": [],
+              "svals": [
+                {
+                  "Rate": 1000,
+                  "Value": 9000,
+                  "Target": 3015,
+                  "Correction": 1500
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 12000,
+                  "Target": 3015,
+                  "Correction": 1500
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 13500,
+                  "Target": 3015,
+                  "Correction": 1500
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 14250,
+                  "Target": 3015,
+                  "Correction": 1500
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 15000,
+                  "Target": 3015,
+                  "Correction": 1500
+                }
+              ],
+              "svals2": [
+                {
+                  "Rate": 1000,
+                  "Value": 9000,
+                  "Target": 3015,
+                  "Correction": 1625
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 12000,
+                  "Target": 3015,
+                  "Correction": 1625
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 13500,
+                  "Target": 3015,
+                  "Correction": 1625
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 14250,
+                  "Target": 3015,
+                  "Correction": 1625
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 15000,
+                  "Target": 3015,
+                  "Correction": 1625
+                }
+              ],
+              "svals3": [
+                {
+                  "Rate": 1000,
+                  "Value": 9000,
+                  "Target": 3015,
+                  "Correction": 1750
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 12000,
+                  "Target": 3015,
+                  "Correction": 1750
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 13500,
+                  "Target": 3015,
+                  "Correction": 1750
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 14250,
+                  "Target": 3015,
+                  "Correction": 1750
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 15000,
+                  "Target": 3015,
+                  "Correction": 1750
+                }
+              ],
+              "svals4": [
+                {
+                  "Rate": 1000,
+                  "Value": 9000,
+                  "Target": 3015,
+                  "Correction": 1875
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 12000,
+                  "Target": 3015,
+                  "Correction": 1875
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 13500,
+                  "Target": 3015,
+                  "Correction": 1875
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 14250,
+                  "Target": 3015,
+                  "Correction": 1875
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 15000,
+                  "Target": 3015,
+                  "Correction": 1875
+                }
+              ],
+              "svals5": [
+                {
+                  "Rate": 1000,
+                  "Value": 9000,
+                  "Target": 3015,
+                  "Correction": 2000
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 12000,
+                  "Target": 3015,
+                  "Correction": 2000
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 13500,
+                  "Target": 3015,
+                  "Correction": 2000
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 14250,
+                  "Target": 3015,
+                  "Correction": 2000
+                },
+                {
+                  "Rate": 1000,
+                  "Value": 15000,
+                  "Target": 3015,
+                  "Correction": 2000
+                }
+              ]
+            },
+            {
+              "funcId": 318,
+              "funcType": "addState",
+              "funcTargetType": "enemy",
+              "funcTargetTeam": "playerAndEnemy",
+              "funcPopupText": "Burn",
+              "funcPopupIcon": "https://static.atlasacademy.io/NA/BuffIcons/bufficon_513.png",
+              "functvals": [],
+              "overWriteTvalsList": [],
+              "funcquestTvals": [],
+              "script": {},
+              "funcGroup": [],
+              "buffs": [
+                {
+                  "id": 124,
+                  "name": "Burn",
+                  "originalName": "Burn",
+                  "detail": "Lose HP at end of each turn",
+                  "icon": "https://static.atlasacademy.io/NA/BuffIcons/bufficon_513.png",
+                  "type": "reduceHp",
+                  "buffGroup": 0,
+                  "script": {},
+                  "originalScript": {},
+                  "vals": [
+                    {
+                      "id": 3005,
+                      "name": "buffNegativeEffect"
+                    },
+                    {
+                      "id": 3015,
+                      "name": "buffBurn"
+                    }
+                  ],
+                  "tvals": [],
+                  "ckSelfIndv": [],
+                  "ckOpIndv": [],
+                  "maxRate": 0
+                }
+              ],
+              "svals": [
+                {
+                  "Rate": 1000,
+                  "Turn": 3,
+                  "Count": -1,
+                  "Value": 3000
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 3,
+                  "Count": -1,
+                  "Value": 4500
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 3,
+                  "Count": -1,
+                  "Value": 5250
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 3,
+                  "Count": -1,
+                  "Value": 5625
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 3,
+                  "Count": -1,
+                  "Value": 6000
+                }
+              ],
+              "svals2": [
+                {
+                  "Rate": 1000,
+                  "Turn": 3,
+                  "Count": -1,
+                  "Value": 3000
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 3,
+                  "Count": -1,
+                  "Value": 4500
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 3,
+                  "Count": -1,
+                  "Value": 5250
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 3,
+                  "Count": -1,
+                  "Value": 5625
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 3,
+                  "Count": -1,
+                  "Value": 6000
+                }
+              ],
+              "svals3": [
+                {
+                  "Rate": 1000,
+                  "Turn": 3,
+                  "Count": -1,
+                  "Value": 3000
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 3,
+                  "Count": -1,
+                  "Value": 4500
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 3,
+                  "Count": -1,
+                  "Value": 5250
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 3,
+                  "Count": -1,
+                  "Value": 5625
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 3,
+                  "Count": -1,
+                  "Value": 6000
+                }
+              ],
+              "svals4": [
+                {
+                  "Rate": 1000,
+                  "Turn": 3,
+                  "Count": -1,
+                  "Value": 3000
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 3,
+                  "Count": -1,
+                  "Value": 4500
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 3,
+                  "Count": -1,
+                  "Value": 5250
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 3,
+                  "Count": -1,
+                  "Value": 5625
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 3,
+                  "Count": -1,
+                  "Value": 6000
+                }
+              ],
+              "svals5": [
+                {
+                  "Rate": 1000,
+                  "Turn": 3,
+                  "Count": -1,
+                  "Value": 3000
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 3,
+                  "Count": -1,
+                  "Value": 4500
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 3,
+                  "Count": -1,
+                  "Value": 5250
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 3,
+                  "Count": -1,
+                  "Value": 5625
+                },
+                {
+                  "Rate": 1000,
+                  "Turn": 3,
+                  "Count": -1,
+                  "Value": 6000
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
