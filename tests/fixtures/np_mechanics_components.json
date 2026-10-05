@@ -8,13 +8,7 @@
       "attribute": "earth",
       "atkMax": 5816,
       "lvMax": 60,
-      "cards": [
-        "3",
-        "1",
-        "1",
-        "2",
-        "2"
-      ],
+      "cards": ["3", "1", "1", "2", "2"],
       "source": "https://api.atlasacademy.io/nice/NA/servant/201300?lang=en",
       "noblePhantasms": [
         {
@@ -22,9 +16,7 @@
           "name": "Stella",
           "card": "2",
           "strengthStatus": 1,
-          "effectFlags": [
-            "attackEnemyAll"
-          ],
+          "effectFlags": ["attackEnemyAll"],
           "functions": [
             {
               "funcType": "damageNp",
@@ -35,114 +27,39 @@
               "funcGroup": [],
               "script": {},
               "svals": [
-                {
-                  "Rate": 1000,
-                  "Value": 6000
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 8000
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 9000
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 9500
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 10000
-                }
+                {"Rate": 1000, "Value": 6000},
+                {"Rate": 1000, "Value": 8000},
+                {"Rate": 1000, "Value": 9000},
+                {"Rate": 1000, "Value": 9500},
+                {"Rate": 1000, "Value": 10000}
               ],
               "svals2": [
-                {
-                  "Rate": 1000,
-                  "Value": 6000
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 8000
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 9000
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 9500
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 10000
-                }
+                {"Rate": 1000, "Value": 6000},
+                {"Rate": 1000, "Value": 8000},
+                {"Rate": 1000, "Value": 9000},
+                {"Rate": 1000, "Value": 9500},
+                {"Rate": 1000, "Value": 10000}
               ],
               "svals3": [
-                {
-                  "Rate": 1000,
-                  "Value": 6000
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 8000
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 9000
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 9500
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 10000
-                }
+                {"Rate": 1000, "Value": 6000},
+                {"Rate": 1000, "Value": 8000},
+                {"Rate": 1000, "Value": 9000},
+                {"Rate": 1000, "Value": 9500},
+                {"Rate": 1000, "Value": 10000}
               ],
               "svals4": [
-                {
-                  "Rate": 1000,
-                  "Value": 6000
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 8000
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 9000
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 9500
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 10000
-                }
+                {"Rate": 1000, "Value": 6000},
+                {"Rate": 1000, "Value": 8000},
+                {"Rate": 1000, "Value": 9000},
+                {"Rate": 1000, "Value": 9500},
+                {"Rate": 1000, "Value": 10000}
               ],
               "svals5": [
-                {
-                  "Rate": 1000,
-                  "Value": 6000
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 8000
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 9000
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 9500
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 10000
-                }
+                {"Rate": 1000, "Value": 6000},
+                {"Rate": 1000, "Value": 8000},
+                {"Rate": 1000, "Value": 9000},
+                {"Rate": 1000, "Value": 9500},
+                {"Rate": 1000, "Value": 10000}
               ]
             },
             {
@@ -154,120 +71,42 @@
               "funcGroup": [],
               "script": {},
               "svals": [
-                {
-                  "Rate": 1000,
-                  "Value": 0
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 0
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 0
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 0
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 0
-                }
+                {"Rate": 1000, "Value": 0},
+                {"Rate": 1000, "Value": 0},
+                {"Rate": 1000, "Value": 0},
+                {"Rate": 1000, "Value": 0},
+                {"Rate": 1000, "Value": 0}
               ],
               "svals2": [
-                {
-                  "Rate": 1000,
-                  "Value": 1000
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 1000
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 1000
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 1000
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 1000
-                }
+                {"Rate": 1000, "Value": 1000},
+                {"Rate": 1000, "Value": 1000},
+                {"Rate": 1000, "Value": 1000},
+                {"Rate": 1000, "Value": 1000},
+                {"Rate": 1000, "Value": 1000}
               ],
               "svals3": [
-                {
-                  "Rate": 1000,
-                  "Value": 2000
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 2000
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 2000
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 2000
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 2000
-                }
+                {"Rate": 1000, "Value": 2000},
+                {"Rate": 1000, "Value": 2000},
+                {"Rate": 1000, "Value": 2000},
+                {"Rate": 1000, "Value": 2000},
+                {"Rate": 1000, "Value": 2000}
               ],
               "svals4": [
-                {
-                  "Rate": 1000,
-                  "Value": 3000
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 3000
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 3000
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 3000
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 3000
-                }
+                {"Rate": 1000, "Value": 3000},
+                {"Rate": 1000, "Value": 3000},
+                {"Rate": 1000, "Value": 3000},
+                {"Rate": 1000, "Value": 3000},
+                {"Rate": 1000, "Value": 3000}
               ],
               "svals5": [
-                {
-                  "Rate": 1000,
-                  "Value": 4000
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 4000
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 4000
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 4000
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 4000
-                }
+                {"Rate": 1000, "Value": 4000},
+                {"Rate": 1000, "Value": 4000},
+                {"Rate": 1000, "Value": 4000},
+                {"Rate": 1000, "Value": 4000},
+                {"Rate": 1000, "Value": 4000}
               ]
             },
-            {
-              "funcType": "forceInstantDeath",
-              "funcTargetType": "self"
-            }
+            {"funcType": "forceInstantDeath", "funcTargetType": "self"}
           ]
         },
         {
@@ -275,9 +114,7 @@
           "name": "Stella",
           "card": "2",
           "strengthStatus": 99,
-          "effectFlags": [
-            "attackEnemyAll"
-          ],
+          "effectFlags": ["attackEnemyAll"],
           "functions": [
             {
               "funcType": "damageNp",
@@ -288,114 +125,39 @@
               "funcGroup": [],
               "script": {},
               "svals": [
-                {
-                  "Rate": 1000,
-                  "Value": 8000
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 10000
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 11000
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 11500
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 12000
-                }
+                {"Rate": 1000, "Value": 8000},
+                {"Rate": 1000, "Value": 10000},
+                {"Rate": 1000, "Value": 11000},
+                {"Rate": 1000, "Value": 11500},
+                {"Rate": 1000, "Value": 12000}
               ],
               "svals2": [
-                {
-                  "Rate": 1000,
-                  "Value": 8000
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 10000
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 11000
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 11500
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 12000
-                }
+                {"Rate": 1000, "Value": 8000},
+                {"Rate": 1000, "Value": 10000},
+                {"Rate": 1000, "Value": 11000},
+                {"Rate": 1000, "Value": 11500},
+                {"Rate": 1000, "Value": 12000}
               ],
               "svals3": [
-                {
-                  "Rate": 1000,
-                  "Value": 8000
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 10000
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 11000
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 11500
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 12000
-                }
+                {"Rate": 1000, "Value": 8000},
+                {"Rate": 1000, "Value": 10000},
+                {"Rate": 1000, "Value": 11000},
+                {"Rate": 1000, "Value": 11500},
+                {"Rate": 1000, "Value": 12000}
               ],
               "svals4": [
-                {
-                  "Rate": 1000,
-                  "Value": 8000
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 10000
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 11000
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 11500
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 12000
-                }
+                {"Rate": 1000, "Value": 8000},
+                {"Rate": 1000, "Value": 10000},
+                {"Rate": 1000, "Value": 11000},
+                {"Rate": 1000, "Value": 11500},
+                {"Rate": 1000, "Value": 12000}
               ],
               "svals5": [
-                {
-                  "Rate": 1000,
-                  "Value": 8000
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 10000
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 11000
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 11500
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 12000
-                }
+                {"Rate": 1000, "Value": 8000},
+                {"Rate": 1000, "Value": 10000},
+                {"Rate": 1000, "Value": 11000},
+                {"Rate": 1000, "Value": 11500},
+                {"Rate": 1000, "Value": 12000}
               ]
             },
             {
@@ -407,120 +169,42 @@
               "funcGroup": [],
               "script": {},
               "svals": [
-                {
-                  "Rate": 1000,
-                  "Value": 0
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 0
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 0
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 0
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 0
-                }
+                {"Rate": 1000, "Value": 0},
+                {"Rate": 1000, "Value": 0},
+                {"Rate": 1000, "Value": 0},
+                {"Rate": 1000, "Value": 0},
+                {"Rate": 1000, "Value": 0}
               ],
               "svals2": [
-                {
-                  "Rate": 1000,
-                  "Value": 2000
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 2000
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 2000
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 2000
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 2000
-                }
+                {"Rate": 1000, "Value": 2000},
+                {"Rate": 1000, "Value": 2000},
+                {"Rate": 1000, "Value": 2000},
+                {"Rate": 1000, "Value": 2000},
+                {"Rate": 1000, "Value": 2000}
               ],
               "svals3": [
-                {
-                  "Rate": 1000,
-                  "Value": 4000
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 4000
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 4000
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 4000
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 4000
-                }
+                {"Rate": 1000, "Value": 4000},
+                {"Rate": 1000, "Value": 4000},
+                {"Rate": 1000, "Value": 4000},
+                {"Rate": 1000, "Value": 4000},
+                {"Rate": 1000, "Value": 4000}
               ],
               "svals4": [
-                {
-                  "Rate": 1000,
-                  "Value": 6000
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 6000
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 6000
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 6000
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 6000
-                }
+                {"Rate": 1000, "Value": 6000},
+                {"Rate": 1000, "Value": 6000},
+                {"Rate": 1000, "Value": 6000},
+                {"Rate": 1000, "Value": 6000},
+                {"Rate": 1000, "Value": 6000}
               ],
               "svals5": [
-                {
-                  "Rate": 1000,
-                  "Value": 8000
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 8000
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 8000
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 8000
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 8000
-                }
+                {"Rate": 1000, "Value": 8000},
+                {"Rate": 1000, "Value": 8000},
+                {"Rate": 1000, "Value": 8000},
+                {"Rate": 1000, "Value": 8000},
+                {"Rate": 1000, "Value": 8000}
               ]
             },
-            {
-              "funcType": "forceInstantDeath",
-              "funcTargetType": "self"
-            }
+            {"funcType": "forceInstantDeath", "funcTargetType": "self"}
           ]
         }
       ]
@@ -532,13 +216,7 @@
       "attribute": "human",
       "atkMax": 6119,
       "lvMax": 65,
-      "cards": [
-        "3",
-        "1",
-        "1",
-        "1",
-        "2"
-      ],
+      "cards": ["3", "1", "1", "1", "2"],
       "source": "https://api.atlasacademy.io/nice/NA/servant/504400?lang=en",
       "noblePhantasms": [
         {
@@ -546,9 +224,7 @@
           "name": "Two-Pronged Formation",
           "card": "1",
           "strengthStatus": 0,
-          "effectFlags": [
-            "attackEnemyAll"
-          ],
+          "effectFlags": ["attackEnemyAll"],
           "functions": [
             {
               "funcType": "damageNp",
@@ -559,114 +235,39 @@
               "funcGroup": [],
               "script": {},
               "svals": [
-                {
-                  "Rate": 1000,
-                  "Value": 9000
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 12000
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 13500
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 14250
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 15000
-                }
+                {"Rate": 1000, "Value": 9000},
+                {"Rate": 1000, "Value": 12000},
+                {"Rate": 1000, "Value": 13500},
+                {"Rate": 1000, "Value": 14250},
+                {"Rate": 1000, "Value": 15000}
               ],
               "svals2": [
-                {
-                  "Rate": 1000,
-                  "Value": 9000
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 12000
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 13500
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 14250
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 15000
-                }
+                {"Rate": 1000, "Value": 9000},
+                {"Rate": 1000, "Value": 12000},
+                {"Rate": 1000, "Value": 13500},
+                {"Rate": 1000, "Value": 14250},
+                {"Rate": 1000, "Value": 15000}
               ],
               "svals3": [
-                {
-                  "Rate": 1000,
-                  "Value": 9000
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 12000
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 13500
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 14250
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 15000
-                }
+                {"Rate": 1000, "Value": 9000},
+                {"Rate": 1000, "Value": 12000},
+                {"Rate": 1000, "Value": 13500},
+                {"Rate": 1000, "Value": 14250},
+                {"Rate": 1000, "Value": 15000}
               ],
               "svals4": [
-                {
-                  "Rate": 1000,
-                  "Value": 9000
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 12000
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 13500
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 14250
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 15000
-                }
+                {"Rate": 1000, "Value": 9000},
+                {"Rate": 1000, "Value": 12000},
+                {"Rate": 1000, "Value": 13500},
+                {"Rate": 1000, "Value": 14250},
+                {"Rate": 1000, "Value": 15000}
               ],
               "svals5": [
-                {
-                  "Rate": 1000,
-                  "Value": 9000
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 12000
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 13500
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 14250
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 15000
-                }
+                {"Rate": 1000, "Value": 9000},
+                {"Rate": 1000, "Value": 12000},
+                {"Rate": 1000, "Value": 13500},
+                {"Rate": 1000, "Value": 14250},
+                {"Rate": 1000, "Value": 15000}
               ]
             },
             {
@@ -678,120 +279,42 @@
               "funcGroup": [],
               "script": {},
               "svals": [
-                {
-                  "Rate": 1000,
-                  "Value": 0
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 0
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 0
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 0
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 0
-                }
+                {"Rate": 1000, "Value": 0},
+                {"Rate": 1000, "Value": 0},
+                {"Rate": 1000, "Value": 0},
+                {"Rate": 1000, "Value": 0},
+                {"Rate": 1000, "Value": 0}
               ],
               "svals2": [
-                {
-                  "Rate": 1000,
-                  "Value": 2250
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 2250
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 2250
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 2250
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 2250
-                }
+                {"Rate": 1000, "Value": 2250},
+                {"Rate": 1000, "Value": 2250},
+                {"Rate": 1000, "Value": 2250},
+                {"Rate": 1000, "Value": 2250},
+                {"Rate": 1000, "Value": 2250}
               ],
               "svals3": [
-                {
-                  "Rate": 1000,
-                  "Value": 4500
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 4500
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 4500
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 4500
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 4500
-                }
+                {"Rate": 1000, "Value": 4500},
+                {"Rate": 1000, "Value": 4500},
+                {"Rate": 1000, "Value": 4500},
+                {"Rate": 1000, "Value": 4500},
+                {"Rate": 1000, "Value": 4500}
               ],
               "svals4": [
-                {
-                  "Rate": 1000,
-                  "Value": 6750
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 6750
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 6750
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 6750
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 6750
-                }
+                {"Rate": 1000, "Value": 6750},
+                {"Rate": 1000, "Value": 6750},
+                {"Rate": 1000, "Value": 6750},
+                {"Rate": 1000, "Value": 6750},
+                {"Rate": 1000, "Value": 6750}
               ],
               "svals5": [
-                {
-                  "Rate": 1000,
-                  "Value": 9000
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 9000
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 9000
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 9000
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 9000
-                }
+                {"Rate": 1000, "Value": 9000},
+                {"Rate": 1000, "Value": 9000},
+                {"Rate": 1000, "Value": 9000},
+                {"Rate": 1000, "Value": 9000},
+                {"Rate": 1000, "Value": 9000}
               ]
             },
-            {
-              "funcType": "forceInstantDeath",
-              "funcTargetType": "ptSelfAnotherFirst"
-            }
+            {"funcType": "forceInstantDeath", "funcTargetType": "ptSelfAnotherFirst"}
           ]
         }
       ]
@@ -803,13 +326,7 @@
       "attribute": "sky",
       "atkMax": 12302,
       "lvMax": 90,
-      "cards": [
-        "3",
-        "3",
-        "1",
-        "2",
-        "2"
-      ],
+      "cards": ["3", "3", "1", "2", "2"],
       "source": "https://api.atlasacademy.io/nice/NA/servant/305400?lang=en",
       "noblePhantasms": [
         {
@@ -817,18 +334,10 @@
           "name": "Maruti, Vāyuputra",
           "card": "2",
           "strengthStatus": 0,
-          "effectFlags": [
-            "attackEnemyOne"
-          ],
+          "effectFlags": ["attackEnemyOne"],
           "functions": [
-            {
-              "funcType": "addStateShort",
-              "funcTargetType": "self"
-            },
-            {
-              "funcType": "subState",
-              "funcTargetType": "enemy"
-            },
+            {"funcType": "addStateShort", "funcTargetType": "self"},
+            {"funcType": "subState", "funcTargetType": "enemy"},
             {
               "funcType": "damageNp",
               "funcTargetType": "enemy",
@@ -838,114 +347,39 @@
               "funcGroup": [],
               "script": {},
               "svals": [
-                {
-                  "Rate": 1000,
-                  "Value": 6000
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 8000
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 9000
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 9500
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 10000
-                }
+                {"Rate": 1000, "Value": 6000},
+                {"Rate": 1000, "Value": 8000},
+                {"Rate": 1000, "Value": 9000},
+                {"Rate": 1000, "Value": 9500},
+                {"Rate": 1000, "Value": 10000}
               ],
               "svals2": [
-                {
-                  "Rate": 1000,
-                  "Value": 6000
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 8000
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 9000
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 9500
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 10000
-                }
+                {"Rate": 1000, "Value": 6000},
+                {"Rate": 1000, "Value": 8000},
+                {"Rate": 1000, "Value": 9000},
+                {"Rate": 1000, "Value": 9500},
+                {"Rate": 1000, "Value": 10000}
               ],
               "svals3": [
-                {
-                  "Rate": 1000,
-                  "Value": 6000
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 8000
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 9000
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 9500
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 10000
-                }
+                {"Rate": 1000, "Value": 6000},
+                {"Rate": 1000, "Value": 8000},
+                {"Rate": 1000, "Value": 9000},
+                {"Rate": 1000, "Value": 9500},
+                {"Rate": 1000, "Value": 10000}
               ],
               "svals4": [
-                {
-                  "Rate": 1000,
-                  "Value": 6000
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 8000
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 9000
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 9500
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 10000
-                }
+                {"Rate": 1000, "Value": 6000},
+                {"Rate": 1000, "Value": 8000},
+                {"Rate": 1000, "Value": 9000},
+                {"Rate": 1000, "Value": 9500},
+                {"Rate": 1000, "Value": 10000}
               ],
               "svals5": [
-                {
-                  "Rate": 1000,
-                  "Value": 6000
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 8000
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 9000
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 9500
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 10000
-                }
+                {"Rate": 1000, "Value": 6000},
+                {"Rate": 1000, "Value": 8000},
+                {"Rate": 1000, "Value": 9000},
+                {"Rate": 1000, "Value": 9500},
+                {"Rate": 1000, "Value": 10000}
               ]
             },
             {
@@ -957,184 +391,39 @@
               "funcGroup": [],
               "script": {},
               "svals": [
-                {
-                  "Rate": 0,
-                  "Value": 0,
-                  "HideMiss": 1,
-                  "HideNoEffect": 1
-                },
-                {
-                  "Rate": 0,
-                  "Value": 0,
-                  "HideMiss": 1,
-                  "HideNoEffect": 1
-                },
-                {
-                  "Rate": 0,
-                  "Value": 0,
-                  "HideMiss": 1,
-                  "HideNoEffect": 1
-                },
-                {
-                  "Rate": 0,
-                  "Value": 0,
-                  "HideMiss": 1,
-                  "HideNoEffect": 1
-                },
-                {
-                  "Rate": 0,
-                  "Value": 0,
-                  "HideMiss": 1,
-                  "HideNoEffect": 1
-                }
+                {"Rate": 0, "Value": 0, "HideMiss": 1, "HideNoEffect": 1},
+                {"Rate": 0, "Value": 0, "HideMiss": 1, "HideNoEffect": 1},
+                {"Rate": 0, "Value": 0, "HideMiss": 1, "HideNoEffect": 1},
+                {"Rate": 0, "Value": 0, "HideMiss": 1, "HideNoEffect": 1},
+                {"Rate": 0, "Value": 0, "HideMiss": 1, "HideNoEffect": 1}
               ],
               "svals2": [
-                {
-                  "Rate": 1000,
-                  "Value": 2000,
-                  "HideMiss": 1,
-                  "HideNoEffect": 1,
-                  "CheckDead": 1
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 2000,
-                  "HideMiss": 1,
-                  "HideNoEffect": 1,
-                  "CheckDead": 1
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 2000,
-                  "HideMiss": 1,
-                  "HideNoEffect": 1,
-                  "CheckDead": 1
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 2000,
-                  "HideMiss": 1,
-                  "HideNoEffect": 1,
-                  "CheckDead": 1
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 2000,
-                  "HideMiss": 1,
-                  "HideNoEffect": 1,
-                  "CheckDead": 1
-                }
+                {"Rate": 1000, "Value": 2000, "HideMiss": 1, "HideNoEffect": 1, "CheckDead": 1},
+                {"Rate": 1000, "Value": 2000, "HideMiss": 1, "HideNoEffect": 1, "CheckDead": 1},
+                {"Rate": 1000, "Value": 2000, "HideMiss": 1, "HideNoEffect": 1, "CheckDead": 1},
+                {"Rate": 1000, "Value": 2000, "HideMiss": 1, "HideNoEffect": 1, "CheckDead": 1},
+                {"Rate": 1000, "Value": 2000, "HideMiss": 1, "HideNoEffect": 1, "CheckDead": 1}
               ],
               "svals3": [
-                {
-                  "Rate": 1000,
-                  "Value": 3000,
-                  "HideMiss": 1,
-                  "HideNoEffect": 1,
-                  "CheckDead": 1
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 3000,
-                  "HideMiss": 1,
-                  "HideNoEffect": 1,
-                  "CheckDead": 1
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 3000,
-                  "HideMiss": 1,
-                  "HideNoEffect": 1,
-                  "CheckDead": 1
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 3000,
-                  "HideMiss": 1,
-                  "HideNoEffect": 1,
-                  "CheckDead": 1
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 3000,
-                  "HideMiss": 1,
-                  "HideNoEffect": 1,
-                  "CheckDead": 1
-                }
+                {"Rate": 1000, "Value": 3000, "HideMiss": 1, "HideNoEffect": 1, "CheckDead": 1},
+                {"Rate": 1000, "Value": 3000, "HideMiss": 1, "HideNoEffect": 1, "CheckDead": 1},
+                {"Rate": 1000, "Value": 3000, "HideMiss": 1, "HideNoEffect": 1, "CheckDead": 1},
+                {"Rate": 1000, "Value": 3000, "HideMiss": 1, "HideNoEffect": 1, "CheckDead": 1},
+                {"Rate": 1000, "Value": 3000, "HideMiss": 1, "HideNoEffect": 1, "CheckDead": 1}
               ],
               "svals4": [
-                {
-                  "Rate": 1000,
-                  "Value": 4000,
-                  "HideMiss": 1,
-                  "HideNoEffect": 1,
-                  "CheckDead": 1
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 4000,
-                  "HideMiss": 1,
-                  "HideNoEffect": 1,
-                  "CheckDead": 1
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 4000,
-                  "HideMiss": 1,
-                  "HideNoEffect": 1,
-                  "CheckDead": 1
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 4000,
-                  "HideMiss": 1,
-                  "HideNoEffect": 1,
-                  "CheckDead": 1
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 4000,
-                  "HideMiss": 1,
-                  "HideNoEffect": 1,
-                  "CheckDead": 1
-                }
+                {"Rate": 1000, "Value": 4000, "HideMiss": 1, "HideNoEffect": 1, "CheckDead": 1},
+                {"Rate": 1000, "Value": 4000, "HideMiss": 1, "HideNoEffect": 1, "CheckDead": 1},
+                {"Rate": 1000, "Value": 4000, "HideMiss": 1, "HideNoEffect": 1, "CheckDead": 1},
+                {"Rate": 1000, "Value": 4000, "HideMiss": 1, "HideNoEffect": 1, "CheckDead": 1},
+                {"Rate": 1000, "Value": 4000, "HideMiss": 1, "HideNoEffect": 1, "CheckDead": 1}
               ],
               "svals5": [
-                {
-                  "Rate": 1000,
-                  "Value": 5000,
-                  "HideMiss": 1,
-                  "HideNoEffect": 1,
-                  "CheckDead": 1
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 5000,
-                  "HideMiss": 1,
-                  "HideNoEffect": 1,
-                  "CheckDead": 1
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 5000,
-                  "HideMiss": 1,
-                  "HideNoEffect": 1,
-                  "CheckDead": 1
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 5000,
-                  "HideMiss": 1,
-                  "HideNoEffect": 1,
-                  "CheckDead": 1
-                },
-                {
-                  "Rate": 1000,
-                  "Value": 5000,
-                  "HideMiss": 1,
-                  "HideNoEffect": 1,
-                  "CheckDead": 1
-                }
+                {"Rate": 1000, "Value": 5000, "HideMiss": 1, "HideNoEffect": 1, "CheckDead": 1},
+                {"Rate": 1000, "Value": 5000, "HideMiss": 1, "HideNoEffect": 1, "CheckDead": 1},
+                {"Rate": 1000, "Value": 5000, "HideMiss": 1, "HideNoEffect": 1, "CheckDead": 1},
+                {"Rate": 1000, "Value": 5000, "HideMiss": 1, "HideNoEffect": 1, "CheckDead": 1},
+                {"Rate": 1000, "Value": 5000, "HideMiss": 1, "HideNoEffect": 1, "CheckDead": 1}
               ]
             }
           ]
