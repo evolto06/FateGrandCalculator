@@ -30,6 +30,7 @@ fn rejects_duplicate_physical_cards_multiple_nps_and_invalid_levels() {
                 overcharge_level: 1,
                 affection_level: 1,
                 attacker_hp: None,
+                enemy_status: None,
             }
             .validate(servant)
             .is_err()
@@ -54,6 +55,7 @@ fn same_color_distinct_cards_are_valid_and_legacy_decks_are_not_guessed() {
         overcharge_level: 1,
         affection_level: 1,
         attacker_hp: None,
+        enemy_status: None,
     };
     assert!(selection.validate(&servant).is_ok());
     servant.deck.clear();

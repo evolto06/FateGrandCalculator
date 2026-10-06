@@ -1,5 +1,6 @@
 #![cfg(not(target_arch = "wasm32"))]
 
+use fate_grand_calculator::np_mechanics::enemy_status::EnemyStatus;
 use fate_grand_calculator::{loader::NpStatus, servant_data::ServantDataService};
 
 #[test]
@@ -39,5 +40,23 @@ fn current_na_update_saves_the_complete_additional_servant_catalog() {
             assert!(np.requires_attacker_hp());
             assert_eq!(np.available_overcharges(), [1, 2, 3, 4, 5]);
         }
+    }
+    for (servant_id, np_id, condition) in [
+        (200300, 200301, EnemyStatus::Poison),
+        (504800, 504801, EnemyStatus::SkillSeal),
+        (604900, 604901, EnemyStatus::Bind),
+        (704900, 704901, EnemyStatus::DefenseUp),
+        (1101100, 1101101, EnemyStatus::Charm),
+        (1101400, 1101401, EnemyStatus::Curse),
+        (2500400, 2500401, EnemyStatus::Burn),
+    ] {
+        let servant = loaded.servant(servant_id).unwrap();
+        let np = servant
+            .noble_phantasms
+            .iter()
+            .find(|np| np.id == np_id)
+            .unwrap();
+        assert_eq!(np.enemy_status_condition(), Some(condition));
+        assert_eq!(np.available_overcharges(), [1, 2, 3, 4, 5]);
     }
 }

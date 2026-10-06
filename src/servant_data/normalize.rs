@@ -7,6 +7,7 @@ use serde_json::Value;
 use crate::loader::{GameData, ServantRecord};
 use crate::model::{AttributeType, ClassType};
 use crate::np_mechanics::components::{NpDamageComponent, NpDamageValues, NpTarget};
+use crate::np_mechanics::enemy_status::{EnemyStatus, EnemyStatusScaling};
 use crate::np_mechanics::low_hp::LowHpScaling;
 use crate::np_mechanics::{self, NpDamageKind};
 
@@ -316,6 +317,7 @@ pub fn enrich_servant(servant: &mut ServantRecord, row: &Value) -> Result<(), St
                     | NpDamageKind::DefensePierce
                     | NpDamageKind::SpaceEresh
                     | NpDamageKind::HpRatioLow
+                    | NpDamageKind::StateIndividualFix
             )
         {
             unsupported = true;
@@ -325,10 +327,31 @@ pub fn enrich_servant(servant: &mut ServantRecord, row: &Value) -> Result<(), St
         let function_type = damage["funcType"].as_str().unwrap_or("");
         let affection_np = damage_kind == NpDamageKind::SpaceEresh;
         let low_hp_np = damage_kind == NpDamageKind::HpRatioLow;
-        if low_hp_np && !is_low_hp_shape(np, damage) {
+        let status_np = damage_kind == NpDamageKind::StateIndividualFix;
+        if low_hp_np && !is_supported_damage_shape(np, damage) {
             unsupported = true;
             continue;
         }
+        let status_condition = if status_np {
+            let Some(condition) = np_id.and_then(|id| verified_enemy_status(servant.id, id)) else {
+                unsupported = true;
+                continue;
+            };
+            let expected_target = if matches!(condition, EnemyStatus::Bind | EnemyStatus::Charm) {
+                "enemyAll"
+            } else {
+                "enemy"
+            };
+            if !is_supported_damage_shape(np, damage)
+                || damage["funcTargetType"].as_str() != Some(expected_target)
+            {
+                unsupported = true;
+                continue;
+            }
+            Some(condition)
+        } else {
+            None
+        };
         let mut components = Vec::new();
         let mut bad_data = false;
         let mut bad_condition = false;
@@ -336,7 +359,7 @@ pub fn enrich_servant(servant: &mut ServantRecord, row: &Value) -> Result<(), St
             let target = match function.get("funcTargetType").and_then(Value::as_str) {
                 Some("enemy") => Some(NpTarget::Enemy),
                 Some("enemyAll") => Some(NpTarget::EnemyAll),
-                None if !multi && !low_hp_np => None,
+                None if !multi && !low_hp_np && !status_np => None,
                 _ => {
                     bad_condition = true;
                     break;
@@ -350,7 +373,7 @@ pub fn enrich_servant(servant: &mut ServantRecord, row: &Value) -> Result<(), St
                     format!("svals{}", oc + 1)
                 };
                 if let Some(values) = function.get(&key) {
-                    match import_damage_values(values, function_type, multi) {
+                    match import_damage_values(values, function_type, multi, status_condition) {
                         Ok(row) => *output = Some(row),
                         Err(ImportValuesError::Unsupported) => {
                             if oc == 0 {
@@ -459,6 +482,9 @@ pub fn enrich_servant(servant: &mut ServantRecord, row: &Value) -> Result<(), St
         if low_hp_np {
             notes.push("Set attacker HP at NP damage time, including preceding HP loss or healing. HP changes and other NP effects are not simulated.".into());
         }
+        if status_np {
+            notes.push("Set the matching enemy status at NP damage time. Status application and success are not simulated; preceding effects must actually land, and effects after damage cannot activate this NP's bonus.".into());
+        }
         if damage_kind == NpDamageKind::DefensePierce {
             notes.push(
                 "Ignores positive enemy Defense; Defense Down still increases damage.".into(),
@@ -558,6 +584,7 @@ fn import_damage_values(
     values: &Value,
     function_type: &str,
     multi: bool,
+    status_condition: Option<EnemyStatus>,
 ) -> Result<NpDamageValues, ImportValuesError> {
     let values = values
         .as_array()
@@ -569,11 +596,23 @@ fn import_damage_values(
         source_base_rates: [0; 5],
         coefficients: [0; 5],
     };
+    let mut status_scaling = status_condition.map(|condition| EnemyStatusScaling {
+        condition,
+        source_corrections: [0; 5],
+        include_ignore_individuality: condition.includes_ignored_individuality(),
+    });
     for (level, value) in values.iter().enumerate() {
         let object = value.as_object().ok_or(ImportValuesError::Incomplete)?;
         // The ordinary trait and affection fields have separate, explicit handling.
         let allowed: &[&str] = match function_type {
             "damageNpHpratioLow" => &["Value", "Rate", "Target"],
+            "damageNpStateIndividualFix" => &[
+                "Value",
+                "Rate",
+                "Target",
+                "Correction",
+                "IncludeIgnoreIndividuality",
+            ],
             "damageNpIndividual" => &[
                 "Value",
                 "Rate",
@@ -587,6 +626,37 @@ fn import_damage_values(
         };
         if object.keys().any(|key| !allowed.contains(&key.as_str())) {
             return Err(ImportValuesError::Unsupported);
+        }
+        if let Some(scaling) = &mut status_scaling {
+            if value.get("Target").and_then(Value::as_u64)
+                != Some(u64::from(scaling.condition.source_target()))
+            {
+                return Err(ImportValuesError::Unsupported);
+            }
+            let include = match value.get("IncludeIgnoreIndividuality") {
+                None => false,
+                Some(flag) => match flag.as_u64() {
+                    Some(0) => false,
+                    Some(1) => true,
+                    _ => return Err(ImportValuesError::Unsupported),
+                },
+            };
+            if include != scaling.include_ignore_individuality
+                || value.get("Rate").and_then(Value::as_u64) != Some(1000)
+            {
+                return Err(ImportValuesError::Unsupported);
+            }
+            for key in ["Value", "Correction"] {
+                let source = value
+                    .get(key)
+                    .and_then(Value::as_u64)
+                    .and_then(|source| u32::try_from(source).ok())
+                    .filter(|source| *source > 0)
+                    .ok_or(ImportValuesError::Incomplete)?;
+                if key == "Correction" {
+                    scaling.source_corrections[level] = source;
+                }
+            }
         }
         if low_hp {
             let source_value = value
@@ -637,13 +707,28 @@ fn import_damage_values(
     if low_hp {
         row.low_hp = Some(scaling);
     }
+    row.enemy_status = status_scaling;
     Ok(row)
 }
 
-/// Only the audited unconditional low-HP contract is understood. Unexpected
-/// function fields, targeting changes, scripts or conditions must not turn into
-/// an apparently ordinary NP. Other NP effects are retained as manual notes.
-fn is_low_hp_shape(np: &Value, function: &Value) -> bool {
+/// Only these NA variants and their verified matching policies were audited.
+fn verified_enemy_status(servant_id: u32, np_id: u32) -> Option<EnemyStatus> {
+    match (servant_id, np_id) {
+        (200300, 200301) => Some(EnemyStatus::Poison),
+        (504800, 504801) => Some(EnemyStatus::SkillSeal),
+        (604900, 604901) => Some(EnemyStatus::Bind),
+        (704900, 704901) => Some(EnemyStatus::DefenseUp),
+        (1101100, 1101101) => Some(EnemyStatus::Charm),
+        (1101400, 1101401) => Some(EnemyStatus::Curse),
+        (2500400, 2500401) => Some(EnemyStatus::Burn),
+        _ => None,
+    }
+}
+
+/// Low-HP and status parameters are handled separately in the value rows.
+/// Additional function conditions, scripts and unsupported targeting must not
+/// become an apparently ordinary NP. Other effects remain manual notes.
+fn is_supported_damage_shape(np: &Value, function: &Value) -> bool {
     let Some(object) = function.as_object() else {
         return false;
     };

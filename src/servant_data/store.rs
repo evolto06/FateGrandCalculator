@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::loader::GameData;
 
-const SNAPSHOT_SCHEMA_VERSION: u32 = 4;
+const SNAPSHOT_SCHEMA_VERSION: u32 = 5;
 const MAX_SNAPSHOT_BYTES: u64 = 64 * 1024 * 1024;
 
 pub struct SnapshotStore {
@@ -62,7 +62,7 @@ impl SnapshotStore {
         }
         let envelope: SnapshotEnvelope = serde_json::from_str(&json)
             .map_err(|error| format!("The local servant snapshot is malformed: {error}"))?;
-        if !matches!(envelope.schema_version, 1 | 2 | 3 | SNAPSHOT_SCHEMA_VERSION) {
+        if !matches!(envelope.schema_version, 1..=SNAPSHOT_SCHEMA_VERSION) {
             return Err(format!(
                 "The local servant snapshot uses unsupported format version {}.",
                 envelope.schema_version
@@ -183,13 +183,13 @@ mod tests {
         fs::remove_file(&store.path).unwrap();
     }
     #[test]
-    fn successful_save_uses_v4_and_invalid_save_preserves_existing_bytes() {
+    fn successful_save_uses_v5_and_invalid_save_preserves_existing_bytes() {
         let store = test_store();
         let mut data = GameData::bundled().unwrap();
         store.save(&data).unwrap();
         let original = fs::read(&store.path).unwrap();
         let envelope: serde_json::Value = serde_json::from_slice(&original).unwrap();
-        assert_eq!(envelope["schema_version"], 4);
+        assert_eq!(envelope["schema_version"], 5);
         assert_eq!(store.load().unwrap().unwrap().servants[0].deck.len(), 5);
         data.servants[0].deck.pop();
         assert!(store.save(&data).is_err());
@@ -197,7 +197,7 @@ mod tests {
         fs::remove_file(&store.path).unwrap();
     }
     #[test]
-    fn v2_np_snapshot_migrates_without_inventing_overcharge_and_saves_v4() {
+    fn v2_np_snapshot_migrates_without_inventing_overcharge_and_saves_v5() {
         let store = test_store();
         let mut data = serde_json::to_value(GameData::bundled().unwrap()).unwrap();
         for servant in data["servants"].as_array_mut().unwrap() {
@@ -226,7 +226,7 @@ mod tests {
         store.save(&migrated).unwrap();
         let saved: serde_json::Value =
             serde_json::from_slice(&fs::read(&store.path).unwrap()).unwrap();
-        assert_eq!(saved["schema_version"], 4);
+        assert_eq!(saved["schema_version"], 5);
         assert!(
             saved["game_data"]["servants"][0]["noble_phantasms"][0]
                 .get("multipliers")
@@ -323,6 +323,109 @@ mod tests {
                 [0]["low_hp"] = malformed;
             fs::write(&store.path, serde_json::to_vec(&invalid).unwrap()).unwrap();
             assert!(store.load().is_err());
+        }
+        fs::remove_file(&store.path).unwrap();
+    }
+
+    #[test]
+    fn legacy_v4_defaults_to_absent_status_without_rewriting() {
+        let store = test_store();
+        let mut data = serde_json::to_value(GameData::bundled().unwrap()).unwrap();
+        for servant in data["servants"].as_array_mut().unwrap() {
+            for np in servant["noble_phantasms"].as_array_mut().unwrap() {
+                for component in np["components"].as_array_mut().unwrap() {
+                    for row in component["overcharge"]
+                        .as_array_mut()
+                        .unwrap()
+                        .iter_mut()
+                        .filter(|row| !row.is_null())
+                    {
+                        row.as_object_mut().unwrap().remove("enemy_status");
+                    }
+                }
+            }
+        }
+        let bytes =
+            serde_json::to_vec(&serde_json::json!({"schema_version":4,"game_data":data})).unwrap();
+        fs::write(&store.path, &bytes).unwrap();
+        let loaded = store.load().unwrap().unwrap();
+        assert!(
+            loaded
+                .servants
+                .iter()
+                .flat_map(|servant| &servant.noble_phantasms)
+                .all(|np| np.enemy_status_condition().is_none())
+        );
+        assert_eq!(fs::read(&store.path).unwrap(), bytes);
+        fs::remove_file(&store.path).unwrap();
+    }
+
+    #[test]
+    fn v5_status_round_trip_validates_source_units_flags_and_preserves_failed_saves() {
+        use crate::np_mechanics::enemy_status::{EnemyStatus, EnemyStatusScaling};
+        let store = test_store();
+        let mut data = GameData::bundled().unwrap();
+        data.servants.truncate(1);
+        data.servants[0].noble_phantasms.truncate(1);
+        data.servants[0].noble_phantasms[0].components =
+            vec![crate::np_mechanics::components::NpDamageComponent::legacy(
+                [6.0; 5],
+            )];
+        let status = EnemyStatusScaling {
+            condition: EnemyStatus::Poison,
+            source_corrections: [2000, 2125, 2250, 2375, 2500],
+            include_ignore_individuality: false,
+        };
+        data.servants[0].noble_phantasms[0].components[0].overcharge[0]
+            .as_mut()
+            .unwrap()
+            .enemy_status = Some(status.clone());
+        store.save(&data).unwrap();
+        let bytes = fs::read(&store.path).unwrap();
+        let loaded = store.load().unwrap().unwrap();
+        assert_eq!(
+            loaded.servants[0].noble_phantasms[0].components,
+            data.servants[0].noble_phantasms[0].components
+        );
+        assert_eq!(
+            loaded.servants[0].noble_phantasms[0].enemy_status_condition(),
+            Some(EnemyStatus::Poison)
+        );
+        let envelope: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+        assert_eq!(envelope["schema_version"], 5);
+        assert_eq!(
+            envelope["game_data"]["servants"][0]["noble_phantasms"][0]["components"][0]["overcharge"]
+                [0]["enemy_status"]["source_corrections"],
+            serde_json::json!([2000, 2125, 2250, 2375, 2500])
+        );
+
+        // Validate before staging or replacing: a malformed refresh cannot
+        // overwrite the last valid snapshot.
+        data.servants[0].noble_phantasms[0].components[0].overcharge[0]
+            .as_mut()
+            .unwrap()
+            .enemy_status
+            .as_mut()
+            .unwrap()
+            .include_ignore_individuality = true;
+        assert!(store.save(&data).is_err());
+        assert_eq!(fs::read(&store.path).unwrap(), bytes);
+
+        for malformed in [
+            serde_json::json!({"condition":"poison","source_corrections":[2000,2000,2000,2000,2000]}),
+            serde_json::json!({"condition":"poison","source_corrections":[0,2000,2000,2000,2000],"include_ignore_individuality":false}),
+            serde_json::json!({"condition":"poison","source_corrections":[-1,2000,2000,2000,2000],"include_ignore_individuality":false}),
+            serde_json::json!({"condition":"poison","source_corrections":[2000,2000,2000,2000,2000],"include_ignore_individuality":true}),
+            serde_json::json!({"condition":"poison","source_corrections":[2000,2000,2000,2000,2000],"include_ignore_individuality":false,"unverified_flag":1}),
+            serde_json::json!({"condition":"unsupported","source_corrections":[2000,2000,2000,2000,2000],"include_ignore_individuality":false}),
+        ] {
+            let mut invalid = envelope.clone();
+            invalid["game_data"]["servants"][0]["noble_phantasms"][0]["components"][0]["overcharge"]
+                [0]["enemy_status"] = malformed;
+            let corrupt_bytes = serde_json::to_vec(&invalid).unwrap();
+            fs::write(&store.path, &corrupt_bytes).unwrap();
+            assert!(store.load().is_err());
+            assert_eq!(fs::read(&store.path).unwrap(), corrupt_bytes);
         }
         fs::remove_file(&store.path).unwrap();
     }

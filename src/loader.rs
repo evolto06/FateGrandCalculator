@@ -93,6 +93,7 @@ impl<'de> Deserialize<'de> for NoblePhantasmRecord {
                         Some(NpDamageValues {
                             multipliers,
                             low_hp: None,
+                            enemy_status: None,
                             rates: [1000; 5],
                             check_dead: [false; 5],
                         }),
@@ -116,6 +117,12 @@ impl<'de> Deserialize<'de> for NoblePhantasmRecord {
 }
 
 impl NoblePhantasmRecord {
+    pub fn enemy_status_condition(&self) -> Option<crate::np_mechanics::enemy_status::EnemyStatus> {
+        self.components
+            .iter()
+            .find_map(NpDamageComponent::enemy_status_condition)
+    }
+
     pub fn requires_attacker_hp(&self) -> bool {
         self.components.iter().any(|component| {
             component

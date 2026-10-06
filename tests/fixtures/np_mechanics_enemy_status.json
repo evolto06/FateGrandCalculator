@@ -1,0 +1,524 @@
+{
+  "provenance": "Atlas NA nice-servant responses refreshed 2026-10-05; seven audited variants; complete damage definitions retained; non-damage function labels and order retained, unused effect payloads omitted. Source Target is a positive buff individuality; IncludeIgnoreIndividuality is preserved separately from removability.",
+  "reference": "https://github.com/chaldea-center/chaldea/tree/daf4e0af5ec6b4ae42f3e9410b26ae143aa3d725",
+  "source_sha256": [
+    {"id": 200300, "sha256": "00d86123b11cea83f080660837b84f4be0f94005e54d984af4c3b678262d5abe"},
+    {"id": 504800, "sha256": "e8c7a3e6458194d186862c74b92787a1a58d0b7dbffd4c4345ada5eea4b2e7bd"},
+    {"id": 604900, "sha256": "5b82f6a736daaa13d952eba7e7fdcde19a70b37f39b6c429c14d31d620aac87d"},
+    {"id": 704900, "sha256": "4bb55b7ee240dcf8568663a5926b5f48d4283e18adfd0cece370841389866d14"},
+    {"id": 1101100, "sha256": "c86c069f6e982bbc6996050d8f06218342c214685b42b5952fd20273c8e428d3"},
+    {"id": 1101400, "sha256": "259adf62e286cc56235c0c291491efca68d0b3ffcf1844428971247fff7954ce"},
+    {"id": 2500400, "sha256": "c7541552fc5a489fb2327acafa6ade830ac91c8b3f7e593fe337e6e1455b9edf"}
+  ],
+  "servants": [
+    {
+      "id": 200300,
+      "name": "Robin Hood",
+      "className": "archer",
+      "attribute": "human",
+      "atkMax": 6715,
+      "hpMax": 10187,
+      "lvMax": 70,
+      "cards": ["3", "3", "1", "1", "2"],
+      "source": "https://api.atlasacademy.io/nice/NA/servant/200300",
+      "noblePhantasms": [
+        {
+          "id": 200301,
+          "name": "Yew Bow",
+          "card": "1",
+          "strengthStatus": 0,
+          "effectFlags": ["attackEnemyOne"],
+          "script": {},
+          "functions": [
+            {
+              "funcId": 24,
+              "funcType": "damageNpStateIndividualFix",
+              "funcTargetType": "enemy",
+              "funcTargetTeam": "playerAndEnemy",
+              "funcPopupText": "None",
+              "functvals": [],
+              "overWriteTvalsList": [],
+              "funcquestTvals": [],
+              "script": {},
+              "funcGroup": [],
+              "buffs": [],
+              "svals": [
+                {"Rate": 1000, "Value": 9000, "Target": 3011, "Correction": 2000},
+                {"Rate": 1000, "Value": 12000, "Target": 3011, "Correction": 2000},
+                {"Rate": 1000, "Value": 13500, "Target": 3011, "Correction": 2000},
+                {"Rate": 1000, "Value": 14250, "Target": 3011, "Correction": 2000},
+                {"Rate": 1000, "Value": 15000, "Target": 3011, "Correction": 2000}
+              ],
+              "svals2": [
+                {"Rate": 1000, "Value": 9000, "Target": 3011, "Correction": 2125},
+                {"Rate": 1000, "Value": 12000, "Target": 3011, "Correction": 2125},
+                {"Rate": 1000, "Value": 13500, "Target": 3011, "Correction": 2125},
+                {"Rate": 1000, "Value": 14250, "Target": 3011, "Correction": 2125},
+                {"Rate": 1000, "Value": 15000, "Target": 3011, "Correction": 2125}
+              ],
+              "svals3": [
+                {"Rate": 1000, "Value": 9000, "Target": 3011, "Correction": 2250},
+                {"Rate": 1000, "Value": 12000, "Target": 3011, "Correction": 2250},
+                {"Rate": 1000, "Value": 13500, "Target": 3011, "Correction": 2250},
+                {"Rate": 1000, "Value": 14250, "Target": 3011, "Correction": 2250},
+                {"Rate": 1000, "Value": 15000, "Target": 3011, "Correction": 2250}
+              ],
+              "svals4": [
+                {"Rate": 1000, "Value": 9000, "Target": 3011, "Correction": 2375},
+                {"Rate": 1000, "Value": 12000, "Target": 3011, "Correction": 2375},
+                {"Rate": 1000, "Value": 13500, "Target": 3011, "Correction": 2375},
+                {"Rate": 1000, "Value": 14250, "Target": 3011, "Correction": 2375},
+                {"Rate": 1000, "Value": 15000, "Target": 3011, "Correction": 2375}
+              ],
+              "svals5": [
+                {"Rate": 1000, "Value": 9000, "Target": 3011, "Correction": 2500},
+                {"Rate": 1000, "Value": 12000, "Target": 3011, "Correction": 2500},
+                {"Rate": 1000, "Value": 13500, "Target": 3011, "Correction": 2500},
+                {"Rate": 1000, "Value": 14250, "Target": 3011, "Correction": 2500},
+                {"Rate": 1000, "Value": 15000, "Target": 3011, "Correction": 2500}
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 504800,
+      "name": "Charlotte Corday (Caster)",
+      "className": "caster",
+      "attribute": "human",
+      "atkMax": 8417,
+      "hpMax": 11882,
+      "lvMax": 80,
+      "cards": ["3", "1", "1", "1", "2"],
+      "source": "https://api.atlasacademy.io/nice/NA/servant/504800",
+      "noblePhantasms": [
+        {
+          "id": 504801,
+          "name": "La Féerie d'une Nuit",
+          "card": "1",
+          "strengthStatus": 0,
+          "effectFlags": ["attackEnemyOne"],
+          "script": {},
+          "functions": [
+            {
+              "funcId": 24,
+              "funcType": "damageNpStateIndividualFix",
+              "funcTargetType": "enemy",
+              "funcTargetTeam": "playerAndEnemy",
+              "funcPopupText": "None",
+              "functvals": [],
+              "overWriteTvalsList": [],
+              "funcquestTvals": [],
+              "script": {},
+              "funcGroup": [],
+              "buffs": [],
+              "svals": [
+                {"Rate": 1000, "Value": 9000, "Target": 3025, "Correction": 1500, "IncludeIgnoreIndividuality": 1},
+                {"Rate": 1000, "Value": 12000, "Target": 3025, "Correction": 1500, "IncludeIgnoreIndividuality": 1},
+                {"Rate": 1000, "Value": 13500, "Target": 3025, "Correction": 1500, "IncludeIgnoreIndividuality": 1},
+                {"Rate": 1000, "Value": 14250, "Target": 3025, "Correction": 1500, "IncludeIgnoreIndividuality": 1},
+                {"Rate": 1000, "Value": 15000, "Target": 3025, "Correction": 1500, "IncludeIgnoreIndividuality": 1}
+              ],
+              "svals2": [
+                {"Rate": 1000, "Value": 9000, "Target": 3025, "Correction": 1625, "IncludeIgnoreIndividuality": 1},
+                {"Rate": 1000, "Value": 12000, "Target": 3025, "Correction": 1625, "IncludeIgnoreIndividuality": 1},
+                {"Rate": 1000, "Value": 13500, "Target": 3025, "Correction": 1625, "IncludeIgnoreIndividuality": 1},
+                {"Rate": 1000, "Value": 14250, "Target": 3025, "Correction": 1625, "IncludeIgnoreIndividuality": 1},
+                {"Rate": 1000, "Value": 15000, "Target": 3025, "Correction": 1625, "IncludeIgnoreIndividuality": 1}
+              ],
+              "svals3": [
+                {"Rate": 1000, "Value": 9000, "Target": 3025, "Correction": 1750, "IncludeIgnoreIndividuality": 1},
+                {"Rate": 1000, "Value": 12000, "Target": 3025, "Correction": 1750, "IncludeIgnoreIndividuality": 1},
+                {"Rate": 1000, "Value": 13500, "Target": 3025, "Correction": 1750, "IncludeIgnoreIndividuality": 1},
+                {"Rate": 1000, "Value": 14250, "Target": 3025, "Correction": 1750, "IncludeIgnoreIndividuality": 1},
+                {"Rate": 1000, "Value": 15000, "Target": 3025, "Correction": 1750, "IncludeIgnoreIndividuality": 1}
+              ],
+              "svals4": [
+                {"Rate": 1000, "Value": 9000, "Target": 3025, "Correction": 1875, "IncludeIgnoreIndividuality": 1},
+                {"Rate": 1000, "Value": 12000, "Target": 3025, "Correction": 1875, "IncludeIgnoreIndividuality": 1},
+                {"Rate": 1000, "Value": 13500, "Target": 3025, "Correction": 1875, "IncludeIgnoreIndividuality": 1},
+                {"Rate": 1000, "Value": 14250, "Target": 3025, "Correction": 1875, "IncludeIgnoreIndividuality": 1},
+                {"Rate": 1000, "Value": 15000, "Target": 3025, "Correction": 1875, "IncludeIgnoreIndividuality": 1}
+              ],
+              "svals5": [
+                {"Rate": 1000, "Value": 9000, "Target": 3025, "Correction": 2000, "IncludeIgnoreIndividuality": 1},
+                {"Rate": 1000, "Value": 12000, "Target": 3025, "Correction": 2000, "IncludeIgnoreIndividuality": 1},
+                {"Rate": 1000, "Value": 13500, "Target": 3025, "Correction": 2000, "IncludeIgnoreIndividuality": 1},
+                {"Rate": 1000, "Value": 14250, "Target": 3025, "Correction": 2000, "IncludeIgnoreIndividuality": 1},
+                {"Rate": 1000, "Value": 15000, "Target": 3025, "Correction": 2000, "IncludeIgnoreIndividuality": 1}
+              ]
+            },
+            {"funcType": "gainStar", "funcPopupText": "C. Star Gain"},
+            {"funcType": "addStateShort", "funcPopupText": "Critical Rate\nUp"}
+          ]
+        }
+      ]
+    },
+    {
+      "id": 604900,
+      "name": "Kashin Koji",
+      "className": "assassin",
+      "attribute": "earth",
+      "atkMax": 11674,
+      "hpMax": 12568,
+      "lvMax": 90,
+      "cards": ["3", "3", "1", "1", "2"],
+      "source": "https://api.atlasacademy.io/nice/NA/servant/604900",
+      "noblePhantasms": [
+        {
+          "id": 604901,
+          "name": "Karakuri Gehou: Frenzied Force",
+          "card": "3",
+          "strengthStatus": 0,
+          "effectFlags": ["attackEnemyAll"],
+          "script": {},
+          "functions": [
+            {"funcType": "addState", "funcPopupText": "Bind"},
+            {
+              "funcId": 25,
+              "funcType": "damageNpStateIndividualFix",
+              "funcTargetType": "enemyAll",
+              "funcTargetTeam": "playerAndEnemy",
+              "funcPopupText": "None",
+              "functvals": [],
+              "overWriteTvalsList": [],
+              "funcquestTvals": [],
+              "script": {},
+              "funcGroup": [],
+              "buffs": [],
+              "svals": [
+                {"Rate": 1000, "Value": 6000, "Target": 3087, "Correction": 1500, "IncludeIgnoreIndividuality": 1},
+                {"Rate": 1000, "Value": 8000, "Target": 3087, "Correction": 1500, "IncludeIgnoreIndividuality": 1},
+                {"Rate": 1000, "Value": 9000, "Target": 3087, "Correction": 1500, "IncludeIgnoreIndividuality": 1},
+                {"Rate": 1000, "Value": 9500, "Target": 3087, "Correction": 1500, "IncludeIgnoreIndividuality": 1},
+                {"Rate": 1000, "Value": 10000, "Target": 3087, "Correction": 1500, "IncludeIgnoreIndividuality": 1}
+              ],
+              "svals2": [
+                {"Rate": 1000, "Value": 6000, "Target": 3087, "Correction": 1625, "IncludeIgnoreIndividuality": 1},
+                {"Rate": 1000, "Value": 8000, "Target": 3087, "Correction": 1625, "IncludeIgnoreIndividuality": 1},
+                {"Rate": 1000, "Value": 9000, "Target": 3087, "Correction": 1625, "IncludeIgnoreIndividuality": 1},
+                {"Rate": 1000, "Value": 9500, "Target": 3087, "Correction": 1625, "IncludeIgnoreIndividuality": 1},
+                {"Rate": 1000, "Value": 10000, "Target": 3087, "Correction": 1625, "IncludeIgnoreIndividuality": 1}
+              ],
+              "svals3": [
+                {"Rate": 1000, "Value": 6000, "Target": 3087, "Correction": 1750, "IncludeIgnoreIndividuality": 1},
+                {"Rate": 1000, "Value": 8000, "Target": 3087, "Correction": 1750, "IncludeIgnoreIndividuality": 1},
+                {"Rate": 1000, "Value": 9000, "Target": 3087, "Correction": 1750, "IncludeIgnoreIndividuality": 1},
+                {"Rate": 1000, "Value": 9500, "Target": 3087, "Correction": 1750, "IncludeIgnoreIndividuality": 1},
+                {"Rate": 1000, "Value": 10000, "Target": 3087, "Correction": 1750, "IncludeIgnoreIndividuality": 1}
+              ],
+              "svals4": [
+                {"Rate": 1000, "Value": 6000, "Target": 3087, "Correction": 1875, "IncludeIgnoreIndividuality": 1},
+                {"Rate": 1000, "Value": 8000, "Target": 3087, "Correction": 1875, "IncludeIgnoreIndividuality": 1},
+                {"Rate": 1000, "Value": 9000, "Target": 3087, "Correction": 1875, "IncludeIgnoreIndividuality": 1},
+                {"Rate": 1000, "Value": 9500, "Target": 3087, "Correction": 1875, "IncludeIgnoreIndividuality": 1},
+                {"Rate": 1000, "Value": 10000, "Target": 3087, "Correction": 1875, "IncludeIgnoreIndividuality": 1}
+              ],
+              "svals5": [
+                {"Rate": 1000, "Value": 6000, "Target": 3087, "Correction": 2000, "IncludeIgnoreIndividuality": 1},
+                {"Rate": 1000, "Value": 8000, "Target": 3087, "Correction": 2000, "IncludeIgnoreIndividuality": 1},
+                {"Rate": 1000, "Value": 9000, "Target": 3087, "Correction": 2000, "IncludeIgnoreIndividuality": 1},
+                {"Rate": 1000, "Value": 9500, "Target": 3087, "Correction": 2000, "IncludeIgnoreIndividuality": 1},
+                {"Rate": 1000, "Value": 10000, "Target": 3087, "Correction": 2000, "IncludeIgnoreIndividuality": 1}
+              ]
+            },
+            {"funcType": "instantDeath", "funcPopupText": "Death"}
+          ]
+        }
+      ]
+    },
+    {
+      "id": 704900,
+      "name": "Sizuki Soujyuro",
+      "className": "berserker",
+      "attribute": "human",
+      "atkMax": 9954,
+      "hpMax": 10099,
+      "lvMax": 80,
+      "cards": ["3", "1", "1", "2", "2"],
+      "source": "https://api.atlasacademy.io/nice/NA/servant/704900",
+      "noblePhantasms": [
+        {
+          "id": 704901,
+          "name": "Unknown ■■, Evil Spirit ■■er",
+          "card": "2",
+          "strengthStatus": 0,
+          "effectFlags": ["attackEnemyOne"],
+          "script": {},
+          "functions": [
+            {"funcType": "addStateShort", "funcPopupText": "ATK Up"},
+            {"funcType": "addStateShort", "funcPopupText": "Ignore\nInvincible"},
+            {"funcType": "addStateShort", "funcPopupText": "Pierce Damage Cut"},
+            {
+              "funcId": 24,
+              "funcType": "damageNpStateIndividualFix",
+              "funcTargetType": "enemy",
+              "funcTargetTeam": "playerAndEnemy",
+              "funcPopupText": "None",
+              "functvals": [],
+              "overWriteTvalsList": [],
+              "funcquestTvals": [],
+              "script": {},
+              "funcGroup": [],
+              "buffs": [],
+              "svals": [
+                {"Rate": 1000, "Value": 6000, "Target": 3058, "Correction": 1500},
+                {"Rate": 1000, "Value": 8000, "Target": 3058, "Correction": 1500},
+                {"Rate": 1000, "Value": 9000, "Target": 3058, "Correction": 1500},
+                {"Rate": 1000, "Value": 9500, "Target": 3058, "Correction": 1500},
+                {"Rate": 1000, "Value": 10000, "Target": 3058, "Correction": 1500}
+              ],
+              "svals2": [
+                {"Rate": 1000, "Value": 6000, "Target": 3058, "Correction": 1500},
+                {"Rate": 1000, "Value": 8000, "Target": 3058, "Correction": 1500},
+                {"Rate": 1000, "Value": 9000, "Target": 3058, "Correction": 1500},
+                {"Rate": 1000, "Value": 9500, "Target": 3058, "Correction": 1500},
+                {"Rate": 1000, "Value": 10000, "Target": 3058, "Correction": 1500}
+              ],
+              "svals3": [
+                {"Rate": 1000, "Value": 6000, "Target": 3058, "Correction": 1500},
+                {"Rate": 1000, "Value": 8000, "Target": 3058, "Correction": 1500},
+                {"Rate": 1000, "Value": 9000, "Target": 3058, "Correction": 1500},
+                {"Rate": 1000, "Value": 9500, "Target": 3058, "Correction": 1500},
+                {"Rate": 1000, "Value": 10000, "Target": 3058, "Correction": 1500}
+              ],
+              "svals4": [
+                {"Rate": 1000, "Value": 6000, "Target": 3058, "Correction": 1500},
+                {"Rate": 1000, "Value": 8000, "Target": 3058, "Correction": 1500},
+                {"Rate": 1000, "Value": 9000, "Target": 3058, "Correction": 1500},
+                {"Rate": 1000, "Value": 9500, "Target": 3058, "Correction": 1500},
+                {"Rate": 1000, "Value": 10000, "Target": 3058, "Correction": 1500}
+              ],
+              "svals5": [
+                {"Rate": 1000, "Value": 6000, "Target": 3058, "Correction": 1500},
+                {"Rate": 1000, "Value": 8000, "Target": 3058, "Correction": 1500},
+                {"Rate": 1000, "Value": 9000, "Target": 3058, "Correction": 1500},
+                {"Rate": 1000, "Value": 9500, "Target": 3058, "Correction": 1500},
+                {"Rate": 1000, "Value": 10000, "Target": 3058, "Correction": 1500}
+              ]
+            },
+            {"funcType": "forceInstantDeath", "funcPopupText": ""}
+          ]
+        }
+      ]
+    },
+    {
+      "id": 1101100,
+      "name": "Kama (Avenger)",
+      "className": "avenger",
+      "attribute": "sky",
+      "atkMax": 13213,
+      "hpMax": 11790,
+      "lvMax": 90,
+      "cards": ["3", "3", "1", "1", "2"],
+      "source": "https://api.atlasacademy.io/nice/NA/servant/1101100",
+      "noblePhantasms": [
+        {
+          "id": 1101101,
+          "name": "Kama Rūpāstra",
+          "card": "1",
+          "strengthStatus": 0,
+          "effectFlags": ["attackEnemyAll"],
+          "script": {},
+          "functions": [
+            {
+              "funcId": 25,
+              "funcType": "damageNpStateIndividualFix",
+              "funcTargetType": "enemyAll",
+              "funcTargetTeam": "playerAndEnemy",
+              "funcPopupText": "None",
+              "functvals": [],
+              "overWriteTvalsList": [],
+              "funcquestTvals": [],
+              "script": {},
+              "funcGroup": [],
+              "buffs": [],
+              "svals": [
+                {"Rate": 1000, "Value": 4500, "Target": 3012, "Correction": 1500, "IncludeIgnoreIndividuality": 1},
+                {"Rate": 1000, "Value": 6000, "Target": 3012, "Correction": 1500, "IncludeIgnoreIndividuality": 1},
+                {"Rate": 1000, "Value": 6750, "Target": 3012, "Correction": 1500, "IncludeIgnoreIndividuality": 1},
+                {"Rate": 1000, "Value": 7125, "Target": 3012, "Correction": 1500, "IncludeIgnoreIndividuality": 1},
+                {"Rate": 1000, "Value": 7500, "Target": 3012, "Correction": 1500, "IncludeIgnoreIndividuality": 1}
+              ],
+              "svals2": [
+                {"Rate": 1000, "Value": 4500, "Target": 3012, "Correction": 1625, "IncludeIgnoreIndividuality": 1},
+                {"Rate": 1000, "Value": 6000, "Target": 3012, "Correction": 1625, "IncludeIgnoreIndividuality": 1},
+                {"Rate": 1000, "Value": 6750, "Target": 3012, "Correction": 1625, "IncludeIgnoreIndividuality": 1},
+                {"Rate": 1000, "Value": 7125, "Target": 3012, "Correction": 1625, "IncludeIgnoreIndividuality": 1},
+                {"Rate": 1000, "Value": 7500, "Target": 3012, "Correction": 1625, "IncludeIgnoreIndividuality": 1}
+              ],
+              "svals3": [
+                {"Rate": 1000, "Value": 4500, "Target": 3012, "Correction": 1750, "IncludeIgnoreIndividuality": 1},
+                {"Rate": 1000, "Value": 6000, "Target": 3012, "Correction": 1750, "IncludeIgnoreIndividuality": 1},
+                {"Rate": 1000, "Value": 6750, "Target": 3012, "Correction": 1750, "IncludeIgnoreIndividuality": 1},
+                {"Rate": 1000, "Value": 7125, "Target": 3012, "Correction": 1750, "IncludeIgnoreIndividuality": 1},
+                {"Rate": 1000, "Value": 7500, "Target": 3012, "Correction": 1750, "IncludeIgnoreIndividuality": 1}
+              ],
+              "svals4": [
+                {"Rate": 1000, "Value": 4500, "Target": 3012, "Correction": 1875, "IncludeIgnoreIndividuality": 1},
+                {"Rate": 1000, "Value": 6000, "Target": 3012, "Correction": 1875, "IncludeIgnoreIndividuality": 1},
+                {"Rate": 1000, "Value": 6750, "Target": 3012, "Correction": 1875, "IncludeIgnoreIndividuality": 1},
+                {"Rate": 1000, "Value": 7125, "Target": 3012, "Correction": 1875, "IncludeIgnoreIndividuality": 1},
+                {"Rate": 1000, "Value": 7500, "Target": 3012, "Correction": 1875, "IncludeIgnoreIndividuality": 1}
+              ],
+              "svals5": [
+                {"Rate": 1000, "Value": 4500, "Target": 3012, "Correction": 2000, "IncludeIgnoreIndividuality": 1},
+                {"Rate": 1000, "Value": 6000, "Target": 3012, "Correction": 2000, "IncludeIgnoreIndividuality": 1},
+                {"Rate": 1000, "Value": 6750, "Target": 3012, "Correction": 2000, "IncludeIgnoreIndividuality": 1},
+                {"Rate": 1000, "Value": 7125, "Target": 3012, "Correction": 2000, "IncludeIgnoreIndividuality": 1},
+                {"Rate": 1000, "Value": 7500, "Target": 3012, "Correction": 2000, "IncludeIgnoreIndividuality": 1}
+              ]
+            },
+            {"funcType": "addStateShort", "funcPopupText": "DEF Down"}
+          ]
+        }
+      ]
+    },
+    {
+      "id": 1101400,
+      "name": "Utsumi Erice (Avenger)",
+      "className": "avenger",
+      "attribute": "human",
+      "atkMax": 10239,
+      "hpMax": 9801,
+      "lvMax": 80,
+      "cards": ["3", "3", "1", "1", "2"],
+      "source": "https://api.atlasacademy.io/nice/NA/servant/1101400",
+      "noblePhantasms": [
+        {
+          "id": 1101401,
+          "name": "Ame-no-Kagami-no-Fune",
+          "card": "1",
+          "strengthStatus": 0,
+          "effectFlags": ["attackEnemyOne"],
+          "script": {},
+          "functions": [
+            {"funcType": "addStateShort", "funcPopupText": "Arts Up"},
+            {
+              "funcId": 24,
+              "funcType": "damageNpStateIndividualFix",
+              "funcTargetType": "enemy",
+              "funcTargetTeam": "playerAndEnemy",
+              "funcPopupText": "None",
+              "functvals": [],
+              "overWriteTvalsList": [],
+              "funcquestTvals": [],
+              "script": {},
+              "funcGroup": [],
+              "buffs": [],
+              "svals": [
+                {"Rate": 1000, "Value": 9000, "Target": 3026, "Correction": 1500},
+                {"Rate": 1000, "Value": 12000, "Target": 3026, "Correction": 1500},
+                {"Rate": 1000, "Value": 13500, "Target": 3026, "Correction": 1500},
+                {"Rate": 1000, "Value": 14250, "Target": 3026, "Correction": 1500},
+                {"Rate": 1000, "Value": 15000, "Target": 3026, "Correction": 1500}
+              ],
+              "svals2": [
+                {"Rate": 1000, "Value": 9000, "Target": 3026, "Correction": 1500},
+                {"Rate": 1000, "Value": 12000, "Target": 3026, "Correction": 1500},
+                {"Rate": 1000, "Value": 13500, "Target": 3026, "Correction": 1500},
+                {"Rate": 1000, "Value": 14250, "Target": 3026, "Correction": 1500},
+                {"Rate": 1000, "Value": 15000, "Target": 3026, "Correction": 1500}
+              ],
+              "svals3": [
+                {"Rate": 1000, "Value": 9000, "Target": 3026, "Correction": 1500},
+                {"Rate": 1000, "Value": 12000, "Target": 3026, "Correction": 1500},
+                {"Rate": 1000, "Value": 13500, "Target": 3026, "Correction": 1500},
+                {"Rate": 1000, "Value": 14250, "Target": 3026, "Correction": 1500},
+                {"Rate": 1000, "Value": 15000, "Target": 3026, "Correction": 1500}
+              ],
+              "svals4": [
+                {"Rate": 1000, "Value": 9000, "Target": 3026, "Correction": 1500},
+                {"Rate": 1000, "Value": 12000, "Target": 3026, "Correction": 1500},
+                {"Rate": 1000, "Value": 13500, "Target": 3026, "Correction": 1500},
+                {"Rate": 1000, "Value": 14250, "Target": 3026, "Correction": 1500},
+                {"Rate": 1000, "Value": 15000, "Target": 3026, "Correction": 1500}
+              ],
+              "svals5": [
+                {"Rate": 1000, "Value": 9000, "Target": 3026, "Correction": 1500},
+                {"Rate": 1000, "Value": 12000, "Target": 3026, "Correction": 1500},
+                {"Rate": 1000, "Value": 13500, "Target": 3026, "Correction": 1500},
+                {"Rate": 1000, "Value": 14250, "Target": 3026, "Correction": 1500},
+                {"Rate": 1000, "Value": 15000, "Target": 3026, "Correction": 1500}
+              ]
+            },
+            {"funcType": "instantDeath", "funcPopupText": "Death"}
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2500400,
+      "name": "Yang Guifei",
+      "className": "foreigner",
+      "attribute": "human",
+      "atkMax": 12342,
+      "hpMax": 13365,
+      "lvMax": 90,
+      "cards": ["3", "3", "1", "1", "2"],
+      "source": "https://api.atlasacademy.io/nice/NA/servant/2500400",
+      "noblePhantasms": [
+        {
+          "id": 2500401,
+          "name": "Rainbow Feathered Robe, Vow of Eternal Love",
+          "card": "1",
+          "strengthStatus": 0,
+          "effectFlags": ["attackEnemyOne"],
+          "script": {},
+          "functions": [
+            {
+              "funcId": 24,
+              "funcType": "damageNpStateIndividualFix",
+              "funcTargetType": "enemy",
+              "funcTargetTeam": "playerAndEnemy",
+              "funcPopupText": "None",
+              "functvals": [],
+              "overWriteTvalsList": [],
+              "funcquestTvals": [],
+              "script": {},
+              "funcGroup": [],
+              "buffs": [],
+              "svals": [
+                {"Rate": 1000, "Value": 9000, "Target": 3015, "Correction": 1500},
+                {"Rate": 1000, "Value": 12000, "Target": 3015, "Correction": 1500},
+                {"Rate": 1000, "Value": 13500, "Target": 3015, "Correction": 1500},
+                {"Rate": 1000, "Value": 14250, "Target": 3015, "Correction": 1500},
+                {"Rate": 1000, "Value": 15000, "Target": 3015, "Correction": 1500}
+              ],
+              "svals2": [
+                {"Rate": 1000, "Value": 9000, "Target": 3015, "Correction": 1625},
+                {"Rate": 1000, "Value": 12000, "Target": 3015, "Correction": 1625},
+                {"Rate": 1000, "Value": 13500, "Target": 3015, "Correction": 1625},
+                {"Rate": 1000, "Value": 14250, "Target": 3015, "Correction": 1625},
+                {"Rate": 1000, "Value": 15000, "Target": 3015, "Correction": 1625}
+              ],
+              "svals3": [
+                {"Rate": 1000, "Value": 9000, "Target": 3015, "Correction": 1750},
+                {"Rate": 1000, "Value": 12000, "Target": 3015, "Correction": 1750},
+                {"Rate": 1000, "Value": 13500, "Target": 3015, "Correction": 1750},
+                {"Rate": 1000, "Value": 14250, "Target": 3015, "Correction": 1750},
+                {"Rate": 1000, "Value": 15000, "Target": 3015, "Correction": 1750}
+              ],
+              "svals4": [
+                {"Rate": 1000, "Value": 9000, "Target": 3015, "Correction": 1875},
+                {"Rate": 1000, "Value": 12000, "Target": 3015, "Correction": 1875},
+                {"Rate": 1000, "Value": 13500, "Target": 3015, "Correction": 1875},
+                {"Rate": 1000, "Value": 14250, "Target": 3015, "Correction": 1875},
+                {"Rate": 1000, "Value": 15000, "Target": 3015, "Correction": 1875}
+              ],
+              "svals5": [
+                {"Rate": 1000, "Value": 9000, "Target": 3015, "Correction": 2000},
+                {"Rate": 1000, "Value": 12000, "Target": 3015, "Correction": 2000},
+                {"Rate": 1000, "Value": 13500, "Target": 3015, "Correction": 2000},
+                {"Rate": 1000, "Value": 14250, "Target": 3015, "Correction": 2000},
+                {"Rate": 1000, "Value": 15000, "Target": 3015, "Correction": 2000}
+              ]
+            },
+            {"funcType": "addState", "funcPopupText": "Burn"}
+          ]
+        }
+      ]
+    }
+  ]
+}

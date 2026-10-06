@@ -801,3 +801,161 @@ fn typing_invalid_current_hp_clears_the_calculated_state_in_the_same_frame() {
     assert_eq!(text.current, "101");
     assert_eq!(turn.attacker_hp, None);
 }
+
+fn enemy_status_servant(condition: EnemyStatus) -> ServantRecord {
+    use fate_grand_calculator::np_mechanics::enemy_status::EnemyStatusScaling;
+    let mut servant = full_overcharge_servant();
+    for row in servant.noble_phantasms[0].components[0]
+        .overcharge
+        .iter_mut()
+        .flatten()
+    {
+        row.enemy_status = Some(EnemyStatusScaling {
+            condition,
+            source_corrections: [2000; 5],
+            include_ignore_individuality: condition.includes_ignored_individuality(),
+        });
+    }
+    servant
+}
+
+#[test]
+fn status_checkbox_supports_keyboard_and_updates_damage_immediately() {
+    let servant = enemy_status_servant(EnemyStatus::Poison);
+    let mut turn = TurnSelection::default_for(&servant).unwrap();
+    let ctx = egui::Context::default();
+    let mut response = None;
+    ctx.run_ui(input(328.0, vec![]), |ui| {
+        response = enemy_status_settings(ui, &servant, &mut turn);
+    })
+    .drop_without_applying_deltas();
+    ctx.memory_mut(|memory| memory.request_focus(response.as_ref().unwrap().id));
+    for present in [true, false] {
+        let output = ctx.run_ui(
+            input(
+                328.0,
+                vec![egui::Event::Key {
+                    key: egui::Key::Space,
+                    physical_key: None,
+                    pressed: true,
+                    repeat: false,
+                    modifiers: egui::Modifiers::NONE,
+                }],
+            ),
+            |ui| {
+                enemy_status_settings(ui, &servant, &mut turn);
+                assert!(ui.min_rect().right() <= 329.0);
+            },
+        );
+        output.drop_without_applying_deltas();
+        assert_eq!(turn.enemy_status, present.then_some(EnemyStatus::Poison));
+        let part = &servant.noble_phantasms[0].components[0];
+        assert_eq!(
+            part.enemy_status_breakdown(1, 1, turn.enemy_status)
+                .unwrap()
+                .effective_multiplier,
+            if present { 6.0 } else { 3.0 }
+        );
+        ctx.run_ui(
+            input(
+                328.0,
+                vec![egui::Event::Key {
+                    key: egui::Key::Space,
+                    physical_key: None,
+                    pressed: false,
+                    repeat: false,
+                    modifiers: egui::Modifiers::NONE,
+                }],
+            ),
+            |ui| {
+                enemy_status_settings(ui, &servant, &mut turn);
+            },
+        )
+        .drop_without_applying_deltas();
+    }
+}
+
+#[test]
+fn status_assumptions_reset_for_np_identity_condition_servant_and_catalog_but_keep_levels() {
+    let ctx = egui::Context::default();
+    let mut servant = enemy_status_servant(EnemyStatus::Poison);
+    let mut turn = TurnSelection::default_for(&servant).unwrap();
+    sync_enemy_status(&ctx, &servant, &mut turn);
+    turn.enemy_status = Some(EnemyStatus::Poison);
+    turn.np_level = 5;
+    turn.overcharge_level = 5;
+    sync_enemy_status(&ctx, &servant, &mut turn);
+    assert_eq!(turn.enemy_status, Some(EnemyStatus::Poison));
+    for change in 0..4 {
+        turn.enemy_status = servant.noble_phantasms[0].enemy_status_condition();
+        match change {
+            0 => servant.noble_phantasms[0].id += 1,
+            1 => {
+                for row in servant.noble_phantasms[0].components[0]
+                    .overcharge
+                    .iter_mut()
+                    .flatten()
+                {
+                    row.enemy_status.as_mut().unwrap().condition = EnemyStatus::Burn;
+                }
+            }
+            2 => servant.id += 1,
+            _ => reset_enemy_status_for_catalog(&ctx),
+        }
+        sync_enemy_status(&ctx, &servant, &mut turn);
+        assert_eq!(turn.enemy_status, None);
+        assert!(
+            ctx.data(|data| data.get_temp::<EnemyStatusUiState>(enemy_status_ui_id()))
+                .unwrap()
+                .reset_feedback
+                .is_some()
+        );
+    }
+    turn.enemy_status = Some(EnemyStatus::Burn);
+    turn.slots[0] = SelectedCard::Normal(2);
+    sync_enemy_status(&ctx, &servant, &mut turn);
+    assert_eq!(turn.enemy_status, None);
+}
+
+#[test]
+fn status_controls_are_conditional_and_defense_up_explains_numeric_independence() {
+    for condition in [None, Some(EnemyStatus::DefenseUp)] {
+        let servant = condition.map_or_else(servant, enemy_status_servant);
+        let mut turn = TurnSelection::default_for(&servant).unwrap();
+        let ctx = egui::Context::default();
+        let output = ctx.run_ui(input(328.0, vec![]), |ui| {
+            assert_eq!(
+                enemy_status_settings(ui, &servant, &mut turn).is_some(),
+                condition.is_some()
+            );
+            assert!(ui.min_rect().right() <= 329.0);
+        });
+        if condition.is_some() {
+            assert!(output.shapes.iter().any(|shape| painted_text_rect(&shape.shape, "Defense Up presence is separate from Enemy defense (%). This checkbox does not change the numeric defense value; enter it separately.").is_some()));
+        }
+        output.drop_without_applying_deltas();
+    }
+}
+
+#[test]
+fn status_breakdown_renders_base_correction_and_effective_multiplier_at_narrow_width() {
+    let servant = enemy_status_servant(EnemyStatus::Poison);
+    let mut turn = TurnSelection::default_for(&servant).unwrap();
+    turn.enemy_status = Some(EnemyStatus::Poison);
+    let result = fate_grand_calculator::damage::calculate_turn(
+        &servant,
+        &turn,
+        TurnBuffInputs::default().values(),
+        ClassType::Lancer,
+        AttributeType::Sky,
+    )
+    .unwrap();
+    let ctx = egui::Context::default();
+    let output = ctx.run_ui(input(328.0, vec![]), |ui| {
+        result_panel(ui, &servant, &turn, &result, false);
+        assert!(ui.min_rect().right() <= 329.0);
+    });
+    assert!(output.shapes.iter().any(|shape| painted_text_rect(&shape.shape,
+        "Component 1 · Poison present · base ×3.000 · conditional ×2.000 · applied ×2.000 · effective ×6.000").is_some()));
+    output.drop_without_applying_deltas();
+}

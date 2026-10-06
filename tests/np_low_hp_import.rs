@@ -154,6 +154,7 @@ fn imported_variants_match_450_fixed_hp_rates_and_damage_ranges() {
             overcharge_level: values[2] as u8,
             affection_level: 0,
             attacker_hp: Some(hp),
+            enemy_status: None,
         };
         let result = calculate_turn(
             servant,

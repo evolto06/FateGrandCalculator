@@ -179,6 +179,13 @@ pub fn calculate_turn(
                                     selection.attacker_hp,
                                 )
                                 .expect("validated NP coverage");
+                            let status_multiplier = component
+                                .enemy_status_multiplier(
+                                    selection.np_level,
+                                    selection.overcharge_level,
+                                    selection.enemy_status,
+                                )
+                                .expect("validated enemy status correction");
                             turn_card(
                                 servant,
                                 TurnBuffs {
@@ -195,6 +202,7 @@ pub fn calculate_turn(
                                 card_buff,
                                 multiplier
                                     * modifiers.multiplier
+                                    * status_multiplier
                                     * (1.0 + buffs.np_damage_buff).max(0.001),
                                 0.0,
                             )

@@ -458,6 +458,8 @@ pub struct TurnSelection {
     pub overcharge_level: u8,
     pub affection_level: u8,
     pub attacker_hp: Option<AttackerHp>,
+    /// Explicitly assumed present when NP damage lands; separate from defense %.
+    pub enemy_status: Option<crate::np_mechanics::enemy_status::EnemyStatus>,
 }
 
 impl TurnSelection {
@@ -483,6 +485,7 @@ impl TurnSelection {
             np_level: 1,
             overcharge_level: 1,
             affection_level: 1,
+            enemy_status: None,
             attacker_hp: servant
                 .max_hp
                 .and_then(|max| AttackerHp::new(max, max).ok()),
@@ -524,6 +527,12 @@ impl TurnSelection {
                     np_used = true;
                     if !servant.noble_phantasms[index].valid_components() {
                         return Err("This NP has invalid damage data. Update servant data.".into());
+                    }
+                    if self.enemy_status.is_some()
+                        && self.enemy_status
+                            != servant.noble_phantasms[index].enemy_status_condition()
+                    {
+                        return Err("The enemy status assumption does not match the selected NP. Reset the condition.".into());
                     }
                     if servant.noble_phantasms[index].requires_attacker_hp() {
                         self.attacker_hp
