@@ -13,6 +13,7 @@
 
 use super::enemy_status::{EnemyStatus, EnemyStatusBreakdown, EnemyStatusScaling};
 use super::low_hp::{LowHpBreakdown, LowHpScaling};
+use super::trait_bonus::{TraitBonusBreakdown, TraitBonusScaling, TraitCondition};
 use crate::model::AttackerHp;
 use serde::{Deserialize, Serialize};
 
@@ -34,6 +35,8 @@ pub struct NpDamageValues {
     pub low_hp: Option<LowHpScaling>,
     #[serde(default)]
     pub enemy_status: Option<EnemyStatusScaling>,
+    #[serde(default)]
+    pub trait_bonus: Option<TraitBonusScaling>,
     #[serde(default = "guaranteed_rates")]
     pub rates: [u16; 5],
     #[serde(default)]
@@ -46,15 +49,25 @@ impl NpDamageValues {
             multipliers,
             low_hp: None,
             enemy_status: None,
+            trait_bonus: None,
             rates: guaranteed_rates(),
             check_dead: [false; 5],
         }
     }
 
     pub fn is_valid(&self) -> bool {
-        self.enemy_status
+        self.trait_bonus
             .as_ref()
-            .is_none_or(EnemyStatusScaling::is_valid)
+            .is_none_or(TraitBonusScaling::is_valid)
+            && (self.trait_bonus.is_none()
+                || (self.low_hp.is_none()
+                    && self.enemy_status.is_none()
+                    && self.rates == [1000; 5]
+                    && self.multipliers.iter().all(|value| *value > 0.0)))
+            && self
+                .enemy_status
+                .as_ref()
+                .is_none_or(EnemyStatusScaling::is_valid)
             && (self.enemy_status.is_none()
                 || (self.low_hp.is_none()
                     && self.rates == [1000; 5]
@@ -116,6 +129,8 @@ impl NpDamageComponent {
             row.low_hp.is_some() == first.low_hp.is_some()
                 && row.enemy_status.as_ref().map(|status| status.condition)
                     == first.enemy_status.as_ref().map(|status| status.condition)
+                && row.trait_bonus.as_ref().map(|scaling| scaling.condition)
+                    == first.trait_bonus.as_ref().map(|scaling| scaling.condition)
                 && row.is_valid()
         })
     }
@@ -126,6 +141,56 @@ impl NpDamageComponent {
             .enemy_status
             .as_ref()
             .map(|status| status.condition)
+    }
+
+    pub fn trait_bonus_condition(&self) -> Option<TraitCondition> {
+        self.overcharge[0]
+            .as_ref()?
+            .trait_bonus
+            .as_ref()
+            .map(|scaling| scaling.condition)
+    }
+
+    pub fn trait_bonus_breakdown(
+        &self,
+        np_level: u8,
+        overcharge: u8,
+        assumption: Option<TraitCondition>,
+    ) -> Option<TraitBonusBreakdown> {
+        let row = self
+            .overcharge
+            .get(usize::from(overcharge.checked_sub(1)?))?
+            .as_ref()?;
+        if !row.is_valid() {
+            return None;
+        }
+        row.trait_bonus.as_ref()?.breakdown(
+            np_level,
+            self.multiplier(np_level, overcharge)?,
+            assumption,
+        )
+    }
+
+    /// NP-specific correction is separate from base damage and additive buffs.
+    pub fn trait_bonus_multiplier(
+        &self,
+        np_level: u8,
+        overcharge: u8,
+        assumption: Option<TraitCondition>,
+    ) -> Option<f64> {
+        let row = self
+            .overcharge
+            .get(usize::from(overcharge.checked_sub(1)?))?
+            .as_ref()?;
+        if !row.is_valid() || !(1..=5).contains(&np_level) {
+            return None;
+        }
+        match &row.trait_bonus {
+            Some(scaling) => scaling
+                .breakdown(np_level, self.multiplier(np_level, overcharge)?, assumption)
+                .map(|result| result.applied_multiplier),
+            None => Some(1.0),
+        }
     }
 
     pub fn enemy_status_breakdown(
@@ -229,6 +294,25 @@ pub fn components_are_valid(components: &[NpDamageComponent]) -> bool {
         .iter()
         .filter_map(NpDamageComponent::enemy_status_condition)
         .any(|component_condition| Some(component_condition) != condition)
+    {
+        return false;
+    }
+    let trait_condition = components
+        .iter()
+        .find_map(NpDamageComponent::trait_bonus_condition);
+    if components
+        .iter()
+        .filter_map(NpDamageComponent::trait_bonus_condition)
+        .any(|condition| Some(condition) != trait_condition)
+        || (trait_condition.is_some()
+            && (condition.is_some()
+                || components.iter().any(|component| {
+                    component
+                        .overcharge
+                        .iter()
+                        .flatten()
+                        .any(|row| row.low_hp.is_some())
+                })))
     {
         return false;
     }

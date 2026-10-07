@@ -59,4 +59,28 @@ fn current_na_update_saves_the_complete_additional_servant_catalog() {
         assert_eq!(np.enemy_status_condition(), Some(condition));
         assert_eq!(np.available_overcharges(), [1, 2, 3, 4, 5]);
     }
+    for (servant_id, np_id, target) in [
+        (100800, 100802, 2002),
+        (201200, 201202, 1),
+        (203500, 203501, 2467),
+    ] {
+        let np = loaded
+            .servant(servant_id)
+            .unwrap()
+            .noble_phantasms
+            .iter()
+            .find(|np| np.id == np_id)
+            .unwrap();
+        assert_eq!(np.trait_bonus_condition().unwrap().source_target, target);
+        assert_eq!(np.available_overcharges(), [1, 2, 3, 4, 5]);
+    }
+    let dubai = loaded
+        .servant(2300600)
+        .unwrap()
+        .noble_phantasms
+        .iter()
+        .find(|np| np.id == 2300601)
+        .unwrap();
+    assert!(dubai.trait_bonus_condition().is_none());
+    assert!(dubai.base_multiplier(1, 1).is_some());
 }

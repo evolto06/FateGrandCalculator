@@ -18,6 +18,7 @@ fn run(servant: &ServantRecord, np_level: u8, defense: f64) -> TurnDamageResult 
             affection_level: 0,
             attacker_hp: None,
             enemy_status: None,
+            trait_bonus: None,
         },
         TurnBuffs {
             attack_buff: 0.3,

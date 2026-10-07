@@ -22,6 +22,7 @@ fn run(
             affection_level: 1,
             attacker_hp: None,
             enemy_status: None,
+            trait_bonus: None,
         },
         buffs,
         ClassType::Saber,
@@ -115,6 +116,7 @@ fn np_level_and_upgrade_select_independent_multipliers() {
         affection_level: 1,
         attacker_hp: None,
         enemy_status: None,
+        trait_bonus: None,
     };
     let result = calculate_turn(
         &base,

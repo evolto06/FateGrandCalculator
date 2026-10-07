@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::loader::GameData;
 
-const SNAPSHOT_SCHEMA_VERSION: u32 = 5;
+const SNAPSHOT_SCHEMA_VERSION: u32 = 6;
 const MAX_SNAPSHOT_BYTES: u64 = 64 * 1024 * 1024;
 
 pub struct SnapshotStore {
@@ -183,13 +183,13 @@ mod tests {
         fs::remove_file(&store.path).unwrap();
     }
     #[test]
-    fn successful_save_uses_v5_and_invalid_save_preserves_existing_bytes() {
+    fn successful_save_uses_v6_and_invalid_save_preserves_existing_bytes() {
         let store = test_store();
         let mut data = GameData::bundled().unwrap();
         store.save(&data).unwrap();
         let original = fs::read(&store.path).unwrap();
         let envelope: serde_json::Value = serde_json::from_slice(&original).unwrap();
-        assert_eq!(envelope["schema_version"], 5);
+        assert_eq!(envelope["schema_version"], 6);
         assert_eq!(store.load().unwrap().unwrap().servants[0].deck.len(), 5);
         data.servants[0].deck.pop();
         assert!(store.save(&data).is_err());
@@ -197,7 +197,7 @@ mod tests {
         fs::remove_file(&store.path).unwrap();
     }
     #[test]
-    fn v2_np_snapshot_migrates_without_inventing_overcharge_and_saves_v5() {
+    fn v2_np_snapshot_migrates_without_inventing_overcharge_and_saves_v6() {
         let store = test_store();
         let mut data = serde_json::to_value(GameData::bundled().unwrap()).unwrap();
         for servant in data["servants"].as_array_mut().unwrap() {
@@ -226,7 +226,7 @@ mod tests {
         store.save(&migrated).unwrap();
         let saved: serde_json::Value =
             serde_json::from_slice(&fs::read(&store.path).unwrap()).unwrap();
-        assert_eq!(saved["schema_version"], 5);
+        assert_eq!(saved["schema_version"], 6);
         assert!(
             saved["game_data"]["servants"][0]["noble_phantasms"][0]
                 .get("multipliers")
@@ -392,7 +392,7 @@ mod tests {
             Some(EnemyStatus::Poison)
         );
         let envelope: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
-        assert_eq!(envelope["schema_version"], 5);
+        assert_eq!(envelope["schema_version"], 6);
         assert_eq!(
             envelope["game_data"]["servants"][0]["noble_phantasms"][0]["components"][0]["overcharge"]
                 [0]["enemy_status"]["source_corrections"],
@@ -452,5 +452,102 @@ mod tests {
         assert_eq!(fs::read_dir(&directory).unwrap().count(), 1);
         fs::remove_file(&store.path).unwrap();
         fs::remove_dir(&directory).unwrap();
+    }
+
+    #[test]
+    fn legacy_versions_default_to_absent_trait_bonus_and_v6_validates_metadata() {
+        use crate::np_mechanics::trait_bonus::{TraitBonusScaling, TraitCondition};
+        let store = test_store();
+        let mut data = GameData::bundled().unwrap();
+        data.servants.truncate(1);
+        data.servants[0].noble_phantasms.truncate(1);
+        let mut legacy = serde_json::to_value(&data).unwrap();
+        for np in legacy["servants"][0]["noble_phantasms"]
+            .as_array_mut()
+            .unwrap()
+        {
+            for component in np["components"].as_array_mut().unwrap() {
+                for row in component["overcharge"]
+                    .as_array_mut()
+                    .unwrap()
+                    .iter_mut()
+                    .filter(|row| !row.is_null())
+                {
+                    row.as_object_mut().unwrap().remove("trait_bonus");
+                }
+            }
+        }
+        for version in 1..=5 {
+            let bytes = serde_json::to_vec(
+                &serde_json::json!({"schema_version":version,"game_data":legacy}),
+            )
+            .unwrap();
+            fs::write(&store.path, &bytes).unwrap();
+            let loaded = store.load().unwrap().unwrap();
+            assert!(
+                loaded.servants[0].noble_phantasms[0]
+                    .trait_bonus_condition()
+                    .is_none()
+            );
+            assert_eq!(
+                loaded.servants[0].noble_phantasms[0].base_multiplier(1, 1),
+                data.servants[0].noble_phantasms[0].base_multiplier(1, 1)
+            );
+            assert_eq!(fs::read(&store.path).unwrap(), bytes);
+        }
+        data.servants[0].noble_phantasms[0].components =
+            vec![crate::np_mechanics::components::NpDamageComponent::legacy(
+                [6.0; 5],
+            )];
+        data.servants[0].noble_phantasms[0].components[0].overcharge[0]
+            .as_mut()
+            .unwrap()
+            .trait_bonus = Some(TraitBonusScaling {
+            condition: TraitCondition::from_source_target(2002).unwrap(),
+            source_corrections: [1500, 1600, 1700, 1800, 1900],
+        });
+        store.save(&data).unwrap();
+        let bytes = fs::read(&store.path).unwrap();
+        let envelope: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+        assert_eq!(envelope["schema_version"], 6);
+        assert_eq!(
+            store.load().unwrap().unwrap().servants[0].noble_phantasms[0].components,
+            data.servants[0].noble_phantasms[0].components
+        );
+        data.servants[0].noble_phantasms[0].defense_pierce = true;
+        assert!(store.save(&data).is_err());
+        assert_eq!(fs::read(&store.path).unwrap(), bytes);
+        let mut invalid = envelope.clone();
+        invalid["game_data"]["servants"][0]["noble_phantasms"][0]["defense_pierce"] =
+            serde_json::json!(true);
+        fs::write(&store.path, serde_json::to_vec(&invalid).unwrap()).unwrap();
+        assert!(store.load().is_err());
+        fs::write(&store.path, &bytes).unwrap();
+        data.servants[0].noble_phantasms[0].defense_pierce = false;
+        data.servants[0].noble_phantasms[0].components[0].overcharge[0]
+            .as_mut()
+            .unwrap()
+            .trait_bonus
+            .as_mut()
+            .unwrap()
+            .source_corrections[0] = 0;
+        assert!(store.save(&data).is_err());
+        assert_eq!(fs::read(&store.path).unwrap(), bytes);
+        for malformed in [
+            serde_json::json!({"condition":{"source_target":-2002},"source_corrections":[1500,1500,1500,1500,1500]}),
+            serde_json::json!({"condition":{"source_target":999999},"source_corrections":[1500,1500,1500,1500,1500]}),
+            serde_json::json!({"condition":{"source_target":2002},"source_corrections":[0,1500,1500,1500,1500]}),
+            serde_json::json!({"condition":{"source_target":2002},"source_corrections":[-1,1500,1500,1500,1500]}),
+            serde_json::json!({"condition":{"source_target":2002},"source_corrections":[1500,1500,1500,1500,1500],"unknown":1}),
+        ] {
+            let mut invalid = envelope.clone();
+            invalid["game_data"]["servants"][0]["noble_phantasms"][0]["components"][0]["overcharge"]
+                [0]["trait_bonus"] = malformed;
+            let corrupt = serde_json::to_vec(&invalid).unwrap();
+            fs::write(&store.path, &corrupt).unwrap();
+            assert!(store.load().is_err());
+            assert_eq!(fs::read(&store.path).unwrap(), corrupt);
+        }
+        fs::remove_file(&store.path).unwrap();
     }
 }

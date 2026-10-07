@@ -94,6 +94,7 @@ impl<'de> Deserialize<'de> for NoblePhantasmRecord {
                             multipliers,
                             low_hp: None,
                             enemy_status: None,
+                            trait_bonus: None,
                             rates: [1000; 5],
                             check_dead: [false; 5],
                         }),
@@ -117,6 +118,13 @@ impl<'de> Deserialize<'de> for NoblePhantasmRecord {
 }
 
 impl NoblePhantasmRecord {
+    pub fn trait_bonus_condition(
+        &self,
+    ) -> Option<crate::np_mechanics::trait_bonus::TraitCondition> {
+        self.components
+            .iter()
+            .find_map(NpDamageComponent::trait_bonus_condition)
+    }
     pub fn enemy_status_condition(&self) -> Option<crate::np_mechanics::enemy_status::EnemyStatus> {
         self.components
             .iter()
@@ -164,6 +172,8 @@ impl NoblePhantasmRecord {
 
     pub(crate) fn valid_components(&self) -> bool {
         crate::np_mechanics::components::components_are_valid(&self.components)
+            && (self.trait_bonus_condition().is_none()
+                || (self.affection.is_none() && !self.defense_pierce))
     }
 }
 

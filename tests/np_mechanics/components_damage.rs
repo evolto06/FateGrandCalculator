@@ -82,6 +82,7 @@ fn run(
             affection_level: affection,
             attacker_hp: None,
             enemy_status: None,
+            trait_bonus: None,
         },
         buffs,
         ClassType::Saber,
