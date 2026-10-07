@@ -186,6 +186,13 @@ pub fn calculate_turn(
                                     selection.enemy_status,
                                 )
                                 .expect("validated enemy status correction");
+                            let trait_multiplier = component
+                                .trait_bonus_multiplier(
+                                    selection.np_level,
+                                    selection.overcharge_level,
+                                    selection.trait_bonus,
+                                )
+                                .expect("validated enemy trait correction");
                             turn_card(
                                 servant,
                                 TurnBuffs {
@@ -203,6 +210,7 @@ pub fn calculate_turn(
                                 multiplier
                                     * modifiers.multiplier
                                     * status_multiplier
+                                    * trait_multiplier
                                     * (1.0 + buffs.np_damage_buff).max(0.001),
                                 0.0,
                             )

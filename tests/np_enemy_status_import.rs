@@ -134,6 +134,7 @@ fn imported_variants_match_350_independent_fixed_rates_and_damage_endpoints() {
             np_level: v[1] as u8,
             overcharge_level: v[2] as u8,
             enemy_status: (v[3] == 1).then_some(condition),
+            trait_bonus: None,
             affection_level: 0,
             attacker_hp: None,
         };
@@ -172,6 +173,7 @@ fn imported_variants_match_350_independent_fixed_rates_and_damage_endpoints() {
         );
         let absent = TurnSelection {
             enemy_status: None,
+            trait_bonus: None,
             ..selection
         };
         let base = calculate_turn(

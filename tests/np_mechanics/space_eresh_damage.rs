@@ -39,6 +39,7 @@ fn damage(
         affection_level,
         attacker_hp: None,
         enemy_status: None,
+        trait_bonus: None,
     };
     calculate_turn(
         &servant,

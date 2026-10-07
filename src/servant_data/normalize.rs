@@ -9,6 +9,7 @@ use crate::model::{AttributeType, ClassType};
 use crate::np_mechanics::components::{NpDamageComponent, NpDamageValues, NpTarget};
 use crate::np_mechanics::enemy_status::{EnemyStatus, EnemyStatusScaling};
 use crate::np_mechanics::low_hp::LowHpScaling;
+use crate::np_mechanics::trait_bonus::{TraitBonusScaling, TraitCondition};
 use crate::np_mechanics::{self, NpDamageKind};
 
 const REGION: &str = "NA";
@@ -400,6 +401,14 @@ pub fn enrich_servant(servant: &mut ServantRecord, row: &Value) -> Result<(), St
             incomplete = true;
             continue;
         }
+        // Base rates stay usable when the conditional contract is unsupported.
+        // Enable the bonus only when every supplied source row is audited and
+        // keeps the same condition across NP levels and Overcharge.
+        let trait_condition = if damage_kind == NpDamageKind::TraitBase {
+            import_trait_bonus(np, damage, &mut components[0])
+        } else {
+            None
+        };
         // A row is usable only when every component explicitly supplies it.
         for oc in 0..5 {
             let complete = components
@@ -474,7 +483,11 @@ pub fn enrich_servant(servant: &mut ServantRecord, row: &Value) -> Result<(), St
         };
         let mut notes = Vec::new();
         if function_type == "damageNpIndividual" {
-            notes.push("Conditional NP damage bonuses are excluded; this is base damage.".into());
+            notes.push(if trait_condition.is_some() {
+                "Set the matching enemy trait at NP damage time. Preceding trait-granting effects must be accounted for manually; other NP effects are not simulated."
+            } else {
+                "Conditional NP trait bonus metadata is unsupported or unavailable; this is base damage. Update servant data for audited bonuses."
+            }.into());
         }
         if affection_np {
             notes.push("Set the affection level at the moment NP damage lands. Higher Overcharge can raise the gauge before damage; adjust the level manually.".into());
@@ -709,6 +722,66 @@ fn import_damage_values(
     }
     row.enemy_status = status_scaling;
     Ok(row)
+}
+
+/// An audited simple `damageNpIndividual` contract, separate from base parsing.
+fn import_trait_bonus(
+    np: &Value,
+    function: &Value,
+    component: &mut NpDamageComponent,
+) -> Option<TraitCondition> {
+    if !is_supported_damage_shape(np, function) {
+        return None;
+    }
+    let mut condition = None;
+    let mut scalings: [Option<TraitBonusScaling>; 5] = std::array::from_fn(|_| None);
+    for (oc, scaling) in scalings.iter_mut().enumerate() {
+        let key = if oc == 0 {
+            "svals".to_owned()
+        } else {
+            format!("svals{}", oc + 1)
+        };
+        let Some(values) = function.get(&key) else {
+            continue;
+        };
+        let values = values.as_array().filter(|values| values.len() == 5)?;
+        let mut corrections = [0; 5];
+        for (level, value) in values.iter().enumerate() {
+            let object = value.as_object()?;
+            if object.len() != 4
+                || object
+                    .keys()
+                    .any(|key| !["Value", "Rate", "Target", "Correction"].contains(&key.as_str()))
+                || value["Rate"].as_u64() != Some(1000)
+                || value["Value"].as_u64().filter(|value| *value > 0).is_none()
+            {
+                return None;
+            }
+            let target = value["Target"]
+                .as_i64()
+                .and_then(|target| i32::try_from(target).ok())?;
+            let row_condition = TraitCondition::from_source_target(target)?;
+            if condition.is_some_and(|condition| condition != row_condition) {
+                return None;
+            }
+            condition = Some(row_condition);
+            corrections[level] = value["Correction"]
+                .as_u64()
+                .and_then(|value| u32::try_from(value).ok())
+                .filter(|value| *value > 0)?;
+        }
+        *scaling = Some(TraitBonusScaling {
+            condition: condition?,
+            source_corrections: corrections,
+        });
+    }
+    let condition = condition?;
+    for (row, scaling) in component.overcharge.iter_mut().zip(scalings) {
+        if let Some(row) = row {
+            row.trait_bonus = scaling;
+        }
+    }
+    Some(condition)
 }
 
 /// Only these NA variants and their verified matching policies were audited.

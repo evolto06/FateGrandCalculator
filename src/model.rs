@@ -460,6 +460,8 @@ pub struct TurnSelection {
     pub attacker_hp: Option<AttackerHp>,
     /// Explicitly assumed present when NP damage lands; separate from defense %.
     pub enemy_status: Option<crate::np_mechanics::enemy_status::EnemyStatus>,
+    /// Manual matching trait assumption at NP damage time.
+    pub trait_bonus: Option<crate::np_mechanics::trait_bonus::TraitCondition>,
 }
 
 impl TurnSelection {
@@ -486,6 +488,7 @@ impl TurnSelection {
             overcharge_level: 1,
             affection_level: 1,
             enemy_status: None,
+            trait_bonus: None,
             attacker_hp: servant
                 .max_hp
                 .and_then(|max| AttackerHp::new(max, max).ok()),
@@ -533,6 +536,12 @@ impl TurnSelection {
                             != servant.noble_phantasms[index].enemy_status_condition()
                     {
                         return Err("The enemy status assumption does not match the selected NP. Reset the condition.".into());
+                    }
+                    if self.trait_bonus.is_some()
+                        && self.trait_bonus
+                            != servant.noble_phantasms[index].trait_bonus_condition()
+                    {
+                        return Err("The enemy trait assumption does not match the selected NP. Reset the condition.".into());
                     }
                     if servant.noble_phantasms[index].requires_attacker_hp() {
                         self.attacker_hp

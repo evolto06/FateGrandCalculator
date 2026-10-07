@@ -155,6 +155,7 @@ fn imported_variants_match_450_fixed_hp_rates_and_damage_ranges() {
             affection_level: 0,
             attacker_hp: Some(hp),
             enemy_status: None,
+            trait_bonus: None,
         };
         let result = calculate_turn(
             servant,

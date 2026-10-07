@@ -959,3 +959,134 @@ fn status_breakdown_renders_base_correction_and_effective_multiplier_at_narrow_w
         "Component 1 · Poison present · base ×3.000 · conditional ×2.000 · applied ×2.000 · effective ×6.000").is_some()));
     output.drop_without_applying_deltas();
 }
+
+fn trait_bonus_servant(target: i32) -> ServantRecord {
+    use fate_grand_calculator::np_mechanics::trait_bonus::TraitBonusScaling;
+    let mut servant = full_overcharge_servant();
+    for row in servant.noble_phantasms[0].components[0]
+        .overcharge
+        .iter_mut()
+        .flatten()
+    {
+        row.trait_bonus = Some(TraitBonusScaling {
+            condition: TraitCondition::from_source_target(target).unwrap(),
+            source_corrections: [2000; 5],
+        });
+    }
+    servant
+}
+
+#[test]
+fn trait_control_is_default_off_visible_only_for_supported_np_and_keyboard_operable() {
+    for supported in [false, true] {
+        let servant = if supported {
+            trait_bonus_servant(2002)
+        } else {
+            servant()
+        };
+        let mut turn = TurnSelection::default_for(&servant).unwrap();
+        let ctx = egui::Context::default();
+        let mut response = None;
+        let output = ctx.run_ui(input(328.0, vec![]), |ui| {
+            response = trait_bonus_settings(ui, &servant, &mut turn);
+            assert!(ui.min_rect().right() <= 329.0);
+        });
+        assert_eq!(response.is_some(), supported);
+        assert_eq!(turn.trait_bonus, None);
+        output.drop_without_applying_deltas();
+        if let Some(response) = response {
+            ctx.memory_mut(|memory| memory.request_focus(response.id));
+            ctx.run_ui(
+                input(
+                    328.0,
+                    vec![egui::Event::Key {
+                        key: egui::Key::Space,
+                        physical_key: None,
+                        pressed: true,
+                        repeat: false,
+                        modifiers: egui::Modifiers::NONE,
+                    }],
+                ),
+                |ui| {
+                    trait_bonus_settings(ui, &servant, &mut turn);
+                },
+            )
+            .drop_without_applying_deltas();
+            assert_eq!(
+                turn.trait_bonus,
+                servant.noble_phantasms[0].trait_bonus_condition()
+            );
+        }
+    }
+}
+
+#[test]
+fn trait_binding_preserves_levels_and_clears_identity_condition_catalog_and_card_changes() {
+    let ctx = egui::Context::default();
+    let mut servant = trait_bonus_servant(2002);
+    let mut turn = TurnSelection::default_for(&servant).unwrap();
+    sync_trait_bonus(&ctx, &servant, &mut turn);
+    turn.trait_bonus = servant.noble_phantasms[0].trait_bonus_condition();
+    turn.np_level = 5;
+    turn.overcharge_level = 5;
+    sync_trait_bonus(&ctx, &servant, &mut turn);
+    assert!(turn.trait_bonus.is_some());
+    for change in 0..5 {
+        turn.trait_bonus = servant.noble_phantasms[0].trait_bonus_condition();
+        match change {
+            0 => servant.noble_phantasms[0].id += 1,
+            1 => {
+                for row in servant.noble_phantasms[0].components[0]
+                    .overcharge
+                    .iter_mut()
+                    .flatten()
+                {
+                    row.trait_bonus.as_mut().unwrap().condition =
+                        TraitCondition::from_source_target(2010).unwrap();
+                }
+            }
+            2 => servant.id += 1,
+            3 => reset_trait_bonus_for_catalog(&ctx),
+            _ => turn.slots[0] = SelectedCard::Normal(2),
+        }
+        sync_trait_bonus(&ctx, &servant, &mut turn);
+        assert_eq!(turn.trait_bonus, None);
+        assert!(
+            ctx.data(|data| data.get_temp::<TraitBonusUiState>(trait_bonus_ui_id()))
+                .unwrap()
+                .reset_feedback
+                .is_some()
+        );
+    }
+}
+
+#[test]
+fn trait_breakdown_identifies_assumption_and_applied_correction_at_narrow_width() {
+    let servant = trait_bonus_servant(2002);
+    let mut turn = TurnSelection::default_for(&servant).unwrap();
+    turn.trait_bonus = servant.noble_phantasms[0].trait_bonus_condition();
+    let result = fate_grand_calculator::damage::calculate_turn(
+        &servant,
+        &turn,
+        TurnBuffInputs::default().values(),
+        ClassType::Lancer,
+        AttributeType::Sky,
+    )
+    .unwrap();
+    let ctx = egui::Context::default();
+    let output = ctx.run_ui(input(328.0, vec![]), |ui| {
+        result_panel(ui, &servant, &turn, &result, false);
+        assert!(ui.min_rect().right() <= 329.0);
+    });
+    let expected = format!(
+        "Component 1 · {} · matching assumed · base ×3.000 · conditional ×2.000 · applied ×2.000 · effective ×6.000",
+        turn.trait_bonus.unwrap().assumption_label()
+    );
+    assert!(
+        output
+            .shapes
+            .iter()
+            .any(|shape| painted_text_rect(&shape.shape, &expected).is_some())
+    );
+    output.drop_without_applying_deltas();
+}

@@ -31,6 +31,7 @@ fn rejects_duplicate_physical_cards_multiple_nps_and_invalid_levels() {
                 affection_level: 1,
                 attacker_hp: None,
                 enemy_status: None,
+                trait_bonus: None,
             }
             .validate(servant)
             .is_err()
@@ -56,6 +57,7 @@ fn same_color_distinct_cards_are_valid_and_legacy_decks_are_not_guessed() {
         affection_level: 1,
         attacker_hp: None,
         enemy_status: None,
+        trait_bonus: None,
     };
     assert!(selection.validate(&servant).is_ok());
     servant.deck.clear();

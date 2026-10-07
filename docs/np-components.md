@@ -77,15 +77,23 @@ the status factor applies only to that NP component. The supported servants,
 matching rules, timing assumptions, and formula are documented in
 [enemy-status NP support](enemy-status-nps.md).
 
+## Trait-targeted NP scaling
+
+Audited `damageNpIndividual` NPs apply their source `Correction` only when the
+user selects the matching enemy-trait assumption at NP damage time. The base
+multiplier and conditional factor remain separate, and the correction applies
+only to its NP component. See [trait-targeted NP support](trait-np-bonuses.md)
+for coverage, matching assumptions, and snapshot migration.
+
 ## Coverage and migration
 
 NP level and Overcharge are independent, each ranging from 1 to 5. A component
 stores an explicit OC row containing five NP-level values and execution metadata.
 Missing OC rows remain unavailable rather than copying OC1.
 
-Snapshot format v5 retains component, optional low-HP, and optional enemy-status
-metadata. The app reads v1–v5 snapshots; snapshots without enemy-status metadata
-preserve their existing NP mechanics, and no status bonus is inferred. Choose
+Snapshot format v6 retains component, optional low-HP, enemy-status, and trait
+bonus metadata. The app reads v1–v6 snapshots; older snapshots without trait
+metadata preserve their existing NP mechanics and apply no trait correction. Choose
 **Update servant data** to fetch newly supported NP profiles. Older records with
 five base multipliers migrate to a single OC1-only component, preserving
 affection, defense-piercing flags, and notes. Updating servant data loads
@@ -93,6 +101,6 @@ explicitly available higher-OC values. An unsuccessful update preserves the
 prior snapshot.
 
 Overcharge selection changes only imported damage values. It does not calculate
-NP gauge, chain-based Overcharge gain, automatic pre-damage buffs, conditional
-trait bonuses, or other omitted NP effects. Space Ereshkigal's affection is still
+NP gauge, chain-based Overcharge gain, automatic pre-damage buffs, unsupported
+conditional trait bonuses, or other omitted NP effects. Space Ereshkigal's affection is still
 entered at damage time; increasing OC does not automatically increase affection.

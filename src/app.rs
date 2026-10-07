@@ -322,6 +322,7 @@ impl CalculatorApp {
         match self.update_receiver.try_recv() {
             Ok(Ok(report)) => {
                 ui::reset_enemy_status_for_catalog(context);
+                ui::reset_trait_bonus_for_catalog(context);
                 let resets_hp = ui::has_hp_inputs(context, self.selected_servant_id)
                     || self
                         .game_data
@@ -382,7 +383,7 @@ impl CalculatorApp {
                     });
                 }
                 self.data_status
-                    .push_str(" Enemy status reset to absent after the servant data update.");
+                    .push_str(" Enemy status reset to absent and trait assumption cleared after the servant data update.");
             }
             Ok(Err(error)) => {
                 self.update_in_progress = false;
@@ -523,12 +524,14 @@ mod tests {
     }
 
     #[test]
-    fn catalog_update_resets_status_and_failed_update_keeps_assumption() {
+    fn catalog_update_resets_conditions_and_failed_update_keeps_assumptions() {
         use fate_grand_calculator::np_mechanics::enemy_status::EnemyStatus;
         for succeeds in [false, true] {
             let mut app = app_with_bundled_data();
             let context = egui::Context::default();
             app.turn_selection.as_mut().unwrap().enemy_status = Some(EnemyStatus::Poison);
+            let trait_condition = fate_grand_calculator::np_mechanics::trait_bonus::TraitCondition::from_source_target(2002).unwrap();
+            app.turn_selection.as_mut().unwrap().trait_bonus = Some(trait_condition);
             let update = if succeeds {
                 Ok(UpdateReport {
                     game_data: GameData::bundled().unwrap(),
@@ -545,6 +548,14 @@ mod tests {
                     None
                 } else {
                     Some(EnemyStatus::Poison)
+                }
+            );
+            assert_eq!(
+                app.turn_selection.as_ref().unwrap().trait_bonus,
+                if succeeds {
+                    None
+                } else {
+                    Some(trait_condition)
                 }
             );
             assert_eq!(
