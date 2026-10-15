@@ -945,7 +945,7 @@ fn status_breakdown_renders_base_correction_and_effective_multiplier_at_narrow_w
     let result = fate_grand_calculator::damage::calculate_turn(
         &servant,
         &turn,
-        TurnBuffInputs::default().values(),
+        TurnBuffInputs::default().values().unwrap(),
         ClassType::Lancer,
         AttributeType::Sky,
     )
@@ -1068,7 +1068,7 @@ fn trait_breakdown_identifies_assumption_and_applied_correction_at_narrow_width(
     let result = fate_grand_calculator::damage::calculate_turn(
         &servant,
         &turn,
-        TurnBuffInputs::default().values(),
+        TurnBuffInputs::default().values().unwrap(),
         ClassType::Lancer,
         AttributeType::Sky,
     )
@@ -1089,4 +1089,105 @@ fn trait_breakdown_identifies_assumption_and_applied_correction_at_narrow_width(
             .any(|shape| painted_text_rect(&shape.shape, &expected).is_some())
     );
     output.drop_without_applying_deltas();
+}
+
+#[test]
+fn percent_validation_uses_visible_text_and_never_clamps_or_reuses_old_values() {
+    let mut input = PercentInput::default();
+    for invalid in ["abc", "NaN", "inf", "1000", "-200"] {
+        input.text = "20".into();
+        assert_eq!(input.value(), Ok(20.0));
+        input.text = invalid.into();
+        assert!(input.value().is_err(), "{invalid}");
+        input.text = "30".into();
+        assert_eq!(input.value(), Ok(30.0));
+    }
+    for (text, expected) in [("", 0.0), ("  ", 0.0), ("-100", -100.0), ("999", 999.0)] {
+        input.text = text.into();
+        assert_eq!(input.value(), Ok(expected));
+    }
+}
+
+#[test]
+fn percent_widget_shows_validation_and_np_cap_without_rewriting_text() {
+    for text in ["abc", "NaN", "1000", "-200", "999"] {
+        let ctx = egui::Context::default();
+        let mut value = PercentInput { text: text.into() };
+        let output = ctx.run_ui(input(360.0, vec![]), |ui| {
+            percent_input(ui, "NP damage buff (%)", &mut value);
+        });
+        let expected = if text == "999" {
+            "NP damage buff capped at 500%."
+        } else {
+            "Enter a number from −100 to 999."
+        };
+        assert!(
+            output
+                .shapes
+                .iter()
+                .any(|shape| painted_text_rect(&shape.shape, expected).is_some()),
+            "{text}"
+        );
+        assert_eq!(value.text, text);
+        output.drop_without_applying_deltas();
+    }
+}
+
+#[test]
+fn expanded_breakdown_shows_flat_and_extra_factors_within_narrow_panel() {
+    let servant = servant();
+    let mut turn = TurnSelection::default_for(&servant).unwrap();
+    turn.slots = [
+        SelectedCard::Normal(0),
+        SelectedCard::Normal(4),
+        SelectedCard::NoblePhantasm(0),
+    ];
+    let result = fate_grand_calculator::damage::calculate_turn(
+        &servant,
+        &turn,
+        TurnBuffs::default(),
+        ClassType::Lancer,
+        AttributeType::Sky,
+    )
+    .unwrap();
+    for (damage, expected_flat) in [
+        (result.cards[0], "+2244.2"),
+        (result.extra.unwrap(), "+0.0"),
+    ] {
+        let ctx = egui::Context::default();
+        let frame = |events| {
+            let output = ctx.run_ui(input(260.0, events), |ui| {
+                breakdown(ui, damage);
+                assert!(ui.min_rect().right() <= 261.0, "{:?}", ui.min_rect());
+            });
+            output
+        };
+        let first = frame(vec![]);
+        let position = first
+            .shapes
+            .iter()
+            .find_map(|shape| painted_text_rect(&shape.shape, "Calculation breakdown"))
+            .unwrap()
+            .center();
+        first.drop_without_applying_deltas();
+        frame(pointer(position, true)).drop_without_applying_deltas();
+        frame(pointer(position, false)).drop_without_applying_deltas();
+        let output = frame(vec![]);
+        for label in ["Flat addition after random", "Extra attack factor"] {
+            assert!(
+                output
+                    .shapes
+                    .iter()
+                    .any(|shape| painted_text_rect(&shape.shape, label).is_some()),
+                "{label}"
+            );
+        }
+        assert!(
+            output
+                .shapes
+                .iter()
+                .any(|shape| painted_text_rect(&shape.shape, expected_flat).is_some())
+        );
+        output.drop_without_applying_deltas();
+    }
 }

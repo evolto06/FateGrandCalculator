@@ -58,6 +58,8 @@ fn random_range_is_applied_after_other_modifiers() {
     let result = calculate(neutral_input(CardType::Arts));
 
     assert_eq!(result.damage_before_random, 230.0);
+    assert_eq!(result.flat_damage_addition, 0.0);
+    assert_eq!(result.extra_attack_multiplier, 1.0);
     assert_eq!(result.minimum_damage, 207);
     assert_eq!(result.maximum_damage, 252);
 }

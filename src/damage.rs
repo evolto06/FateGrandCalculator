@@ -8,6 +8,8 @@ use crate::np_mechanics::{self, defense_pierce::effective_defense};
 const ATTACK_RATE: f64 = 0.23;
 const MIN_RANDOM_MODIFIER: f64 = 0.9;
 const MAX_RANDOM_MODIFIER: f64 = 1.099;
+// Atlas npdamage buff-action cap: +500%, before the formula's 1 + buff term.
+const MAX_NP_DAMAGE_BUFF: f64 = 5.0;
 
 /// Converts a UI entry such as `20` for 20% to the formula's `0.20` modifier.
 pub fn percent_to_modifier(percent: f64) -> f64 {
@@ -41,6 +43,10 @@ pub struct DamageResult {
     pub card_buff_multiplier: f64,
     pub class_multiplier: f64,
     pub attribute_multiplier: f64,
+    /// Post-random flat addition (normal Buster-chain cards only).
+    pub flat_damage_addition: f64,
+    /// Extra attack factor, already included in `damage_before_random`.
+    pub extra_attack_multiplier: f64,
     pub damage_before_random: f64,
     pub minimum_damage: u32,
     pub maximum_damage: u32,
@@ -77,6 +83,8 @@ pub fn calculate(input: DamageInput) -> DamageResult {
         card_buff_multiplier,
         class_multiplier: input.class_multiplier,
         attribute_multiplier: input.attribute_multiplier,
+        flat_damage_addition: 0.0,
+        extra_attack_multiplier: 1.0,
         damage_before_random,
         minimum_damage: (damage_before_random * MIN_RANDOM_MODIFIER).floor() as u32,
         maximum_damage: (damage_before_random * MAX_RANDOM_MODIFIER).floor() as u32,
@@ -211,7 +219,8 @@ pub fn calculate_turn(
                                     * modifiers.multiplier
                                     * status_multiplier
                                     * trait_multiplier
-                                    * (1.0 + buffs.np_damage_buff).max(0.001),
+                                    * (1.0 + buffs.np_damage_buff.min(MAX_NP_DAMAGE_BUFF))
+                                        .max(0.001),
                                 0.0,
                             )
                         })
@@ -222,6 +231,10 @@ pub fn calculate_turn(
                     aggregate.damage_before_random = component_results
                         .iter()
                         .map(|part| part.damage_before_random)
+                        .sum();
+                    aggregate.flat_damage_addition = component_results
+                        .iter()
+                        .map(|part| part.flat_damage_addition)
                         .sum();
                     aggregate.minimum_damage = component_results
                         .iter()
@@ -249,7 +262,8 @@ pub fn calculate_turn(
         )
     });
     // All three selected cards belong to the same servant, so every valid selection is a Brave Chain.
-    let extra = turn_card(
+    let extra_attack_multiplier = if color_chain { 3.5 } else { 2.0 };
+    let mut extra = turn_card(
         servant,
         buffs,
         enemy_class,
@@ -257,9 +271,10 @@ pub fn calculate_turn(
         1.0,
         first_bonus,
         0.0,
-        if color_chain { 3.5 } else { 2.0 },
+        extra_attack_multiplier,
         0.0,
     );
+    extra.extra_attack_multiplier = extra_attack_multiplier;
     Ok(TurnDamageResult {
         cards,
         np_components,
@@ -303,6 +318,8 @@ fn turn_card(
         card_buff_multiplier,
         class_multiplier,
         attribute_multiplier,
+        flat_damage_addition: flat,
+        extra_attack_multiplier: 1.0,
         damage_before_random,
         minimum_damage: (damage_before_random * MIN_RANDOM_MODIFIER + flat).floor() as u32,
         maximum_damage: (damage_before_random * MAX_RANDOM_MODIFIER + flat).floor() as u32,
