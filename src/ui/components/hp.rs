@@ -103,18 +103,14 @@ pub(super) fn hp_settings(ui: &mut egui::Ui, servant: &ServantRecord, turn: &mut
         .unwrap_or_else(|| HpInputs::for_servant(servant, turn));
     ui.add_space(8.0);
     ui.label(RichText::new("HP at NP damage time").strong());
-    ui.label(
-        RichText::new(
-            "Enter HP after any preceding healing or HP loss. These effects are applied manually.",
-        )
-        .size(12.0)
-        .color(TEXT_MUTED),
+    note(
+        ui,
+        "Enter HP after any preceding healing or HP loss. These effects are applied manually.",
     );
     if servant.max_hp.is_none() {
-        ui.label(
-            RichText::new("Maximum HP is unavailable in this data. Enter it manually.")
-                .size(12.0)
-                .color(TEXT_MUTED),
+        note(
+            ui,
+            "Maximum HP is unavailable in this data. Enter it manually.",
         );
     }
     let maximum_label = ui.label("Maximum HP");

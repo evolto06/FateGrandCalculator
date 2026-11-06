@@ -14,9 +14,11 @@ impl Default for PercentInput {
 }
 
 impl PercentInput {
+    /// A blank field, or a sign or decimal point on its own while the user is
+    /// still typing, counts as 0 rather than an error.
     pub fn value(&self) -> Result<f64, &'static str> {
         let text = self.text.trim();
-        if text.is_empty() {
+        if matches!(text, "" | "-" | "+" | "." | "-." | "+.") {
             return Ok(0.0);
         }
         match text.parse::<f64>() {
@@ -60,21 +62,51 @@ impl TurnBuffInputs {
     }
 }
 
+/// The attacker's buffs, laid out in as many columns as fit.
+pub(super) fn buff_inputs(ui: &mut egui::Ui, buffs: &mut TurnBuffInputs) {
+    group_label(ui, "BUFFS");
+    note(ui, "Enter 20 for a 20% value.");
+    ui.add_space(4.0);
+    let mut fields = [
+        ("Attack buff (%)", &mut buffs.attack),
+        ("NP damage buff (%)", &mut buffs.np_damage),
+        ("Buster buff (%)", &mut buffs.buster),
+        ("Arts buff (%)", &mut buffs.arts),
+        ("Quick buff (%)", &mut buffs.quick),
+    ];
+    let width = ui.available_width();
+    let columns = if width >= 600.0 {
+        3
+    } else if width >= 380.0 {
+        2
+    } else {
+        1
+    };
+    for row in fields.chunks_mut(columns) {
+        ui.columns(columns, |cells| {
+            for (cell, (label, input)) in cells.iter_mut().zip(row.iter_mut()) {
+                percent_input(cell, label, input);
+            }
+        });
+    }
+}
+
 pub(super) fn percent_input(ui: &mut egui::Ui, label: &str, value: &mut PercentInput) {
-    let label_response = ui.label(RichText::new(label).size(14.0).color(TEXT_MUTED));
+    let label_response = ui.label(RichText::new(label).size(TEXT_BODY).color(TEXT_MUTED));
     let input_width = ui.available_width().min(220.0);
     let response = ui.add_sized(
         [input_width, 44.0],
         egui::TextEdit::singleline(&mut value.text)
             .id_salt(("percent_input", label))
             .desired_width(input_width)
+            .vertical_align(egui::Align::Center)
             .hint_text("0")
             .suffix("%")
-            .text_color(Color32::WHITE)
+            .text_color(TEXT)
             .frame(
                 egui::Frame::new()
                     .fill(PANEL_MUTED)
-                    .stroke(egui::Stroke::new(1.0, Color32::from_rgb(64, 75, 97)))
+                    .stroke(egui::Stroke::new(1.0, INPUT_BORDER))
                     .corner_radius(6)
                     .inner_margin(egui::Margin::symmetric(10, 6)),
             ),
@@ -85,6 +117,6 @@ pub(super) fn percent_input(ui: &mut egui::Ui, label: &str, value: &mut PercentI
         let error_response = ui.colored_label(ERROR, error);
         mark_live_status(ui.ctx(), error_response.id);
     } else if label == "NP damage buff (%)" && value.value().is_ok_and(|value| value > 500.0) {
-        ui.label(RichText::new("NP damage buff capped at 500%.").color(TEXT_MUTED));
+        note(ui, "NP damage buff capped at 500%.");
     }
 }

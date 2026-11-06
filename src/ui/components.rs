@@ -9,9 +9,7 @@ use fate_grand_calculator::model::{
 use fate_grand_calculator::np_mechanics::enemy_status::EnemyStatus;
 use fate_grand_calculator::np_mechanics::trait_bonus::TraitCondition;
 
-use super::theme::{
-    ACCENT, ARTS, BACKGROUND, BUSTER, ERROR, PANEL, PANEL_MUTED, QUICK, RESULT_PANEL, TEXT_MUTED,
-};
+use super::theme::{self, *};
 
 mod attack;
 mod cards;

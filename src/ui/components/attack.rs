@@ -37,9 +37,11 @@ pub fn attack_panel(
     buffs: &mut TurnBuffInputs,
 ) {
     section_frame(ui, |ui| {
-        ui.heading(RichText::new("Attack setup").size(18.0));
-        ui.label(RichText::new("Select an attack card to change it.").color(TEXT_MUTED));
-        ui.add_space(14.0);
+        section_heading(
+            ui,
+            "Attack setup",
+            "Pick an attack position, then choose its card.",
+        );
 
         let width = ui.available_width();
         if width >= 450.0 {
@@ -78,19 +80,7 @@ pub fn attack_panel(
         ui.add_space(14.0);
         ui.separator();
         ui.add_space(8.0);
-        ui.label(RichText::new("BUFFS & TARGET").size(13.0).color(TEXT_MUTED));
-        ui.label(
-            RichText::new("Enter 20 for a 20% value.")
-                .size(13.0)
-                .color(TEXT_MUTED),
-        );
-        ui.add_space(4.0);
-        percent_input(ui, "Attack buff (%)", &mut buffs.attack);
-        percent_input(ui, "Buster buff (%)", &mut buffs.buster);
-        percent_input(ui, "Arts buff (%)", &mut buffs.arts);
-        percent_input(ui, "Quick buff (%)", &mut buffs.quick);
-        percent_input(ui, "NP damage buff (%)", &mut buffs.np_damage);
-        percent_input(ui, "Enemy defense (%)", &mut buffs.enemy_defense);
+        buff_inputs(ui, buffs);
     });
 }
 
@@ -128,33 +118,35 @@ pub(super) fn servant_setup(
         }
         **active_slot = 0;
         ui.ctx().request_repaint();
-    } else if portrait.error.is_some() {
+    } else if let Some(error) = portrait.error {
         let response =
             ui.colored_label(ERROR, "Portrait unavailable. Change servant to try again.");
         mark_live_status(ui.ctx(), response.id);
+        note(ui, error);
     }
     response
 }
 
+/// Everything about the target: class, attribute and defense.
 pub fn matchup_panel(
     ui: &mut egui::Ui,
     enemy_class: &mut ClassType,
     enemy_attribute: &mut AttributeType,
+    enemy_defense: &mut PercentInput,
 ) {
     section_frame(ui, |ui| {
-        ui.heading(RichText::new("Matchup").size(18.0));
-        ui.label(RichText::new("Set the enemy's class and attribute.").color(TEXT_MUTED));
-        ui.add_space(14.0);
+        section_heading(
+            ui,
+            "Enemy",
+            "Set the target's class, attribute and defense.",
+        );
 
         class_selector(ui, "Enemy class", enemy_class);
         if *enemy_class == ClassType::Beast {
-            ui.label(
-                RichText::new("Beast affinity depends on the specific encounter.")
-                    .size(13.0)
-                    .color(TEXT_MUTED),
-            );
+            note(ui, "Beast affinity depends on the specific encounter.");
         }
         attribute_selector(ui, "Enemy attribute", enemy_attribute);
+        percent_input(ui, "Enemy defense (%)", enemy_defense);
     });
 }
 
@@ -168,7 +160,7 @@ pub(super) fn servant_selector(
     let selected = data.servant(*selected_id).or_else(|| data.servants.first());
     let selected_name = selected.map_or("No servants loaded", |servant| servant.name.as_str());
 
-    ui.label(RichText::new("SERVANT").size(13.0).color(TEXT_MUTED));
+    group_label(ui, "SERVANT");
     ui.add_space(6.0);
     portrait_window(ui, portrait);
     ui.add_space(6.0);
@@ -178,15 +170,10 @@ pub(super) fn servant_selector(
             || format!("Maximum ATK {}", servant.attack),
             |level| format!("Level {level} · {} ATK", servant.attack),
         );
-        ui.label(RichText::new(attack_label).size(12.0).color(TEXT_MUTED));
-        ui.label(
-            RichText::new(format!(
-                "{} · {}",
-                servant.class.label(),
-                servant.attribute.label()
-            ))
-            .size(12.0)
-            .color(TEXT_MUTED),
+        note(ui, &attack_label);
+        note(
+            ui,
+            &format!("{} · {}", servant.class.label(), servant.attribute.label()),
         );
     }
     ui.add_space(8.0);
@@ -205,7 +192,7 @@ pub(super) fn servant_selector(
                     egui::TextEdit::singleline(search)
                         .id_salt("servant_search")
                         .desired_width(ui.available_width())
-                        .hint_text("Type a servant name"),
+                        .hint_text("Type a servant name or class"),
                 )
                 .labelled_by(search_label.id);
             let query = search.trim().to_lowercase();
@@ -215,7 +202,9 @@ pub(super) fn servant_selector(
                 .max_height(180.0)
                 .show(ui, |ui| {
                     for servant in &data.servants {
-                        if servant.name.to_lowercase().contains(&query) {
+                        if servant.name.to_lowercase().contains(&query)
+                            || servant.class.label().to_lowercase().contains(&query)
+                        {
                             matches += 1;
                             if ui
                                 .selectable_label(*selected_id == servant.id, &servant.name)
@@ -252,18 +241,21 @@ pub(super) fn portrait_window(ui: &mut egui::Ui, portrait: PortraitDisplay<'_>) 
             Color32::WHITE,
         );
     } else {
-        ui.painter().text(
-            rect.center(),
-            egui::Align2::CENTER_CENTER,
-            portrait.message,
-            egui::FontId::proportional(11.0),
+        let mut job = egui::text::LayoutJob::simple(
+            portrait.message.to_owned(),
+            egui::FontId::proportional(TEXT_SMALL),
             TEXT_MUTED,
+            (rect.width() - 16.0).max(1.0),
         );
+        job.halign = egui::Align::Center;
+        let galley = ui.painter().layout_job(job);
+        let position = egui::pos2(rect.center().x, rect.center().y - galley.size().y / 2.0);
+        ui.painter().galley(position, galley, TEXT_MUTED);
     }
     ui.painter().rect_stroke(
         rect,
         8.0,
-        egui::Stroke::new(1.0, Color32::from_rgb(59, 69, 91)),
+        egui::Stroke::new(1.0, BORDER),
         egui::StrokeKind::Inside,
     );
     if let Some(error) = portrait.error {

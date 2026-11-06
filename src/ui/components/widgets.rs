@@ -2,41 +2,39 @@
 
 use super::*;
 
+/// Paints the page background and applies the theme. The context style is
+/// updated too, so popups such as dropdown lists match from the next frame.
 pub fn apply_canvas(ui: &mut egui::Ui) {
+    let styled_id = egui::Id::new("fgc_theme_applied");
+    if !ui
+        .ctx()
+        .data(|data| data.get_temp::<bool>(styled_id).unwrap_or(false))
+    {
+        ui.ctx().set_theme(egui::Theme::Dark);
+        ui.ctx().all_styles_mut(theme::apply);
+        ui.ctx().data_mut(|data| data.insert_temp(styled_id, true));
+    }
+    theme::apply(ui.style_mut());
     ui.painter().rect_filled(ui.max_rect(), 0.0, BACKGROUND);
-    ui.spacing_mut().item_spacing = egui::vec2(10.0, 10.0);
-    ui.spacing_mut().interact_size = egui::vec2(44.0, 44.0);
-    ui.visuals_mut().widgets.active.bg_stroke = egui::Stroke::new(2.0, ACCENT);
-    ui.visuals_mut().widgets.hovered.bg_stroke = egui::Stroke::new(1.5, ACCENT);
 }
 
 pub fn header(ui: &mut egui::Ui) {
     ui.add_space(14.0);
-    ui.horizontal_wrapped(|ui| {
-        ui.vertical(|ui| {
-            let title_size = if ui.available_width() >= 420.0 {
-                27.0
-            } else {
-                22.0
-            };
-            ui.heading(
-                RichText::new("FateGrandCalculator")
-                    .size(title_size)
-                    .strong(),
-            );
-            ui.label(
-                RichText::new("Unofficial FGO damage calculator")
-                    .size(14.0)
-                    .color(TEXT_MUTED),
-            );
-        });
-        ui.add_space(12.0);
-        ui.label(
-            RichText::new("THREE CARDS · EARLY BUILD")
-                .size(12.0)
-                .color(ACCENT),
-        );
-    });
+    let title_size = if ui.available_width() >= 420.0 {
+        TEXT_TITLE
+    } else {
+        TEXT_TITLE_COMPACT
+    };
+    ui.heading(
+        RichText::new("FateGrandCalculator")
+            .size(title_size)
+            .strong(),
+    );
+    ui.label(
+        RichText::new("Unofficial FGO damage calculator")
+            .size(TEXT_BODY)
+            .color(TEXT_MUTED),
+    );
 }
 
 pub fn status_message(ui: &mut egui::Ui, text: &str) {
@@ -63,8 +61,25 @@ pub(super) fn section_frame(ui: &mut egui::Ui, add_contents: impl FnOnce(&mut eg
         });
 }
 
+/// A panel title with a one-line description under it.
+pub(super) fn section_heading(ui: &mut egui::Ui, title: &str, description: &str) {
+    ui.heading(RichText::new(title).size(TEXT_HEADING));
+    note(ui, description);
+    ui.add_space(8.0);
+}
+
+/// A small upper-case label that names a group of controls.
+pub(super) fn group_label(ui: &mut egui::Ui, text: &str) {
+    ui.label(RichText::new(text).size(TEXT_LABEL).color(TEXT_MUTED));
+}
+
+/// Secondary explanatory text.
+pub(super) fn note(ui: &mut egui::Ui, text: &str) -> egui::Response {
+    ui.label(RichText::new(text).size(TEXT_SMALL).color(TEXT_MUTED))
+}
+
 pub(super) fn class_selector(ui: &mut egui::Ui, label: &str, selected: &mut ClassType) {
-    let label_response = ui.label(RichText::new(label).size(14.0).color(TEXT_MUTED));
+    let label_response = ui.label(RichText::new(label).size(TEXT_BODY).color(TEXT_MUTED));
     let combo = egui::ComboBox::from_id_salt(label)
         .selected_text(selected.label())
         .width(ui.available_width().min(220.0))
@@ -77,7 +92,7 @@ pub(super) fn class_selector(ui: &mut egui::Ui, label: &str, selected: &mut Clas
 }
 
 pub(super) fn attribute_selector(ui: &mut egui::Ui, label: &str, selected: &mut AttributeType) {
-    let label_response = ui.label(RichText::new(label).size(14.0).color(TEXT_MUTED));
+    let label_response = ui.label(RichText::new(label).size(TEXT_BODY).color(TEXT_MUTED));
     let combo = egui::ComboBox::from_id_salt(label)
         .selected_text(selected.label())
         .width(ui.available_width().min(220.0))
