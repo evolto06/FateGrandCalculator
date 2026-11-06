@@ -4,7 +4,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use serde::Deserialize;
 use serde_json::Value;
 
-use crate::loader::{GameData, ServantRecord};
+use crate::loader::{AffectionScaling, GameData, NoblePhantasmRecord, NpStatus, ServantRecord};
 use crate::model::{AttributeType, ClassType};
 use crate::np_mechanics::components::{NpDamageComponent, NpDamageValues, NpTarget};
 use crate::np_mechanics::enemy_status::{EnemyStatus, EnemyStatusScaling};
@@ -191,13 +191,19 @@ fn compact(value: &str) -> String {
 
 /// Adds compact gameplay metadata from a single Atlas nice-servant response.
 pub fn enrich_servant(servant: &mut ServantRecord, row: &Value) -> Result<(), String> {
-    use crate::loader::{NoblePhantasmRecord, NpStatus};
     if row.get("id").and_then(Value::as_u64) != Some(servant.id as u64) {
         return Err(format!(
             "Atlas returned the wrong servant for {}.",
             servant.name
         ));
     }
+    import_max_hp(servant, row)?;
+    import_deck(servant, row)?;
+    import_noble_phantasms(servant, row);
+    Ok(())
+}
+
+fn import_max_hp(servant: &mut ServantRecord, row: &Value) -> Result<(), String> {
     // Atlas hpMax is the natural maximum-level statistic (hpGrowth[lvMax - 1]
     // in the audited responses), before player-entered Fous or grail levels.
     if let Some(hp) = row.get("hpMax") {
@@ -210,6 +216,10 @@ pub fn enrich_servant(servant: &mut ServantRecord, row: &Value) -> Result<(), St
                 })?,
         );
     }
+    Ok(())
+}
+
+fn import_deck(servant: &mut ServantRecord, row: &Value) -> Result<(), String> {
     let cards = row
         .get("cards")
         .and_then(Value::as_array)
@@ -240,6 +250,12 @@ pub fn enrich_servant(servant: &mut ServantRecord, row: &Value) -> Result<(), St
             ));
         }
     }
+    Ok(())
+}
+
+/// Replaces the servant's NPs with every supported damaging variant and sets
+/// `np_status` from what was skipped.
+fn import_noble_phantasms(servant: &mut ServantRecord, row: &Value) {
     servant.noble_phantasms.clear();
     let Some(nps) = row
         .get("noblePhantasms")
@@ -247,313 +263,25 @@ pub fn enrich_servant(servant: &mut ServantRecord, row: &Value) -> Result<(), St
         .filter(|nps| !nps.is_empty())
     else {
         servant.np_status = NpStatus::Unavailable;
-        return Ok(());
+        return;
     };
     let mut unsupported = false;
     let mut incomplete = false;
     for np in nps {
-        let Some(functions) = np
-            .get("functions")
-            .and_then(Value::as_array)
-            .filter(|f| !f.is_empty())
-        else {
-            incomplete = true;
-            continue;
-        };
-        if functions
-            .iter()
-            .any(|function| function.get("funcType").and_then(Value::as_str).is_none())
-        {
-            incomplete = true;
-            continue;
-        }
-        let damage_functions: Vec<_> = functions
-            .iter()
-            .enumerate()
-            .filter(|(_, f)| {
-                f.get("funcType")
-                    .and_then(Value::as_str)
-                    .is_some_and(|t| t.starts_with("damage"))
-            })
-            .collect();
-        if damage_functions.is_empty() {
-            if np
-                .get("effectFlags")
-                .and_then(Value::as_array)
-                .is_some_and(|flags| {
-                    flags.iter().any(|flag| {
-                        flag.as_str()
-                            .is_some_and(|flag| flag.starts_with("attackEnemy"))
-                    })
-                })
-            {
-                unsupported = true;
-            }
-            continue;
-        }
-        let function_types: Vec<_> = damage_functions
-            .iter()
-            .map(|(_, damage)| damage["funcType"].as_str().unwrap_or(""))
-            .collect();
-        let damage_kind = np_mechanics::classify_functions(&function_types, servant.id);
-        // Only audited variants may use the verified consecutive component path.
-        let np_id = np
-            .get("id")
-            .and_then(Value::as_u64)
-            .and_then(|id| u32::try_from(id).ok());
-        let multi = damage_kind == NpDamageKind::MultipleComponents;
-        if multi
-            && !(np_id
-                .is_some_and(|id| np_mechanics::multi_import::is_verified_variant(servant.id, id))
-                && np_mechanics::multi_import::is_verified_shape(&damage_functions))
-        {
-            unsupported = true;
-            continue;
-        }
-        if !multi
-            && !matches!(
-                damage_kind,
-                NpDamageKind::Standard
-                    | NpDamageKind::TraitBase
-                    | NpDamageKind::DefensePierce
-                    | NpDamageKind::SpaceEresh
-                    | NpDamageKind::HpRatioLow
-                    | NpDamageKind::StateIndividualFix
-            )
-        {
-            unsupported = true;
-            continue;
-        }
-        let (position, damage) = damage_functions[0];
-        let function_type = damage["funcType"].as_str().unwrap_or("");
-        let affection_np = damage_kind == NpDamageKind::SpaceEresh;
-        let low_hp_np = damage_kind == NpDamageKind::HpRatioLow;
-        let status_np = damage_kind == NpDamageKind::StateIndividualFix;
-        if low_hp_np && !is_supported_damage_shape(np, damage) {
-            unsupported = true;
-            continue;
-        }
-        let status_condition = if status_np {
-            let Some(condition) = np_id.and_then(|id| verified_enemy_status(servant.id, id)) else {
-                unsupported = true;
-                continue;
-            };
-            let expected_target = if matches!(condition, EnemyStatus::Bind | EnemyStatus::Charm) {
-                "enemyAll"
-            } else {
-                "enemy"
-            };
-            if !is_supported_damage_shape(np, damage)
-                || damage["funcTargetType"].as_str() != Some(expected_target)
-            {
-                unsupported = true;
-                continue;
-            }
-            Some(condition)
-        } else {
-            None
-        };
-        let mut components = Vec::new();
-        let mut bad_data = false;
-        let mut bad_condition = false;
-        for (_, function) in &damage_functions {
-            let target = match function.get("funcTargetType").and_then(Value::as_str) {
-                Some("enemy") => Some(NpTarget::Enemy),
-                Some("enemyAll") => Some(NpTarget::EnemyAll),
-                None if !multi && !low_hp_np && !status_np => None,
-                _ => {
-                    bad_condition = true;
-                    break;
-                }
-            };
-            let mut overcharge: [Option<NpDamageValues>; 5] = std::array::from_fn(|_| None);
-            for (oc, output) in overcharge.iter_mut().enumerate() {
-                let key = if oc == 0 {
-                    "svals".to_owned()
-                } else {
-                    format!("svals{}", oc + 1)
-                };
-                if let Some(values) = function.get(&key) {
-                    match import_damage_values(values, function_type, multi, status_condition) {
-                        Ok(row) => *output = Some(row),
-                        Err(ImportValuesError::Unsupported) => {
-                            if oc == 0 {
-                                bad_condition = true;
-                            }
-                        }
-                        Err(ImportValuesError::Incomplete) => {
-                            if oc == 0 {
-                                bad_data = true;
-                            }
-                        }
-                    }
-                } else if oc == 0 {
-                    bad_data = true;
-                }
-            }
-            components.push(NpDamageComponent { target, overcharge });
-        }
-        if bad_condition {
-            unsupported = true;
-            continue;
-        }
-        if bad_data {
-            incomplete = true;
-            continue;
-        }
-        // Base rates stay usable when the conditional contract is unsupported.
-        // Enable the bonus only when every supplied source row is audited and
-        // keeps the same condition across NP levels and Overcharge.
-        let trait_condition = if damage_kind == NpDamageKind::TraitBase {
-            import_trait_bonus(np, damage, &mut components[0])
-        } else {
-            None
-        };
-        // A row is usable only when every component explicitly supplies it.
-        for oc in 0..5 {
-            let complete = components
-                .iter()
-                .all(|component| component.overcharge[oc].is_some());
-            let active = complete
-                && (0..5).all(|level| {
-                    components.iter().any(|component| {
-                        let row = component.overcharge[oc].as_ref().unwrap();
-                        row.rates[level] == 1000 && row.multipliers[level] > 0.0
-                    })
-                });
-            if !active {
-                for component in &mut components {
-                    component.overcharge[oc] = None;
-                }
-            }
-        }
-        if components
-            .iter()
-            .any(|component| component.overcharge[0].is_none())
-        {
-            incomplete = true;
-            continue;
-        }
-        let affection = if affection_np {
-            let Some(scaling) = np_mechanics::space_eresh::import_scaling(damage, servant.id)
-            else {
-                incomplete = true;
-                continue;
-            };
-            for oc in 1..5 {
-                if components[0].overcharge[oc].is_some() {
-                    let mut other = damage.clone();
-                    other["svals"] = damage[format!("svals{}", oc + 1)].clone();
-                    let same = np_mechanics::space_eresh::import_scaling(&other, servant.id)
-                        .is_some_and(|other| {
-                            other.base == scaling.base
-                                && other.per_level == scaling.per_level
-                                && other.max_level == scaling.max_level
-                                && other.ignore_defense_at == scaling.ignore_defense_at
-                        });
-                    if !same {
-                        components[0].overcharge[oc] = None;
-                    }
-                }
-            }
-            Some(scaling)
-        } else {
-            None
-        };
-        let Some(card_type) = np.get("card").and_then(parse_card) else {
-            incomplete = true;
-            continue;
-        };
-        let Some(id) = np
-            .get("id")
-            .and_then(Value::as_u64)
-            .and_then(|v| u32::try_from(v).ok())
-            .filter(|v| *v > 0)
-        else {
-            incomplete = true;
-            continue;
-        };
-        let Some(name) = np
-            .get("name")
-            .and_then(Value::as_str)
-            .filter(|n| !n.trim().is_empty())
-        else {
-            incomplete = true;
-            continue;
-        };
-        let mut notes = Vec::new();
-        if function_type == "damageNpIndividual" {
-            notes.push(if trait_condition.is_some() {
-                "Set the matching enemy trait at NP damage time. Preceding trait-granting effects must be accounted for manually; other NP effects are not simulated."
-            } else {
-                "Conditional NP trait bonus metadata is unsupported or unavailable; this is base damage. Update servant data for audited bonuses."
-            }.into());
-        }
-        if affection_np {
-            notes.push("Set the affection level at the moment NP damage lands. Higher Overcharge can raise the gauge before damage; adjust the level manually.".into());
-        }
-        if low_hp_np {
-            notes.push("Set attacker HP at NP damage time, including preceding HP loss or healing. HP changes and other NP effects are not simulated.".into());
-        }
-        if status_np {
-            notes.push("Set the matching enemy status at NP damage time. Status application and success are not simulated; preceding effects must actually land, and effects after damage cannot activate this NP's bonus.".into());
-        }
-        if damage_kind == NpDamageKind::DefensePierce {
-            notes.push(
-                "Ignores positive enemy Defense; Defense Down still increases damage.".into(),
-            );
-        }
-        if position > 0 {
-            notes.push(if affection_np {
-                "Other NP effects before damage are not applied automatically; enter applicable buffs manually."
-            } else {
-                "NP effects before damage are not applied automatically; enter applicable buffs manually."
-            }.into());
-        }
-        if functions.len() > 1 {
-            notes.push(
-                "Other NP effects, including changes to later cards, are not simulated.".into(),
-            );
-        }
-        if components[0].overcharge.iter().skip(1).any(Option::is_none) {
-            notes.push("Some Overcharge rows are unavailable. Update servant data to fetch complete values; missing rows are never inferred.".into());
-        }
-        if multi {
-            match servant.id {
-                201300 => notes.push("Arash's self-sacrifice and its effects on later cards are not simulated.".into()),
-                504400 => notes.push("Chen Gong's NP assumes an eligible ally is available; ally sacrifice and its effects on later cards are not simulated.".into()),
-                305400 => notes.push("Bhima removes enemy buffs before damage; enter the resulting enemy Defense manually. Buff removal and later effects are not simulated.".into()),
-                _ => {}
-            }
-        }
-        if servant
-            .noble_phantasms
-            .iter()
-            .any(|existing| existing.id == id)
-        {
-            continue;
-        }
-        servant.noble_phantasms.push(NoblePhantasmRecord {
-            id,
-            name: format!(
-                "{name} ({})",
-                if np
-                    .get("strengthStatus")
-                    .and_then(Value::as_u64)
-                    .unwrap_or(0)
-                    >= 2
+        match import_np(servant.id, np) {
+            Ok(record) => {
+                if !servant
+                    .noble_phantasms
+                    .iter()
+                    .any(|existing| existing.id == record.id)
                 {
-                    "upgraded"
-                } else {
-                    "base"
+                    servant.noble_phantasms.push(record);
                 }
-            ),
-            card_type,
-            components,
-            affection,
-            defense_pierce: damage_kind == NpDamageKind::DefensePierce,
-            notes,
-        });
+            }
+            Err(NpSkip::NoDamage) => {}
+            Err(NpSkip::Unsupported) => unsupported = true,
+            Err(NpSkip::Incomplete) => incomplete = true,
+        }
     }
     servant.np_status = if !servant.noble_phantasms.is_empty() {
         if unsupported || incomplete {
@@ -569,7 +297,368 @@ pub fn enrich_servant(servant: &mut ServantRecord, row: &Value) -> Result<(), St
     } else {
         NpStatus::Support
     };
-    Ok(())
+}
+
+/// Why an NP variant was not imported.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum NpSkip {
+    /// A support NP: it deals no damage.
+    NoDamage,
+    /// It deals damage in a way the calculator does not model.
+    Unsupported,
+    /// Atlas data is missing or malformed.
+    Incomplete,
+}
+
+impl From<ImportValuesError> for NpSkip {
+    fn from(error: ImportValuesError) -> Self {
+        match error {
+            ImportValuesError::Incomplete => Self::Incomplete,
+            ImportValuesError::Unsupported => Self::Unsupported,
+        }
+    }
+}
+
+/// Imports one NP variant from an Atlas nice-servant `noblePhantasms` entry.
+fn import_np(servant_id: u32, np: &Value) -> Result<NoblePhantasmRecord, NpSkip> {
+    let functions = np
+        .get("functions")
+        .and_then(Value::as_array)
+        .filter(|f| !f.is_empty())
+        .ok_or(NpSkip::Incomplete)?;
+    if functions
+        .iter()
+        .any(|function| function.get("funcType").and_then(Value::as_str).is_none())
+    {
+        return Err(NpSkip::Incomplete);
+    }
+    let damage_functions: Vec<_> = functions
+        .iter()
+        .enumerate()
+        .filter(|(_, f)| {
+            f.get("funcType")
+                .and_then(Value::as_str)
+                .is_some_and(|t| t.starts_with("damage"))
+        })
+        .collect();
+    let Some(&(position, damage)) = damage_functions.first() else {
+        return Err(if attacks_enemy(np) {
+            NpSkip::Unsupported
+        } else {
+            NpSkip::NoDamage
+        });
+    };
+    let function_types: Vec<_> = damage_functions
+        .iter()
+        .map(|(_, damage)| damage["funcType"].as_str().unwrap_or(""))
+        .collect();
+    let kind = np_mechanics::classify_functions(&function_types, servant_id);
+    let np_id = np
+        .get("id")
+        .and_then(Value::as_u64)
+        .and_then(|id| u32::try_from(id).ok());
+    check_supported_kind(servant_id, np_id, np, &damage_functions, kind)?;
+
+    let status_condition = if kind == NpDamageKind::StateIndividualFix {
+        Some(import_status_condition(servant_id, np_id, np, damage)?)
+    } else {
+        None
+    };
+    let function_type = damage["funcType"].as_str().unwrap_or("");
+    let mut components =
+        import_components(&damage_functions, function_type, kind, status_condition)?;
+    // Base rates stay usable when the conditional contract is unsupported.
+    // Enable the bonus only when every supplied source row is audited and
+    // keeps the same condition across NP levels and Overcharge.
+    let trait_condition = if kind == NpDamageKind::TraitBase {
+        import_trait_bonus(np, damage, &mut components[0])
+    } else {
+        None
+    };
+    keep_complete_overcharge_rows(&mut components);
+    if components
+        .iter()
+        .any(|component| component.overcharge[0].is_none())
+    {
+        return Err(NpSkip::Incomplete);
+    }
+    let affection = if kind == NpDamageKind::SpaceEresh {
+        Some(import_affection(servant_id, damage, &mut components[0])?)
+    } else {
+        None
+    };
+
+    let card_type = np
+        .get("card")
+        .and_then(parse_card)
+        .ok_or(NpSkip::Incomplete)?;
+    let id = np
+        .get("id")
+        .and_then(Value::as_u64)
+        .and_then(|v| u32::try_from(v).ok())
+        .filter(|v| *v > 0)
+        .ok_or(NpSkip::Incomplete)?;
+    let name = np
+        .get("name")
+        .and_then(Value::as_str)
+        .filter(|n| !n.trim().is_empty())
+        .ok_or(NpSkip::Incomplete)?;
+    let upgraded = np
+        .get("strengthStatus")
+        .and_then(Value::as_u64)
+        .unwrap_or(0)
+        >= 2;
+
+    let notes = np_notes(
+        servant_id,
+        &NpShape {
+            kind,
+            function_type,
+            damage_position: position,
+            function_count: functions.len(),
+            has_trait_bonus: trait_condition.is_some(),
+            missing_overcharge: components[0].overcharge.iter().skip(1).any(Option::is_none),
+        },
+    );
+    Ok(NoblePhantasmRecord {
+        id,
+        name: format!("{name} ({})", if upgraded { "upgraded" } else { "base" }),
+        card_type,
+        components,
+        affection,
+        defense_pierce: kind == NpDamageKind::DefensePierce,
+        notes,
+    })
+}
+
+/// True when a non-damaging NP still declares an attack, so damage exists in a
+/// form the importer does not recognize.
+fn attacks_enemy(np: &Value) -> bool {
+    np.get("effectFlags")
+        .and_then(Value::as_array)
+        .is_some_and(|flags| {
+            flags.iter().any(|flag| {
+                flag.as_str()
+                    .is_some_and(|flag| flag.starts_with("attackEnemy"))
+            })
+        })
+}
+
+fn check_supported_kind(
+    servant_id: u32,
+    np_id: Option<u32>,
+    np: &Value,
+    damage_functions: &[(usize, &Value)],
+    kind: NpDamageKind,
+) -> Result<(), NpSkip> {
+    let supported = match kind {
+        // Only audited variants may use the verified consecutive component path.
+        NpDamageKind::MultipleComponents => {
+            np_id.is_some_and(|id| np_mechanics::multi_import::is_verified_variant(servant_id, id))
+                && np_mechanics::multi_import::is_verified_shape(damage_functions)
+        }
+        NpDamageKind::HpRatioLow => is_supported_damage_shape(np, damage_functions[0].1),
+        NpDamageKind::Standard
+        | NpDamageKind::TraitBase
+        | NpDamageKind::DefensePierce
+        | NpDamageKind::SpaceEresh
+        | NpDamageKind::StateIndividualFix => true,
+        NpDamageKind::IndividualSum
+        | NpDamageKind::Rarity
+        | NpDamageKind::AndOr
+        | NpDamageKind::Unknown => false,
+    };
+    if supported {
+        Ok(())
+    } else {
+        Err(NpSkip::Unsupported)
+    }
+}
+
+/// Audited enemy-status NPs must match their recorded condition and target.
+fn import_status_condition(
+    servant_id: u32,
+    np_id: Option<u32>,
+    np: &Value,
+    damage: &Value,
+) -> Result<EnemyStatus, NpSkip> {
+    let condition = np_id
+        .and_then(|id| verified_enemy_status(servant_id, id))
+        .ok_or(NpSkip::Unsupported)?;
+    let expected_target = if matches!(condition, EnemyStatus::Bind | EnemyStatus::Charm) {
+        "enemyAll"
+    } else {
+        "enemy"
+    };
+    if !is_supported_damage_shape(np, damage)
+        || damage["funcTargetType"].as_str() != Some(expected_target)
+    {
+        return Err(NpSkip::Unsupported);
+    }
+    Ok(condition)
+}
+
+/// Reads every Overcharge row of each damage function. Problems in a later
+/// Overcharge row only drop that row; problems in OC1 skip the whole NP.
+fn import_components(
+    damage_functions: &[(usize, &Value)],
+    function_type: &str,
+    kind: NpDamageKind,
+    status_condition: Option<EnemyStatus>,
+) -> Result<Vec<NpDamageComponent>, NpSkip> {
+    let multi = kind == NpDamageKind::MultipleComponents;
+    let target_required = matches!(
+        kind,
+        NpDamageKind::MultipleComponents
+            | NpDamageKind::HpRatioLow
+            | NpDamageKind::StateIndividualFix
+    );
+    let mut components = Vec::new();
+    let mut first_row_error = None;
+    for (_, function) in damage_functions {
+        let target = match function.get("funcTargetType").and_then(Value::as_str) {
+            Some("enemy") => Some(NpTarget::Enemy),
+            Some("enemyAll") => Some(NpTarget::EnemyAll),
+            None if !target_required => None,
+            _ => return Err(NpSkip::Unsupported),
+        };
+        let mut overcharge: [Option<NpDamageValues>; 5] = std::array::from_fn(|_| None);
+        for (oc, output) in overcharge.iter_mut().enumerate() {
+            let key = if oc == 0 {
+                "svals".to_owned()
+            } else {
+                format!("svals{}", oc + 1)
+            };
+            let row = match function.get(&key) {
+                Some(values) => {
+                    import_damage_values(values, function_type, multi, status_condition)
+                }
+                None => Err(ImportValuesError::Incomplete),
+            };
+            match row {
+                Ok(row) => *output = Some(row),
+                Err(error) if oc == 0 => {
+                    // An unsupported condition outranks missing data.
+                    if first_row_error != Some(NpSkip::Unsupported) {
+                        first_row_error = Some(error.into());
+                    }
+                }
+                Err(_) => {}
+            }
+        }
+        components.push(NpDamageComponent { target, overcharge });
+    }
+    match first_row_error {
+        Some(skip) => Err(skip),
+        None => Ok(components),
+    }
+}
+
+/// A row is usable only when every component explicitly supplies it and
+/// every NP level deals guaranteed, positive damage in at least one component.
+fn keep_complete_overcharge_rows(components: &mut [NpDamageComponent]) {
+    for oc in 0..5 {
+        let active = (0..5).all(|level| {
+            components.iter().any(|component| {
+                component.overcharge[oc]
+                    .as_ref()
+                    .is_some_and(|row| row.rates[level] == 1000 && row.multipliers[level] > 0.0)
+            })
+        }) && components
+            .iter()
+            .all(|component| component.overcharge[oc].is_some());
+        if !active {
+            for component in components.iter_mut() {
+                component.overcharge[oc] = None;
+            }
+        }
+    }
+}
+
+/// Space Ereshkigal's affection scaling must be the same in every kept
+/// Overcharge row; rows that differ are dropped.
+fn import_affection(
+    servant_id: u32,
+    damage: &Value,
+    component: &mut NpDamageComponent,
+) -> Result<AffectionScaling, NpSkip> {
+    let scaling =
+        np_mechanics::space_eresh::import_scaling(damage, servant_id).ok_or(NpSkip::Incomplete)?;
+    for oc in 1..5 {
+        if component.overcharge[oc].is_some() {
+            let mut other = damage.clone();
+            other["svals"] = damage[format!("svals{}", oc + 1)].clone();
+            let same = np_mechanics::space_eresh::import_scaling(&other, servant_id).is_some_and(
+                |other| {
+                    other.base == scaling.base
+                        && other.per_level == scaling.per_level
+                        && other.max_level == scaling.max_level
+                        && other.ignore_defense_at == scaling.ignore_defense_at
+                },
+            );
+            if !same {
+                component.overcharge[oc] = None;
+            }
+        }
+    }
+    Ok(scaling)
+}
+
+/// The facts about an imported NP that decide which notes it shows.
+struct NpShape<'a> {
+    kind: NpDamageKind,
+    function_type: &'a str,
+    /// Index of the first damage function among all NP functions.
+    damage_position: usize,
+    function_count: usize,
+    has_trait_bonus: bool,
+    missing_overcharge: bool,
+}
+
+fn np_notes(servant_id: u32, shape: &NpShape<'_>) -> Vec<String> {
+    let affection_np = shape.kind == NpDamageKind::SpaceEresh;
+    let mut notes = Vec::new();
+    if shape.function_type == "damageNpIndividual" {
+        notes.push(if shape.has_trait_bonus {
+            "Set the matching enemy trait at NP damage time. Preceding trait-granting effects must be accounted for manually; other NP effects are not simulated."
+        } else {
+            "Conditional NP trait bonus metadata is unsupported or unavailable; this is base damage. Update servant data for audited bonuses."
+        }.into());
+    }
+    if affection_np {
+        notes.push("Set the affection level at the moment NP damage lands. Higher Overcharge can raise the gauge before damage; adjust the level manually.".into());
+    }
+    if shape.kind == NpDamageKind::HpRatioLow {
+        notes.push("Set attacker HP at NP damage time, including preceding HP loss or healing. HP changes and other NP effects are not simulated.".into());
+    }
+    if shape.kind == NpDamageKind::StateIndividualFix {
+        notes.push("Set the matching enemy status at NP damage time. Status application and success are not simulated; preceding effects must actually land, and effects after damage cannot activate this NP's bonus.".into());
+    }
+    if shape.kind == NpDamageKind::DefensePierce {
+        notes.push("Ignores positive enemy Defense; Defense Down still increases damage.".into());
+    }
+    if shape.damage_position > 0 {
+        notes.push(if affection_np {
+            "Other NP effects before damage are not applied automatically; enter applicable buffs manually."
+        } else {
+            "NP effects before damage are not applied automatically; enter applicable buffs manually."
+        }.into());
+    }
+    if shape.function_count > 1 {
+        notes.push("Other NP effects, including changes to later cards, are not simulated.".into());
+    }
+    if shape.missing_overcharge {
+        notes.push("Some Overcharge rows are unavailable. Update servant data to fetch complete values; missing rows are never inferred.".into());
+    }
+    if shape.kind == NpDamageKind::MultipleComponents {
+        match servant_id {
+            201300 => notes.push("Arash's self-sacrifice and its effects on later cards are not simulated.".into()),
+            504400 => notes.push("Chen Gong's NP assumes an eligible ally is available; ally sacrifice and its effects on later cards are not simulated.".into()),
+            305400 => notes.push("Bhima removes enemy buffs before damage; enter the resulting enemy Defense manually. Buff removal and later effects are not simulated.".into()),
+            _ => {}
+        }
+    }
+    notes
 }
 
 fn parse_card(value: &Value) -> Option<crate::model::CardType> {
@@ -851,4 +940,130 @@ fn is_supported_damage_shape(np: &Value, function: &Value) -> bool {
                 .get("script")
                 .is_none_or(|script| script.as_object().is_some_and(serde_json::Map::is_empty))
         })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    fn svals(values: [u32; 5]) -> Value {
+        Value::Array(values.iter().map(|v| json!({ "Value": v })).collect())
+    }
+
+    fn standard_np() -> Value {
+        json!({"id": 100101, "name": "Excalibur", "card": "2", "strengthStatus": 1, "functions": [
+            {"funcType": "damageNp", "svals": svals([3000, 4000, 4500, 4750, 5000])}
+        ]})
+    }
+
+    #[test]
+    fn import_np_reads_a_standard_np() {
+        let np = import_np(100100, &standard_np()).unwrap();
+        assert_eq!(np.id, 100101);
+        assert_eq!(np.name, "Excalibur (base)");
+        assert_eq!(np.card_type, crate::model::CardType::Buster);
+        assert_eq!(np.components.len(), 1);
+        assert!(np.notes.iter().any(|note| note.contains("Overcharge rows")));
+    }
+
+    #[test]
+    fn import_np_classifies_skipped_variants() {
+        let support = json!({"functions": [{"funcType": "addState"}]});
+        assert_eq!(import_np(1, &support).unwrap_err(), NpSkip::NoDamage);
+
+        let hidden_attack =
+            json!({"effectFlags": ["attackEnemyAll"], "functions": [{"funcType": "addState"}]});
+        assert_eq!(
+            import_np(1, &hidden_attack).unwrap_err(),
+            NpSkip::Unsupported
+        );
+
+        let unknown_kind = json!({"functions": [{"funcType": "damageNpHpratioHigh"}]});
+        assert_eq!(
+            import_np(1, &unknown_kind).unwrap_err(),
+            NpSkip::Unsupported
+        );
+
+        let no_functions = json!({"functions": []});
+        assert_eq!(import_np(1, &no_functions).unwrap_err(), NpSkip::Incomplete);
+
+        let mut missing_first_row = standard_np();
+        missing_first_row["functions"][0]
+            .as_object_mut()
+            .unwrap()
+            .remove("svals");
+        assert_eq!(
+            import_np(1, &missing_first_row).unwrap_err(),
+            NpSkip::Incomplete
+        );
+
+        let mut no_card = standard_np();
+        no_card.as_object_mut().unwrap().remove("card");
+        assert_eq!(import_np(1, &no_card).unwrap_err(), NpSkip::Incomplete);
+    }
+
+    #[test]
+    fn import_components_prefers_unsupported_over_missing_rows() {
+        let missing = json!({"funcType": "damageNp", "funcTargetType": "enemy"});
+        let bad_target =
+            json!({"funcType": "damageNp", "funcTargetType": "self", "svals": svals([1000; 5])});
+        let functions = [(0, &missing), (1, &bad_target)];
+        assert_eq!(
+            import_components(&functions, "damageNp", NpDamageKind::Standard, None).unwrap_err(),
+            NpSkip::Unsupported
+        );
+        assert_eq!(
+            import_components(&functions[..1], "damageNp", NpDamageKind::Standard, None)
+                .unwrap_err(),
+            NpSkip::Incomplete
+        );
+    }
+
+    #[test]
+    fn keep_complete_overcharge_rows_drops_rows_missing_from_any_component() {
+        let row = || Some(NpDamageValues::guaranteed([1.0; 5]));
+        let mut components = vec![
+            NpDamageComponent {
+                target: None,
+                overcharge: [row(), row(), row(), None, None],
+            },
+            NpDamageComponent {
+                target: None,
+                overcharge: [row(), None, row(), row(), None],
+            },
+        ];
+        keep_complete_overcharge_rows(&mut components);
+        for component in &components {
+            let kept: Vec<_> = component.overcharge.iter().map(Option::is_some).collect();
+            assert_eq!(kept, [true, false, true, false, false]);
+        }
+    }
+
+    #[test]
+    fn np_notes_describe_each_unmodeled_effect() {
+        let shape = NpShape {
+            kind: NpDamageKind::DefensePierce,
+            function_type: "damageNpPierce",
+            damage_position: 1,
+            function_count: 2,
+            has_trait_bonus: false,
+            missing_overcharge: false,
+        };
+        let notes = np_notes(1, &shape);
+        assert_eq!(notes.len(), 3);
+        assert!(notes[0].starts_with("Ignores positive enemy Defense"));
+        assert!(notes[1].starts_with("NP effects before damage"));
+        assert!(notes[2].starts_with("Other NP effects"));
+
+        let arash = NpShape {
+            kind: NpDamageKind::MultipleComponents,
+            function_type: "damageNp",
+            damage_position: 0,
+            function_count: 1,
+            has_trait_bonus: false,
+            missing_overcharge: false,
+        };
+        assert!(np_notes(201300, &arash)[0].starts_with("Arash's self-sacrifice"));
+    }
 }
