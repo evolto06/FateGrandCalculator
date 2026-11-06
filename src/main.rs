@@ -4,9 +4,11 @@ mod portrait;
 mod ui;
 
 use app::CalculatorApp;
-use eframe::egui;
 
+#[cfg(not(target_arch = "wasm32"))]
 fn main() -> eframe::Result<()> {
+    use eframe::egui;
+
     eframe::run_native(
         "FateGrandCalculator",
         eframe::NativeOptions {
@@ -17,4 +19,44 @@ fn main() -> eframe::Result<()> {
         },
         Box::new(|_| Ok(Box::new(CalculatorApp::default()))),
     )
+}
+
+/// Browser entry point: draws into the `<canvas id="app">` in `index.html`.
+/// Build and serve it with `trunk serve` (see the README).
+#[cfg(target_arch = "wasm32")]
+fn main() {
+    use eframe::wasm_bindgen::JsCast as _;
+
+    wasm_bindgen_futures::spawn_local(async {
+        let Some(document) = eframe::web_sys::window().and_then(|window| window.document()) else {
+            eframe::web_sys::console::error_1(&"No browser document is available.".into());
+            return;
+        };
+        let Some(canvas) = document.get_element_by_id("app").and_then(|element| {
+            element
+                .dyn_into::<eframe::web_sys::HtmlCanvasElement>()
+                .ok()
+        }) else {
+            eframe::web_sys::console::error_1(&"The page has no <canvas id=\"app\">.".into());
+            return;
+        };
+
+        let started = eframe::WebRunner::new()
+            .start(
+                canvas,
+                eframe::WebOptions::default(),
+                Box::new(|_| Ok(Box::new(CalculatorApp::default()))),
+            )
+            .await;
+
+        if let Some(loading) = document.get_element_by_id("loading") {
+            match started {
+                Ok(()) => loading.remove(),
+                Err(error) => {
+                    loading.set_text_content(Some("FateGrandCalculator could not start."));
+                    eframe::web_sys::console::error_1(&error);
+                }
+            }
+        }
+    });
 }

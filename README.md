@@ -27,7 +27,7 @@ Atlas Academy export -- user-triggered import --> local servant snapshot
                                               eframe/egui        WebAssembly
 ```
 
-The calculation core has no GUI, network, or platform-specific dependencies. It accepts the attack inputs and returns each multiplier with the damage range. The desktop client loads the last locally saved servant snapshot, falling back to a bundled seed. Servant data updates happen only when the user chooses **Update servant data**. The selected servant's portrait streams separately from Atlas Academy.
+The calculation core has no GUI, network, or platform-specific dependencies. It accepts the attack inputs and returns each multiplier with the damage range. The desktop client loads the last locally saved servant snapshot, falling back to a bundled seed. Servant data updates happen only when the user chooses **Update servant data**. The selected servant's portrait streams separately from Atlas Academy. The web client runs the same UI in the browser with the bundled seed only; it has no servant data updates or portrait streaming.
 
 ```rust
 pub fn calculate(input: DamageInput) -> DamageResult;
@@ -65,10 +65,17 @@ The desktop milestone supports three-card sequences, explicitly imported NP-leve
 
 ## Development
 
-Run the console example:
+Run the desktop app:
 
 ```sh
 cargo run
+```
+
+Run the web client (needs the `wasm32-unknown-unknown` target and [Trunk](https://trunkrs.dev/), installed with `cargo install trunk`):
+
+```sh
+trunk serve            # development server at http://127.0.0.1:8080
+trunk build --release  # static files in dist/
 ```
 
 Run the calculation tests:
@@ -77,7 +84,13 @@ Run the calculation tests:
 cargo test
 ```
 
-Integration tests are grouped by purpose under `tests/`, including NP mechanics tests for runtime behavior, NP import, and Space Ereshkigal; face-card and turn damage, card selection, class affinity, attribute affinity, game-data loading, percent input, servant damage, and servant model construction have their own suites.
+Run every check (formatting, clippy, tests and the web build) with `scripts/check.sh`; add `--audit` to include `cargo audit`. To run the checks before each push, enable the tracked hook once per clone:
+
+```sh
+git config core.hooksPath .githooks
+```
+
+Integration tests are grouped by purpose under `tests/`, including NP mechanics tests for runtime behavior, NP import, and Space Ereshkigal; face-card and turn damage, card selection, class affinity, attribute affinity, game-data loading, percent input, and servant damage have their own suites.
 
 ## License
 

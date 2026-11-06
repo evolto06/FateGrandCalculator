@@ -646,6 +646,8 @@ pub(crate) fn clear_hp_inputs(context: &egui::Context, servant_id: u32) {
     });
 }
 
+// Only the desktop servant-data updater resets these.
+#[cfg(not(target_arch = "wasm32"))]
 pub(crate) fn has_hp_inputs(context: &egui::Context, servant_id: u32) -> bool {
     context.data(|data| {
         data.get_temp::<HpInputs>(hp_inputs_id(servant_id))
@@ -805,6 +807,8 @@ fn enemy_status_ui_id() -> egui::Id {
     egui::Id::new("enemy_status_assumption")
 }
 
+// Only the desktop servant-data updater resets these.
+#[cfg(not(target_arch = "wasm32"))]
 pub(crate) fn reset_enemy_status_for_catalog(context: &egui::Context) {
     context.data_mut(|data| {
         data.insert_temp(
@@ -923,6 +927,8 @@ fn trait_bonus_ui_id() -> egui::Id {
     egui::Id::new("enemy_trait_assumption")
 }
 
+// Only the desktop servant-data updater resets these.
+#[cfg(not(target_arch = "wasm32"))]
 pub(crate) fn reset_trait_bonus_for_catalog(context: &egui::Context) {
     context.data_mut(|data| {
         data.insert_temp(
