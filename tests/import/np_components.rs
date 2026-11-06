@@ -8,7 +8,7 @@ use serde_json::{Value, json};
 
 fn rows() -> Vec<Value> {
     let fixture: Value =
-        serde_json::from_str(include_str!("fixtures/np_mechanics_components.json")).unwrap();
+        serde_json::from_str(include_str!("../fixtures/np_mechanics_components.json")).unwrap();
     fixture["servants"].as_array().unwrap().clone()
 }
 fn import(row: &Value) -> ServantRecord {

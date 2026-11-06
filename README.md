@@ -90,7 +90,7 @@ Run every check (formatting, clippy, tests and the web build) with `scripts/chec
 git config core.hooksPath .githooks
 ```
 
-Integration tests are grouped by purpose under `tests/`, including NP mechanics tests for runtime behavior, NP import, and Space Ereshkigal; face-card and turn damage, card selection, class affinity, attribute affinity, game-data loading, percent input, and servant damage have their own suites.
+Integration tests are grouped into four test binaries under `tests/`: `damage` (formula, affinity and turn calculation), `import` (bundled data and offline Atlas fixtures), `np_mechanics` (NP mechanic runtime and import), and `live` (ignored by default; run with `cargo test --test live -- --ignored`). Fixtures live in `tests/fixtures/`.
 
 ## License
 

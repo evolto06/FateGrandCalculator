@@ -1,5 +1,3 @@
-#![cfg(not(target_arch = "wasm32"))]
-
 use std::time::Duration;
 
 use fate_grand_calculator::{

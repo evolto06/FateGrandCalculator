@@ -1,5 +1,3 @@
-#![cfg(not(target_arch = "wasm32"))]
-
 use fate_grand_calculator::np_mechanics::enemy_status::EnemyStatus;
 use fate_grand_calculator::{loader::NpStatus, servant_data::ServantDataService};
 
