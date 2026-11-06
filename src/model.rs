@@ -29,21 +29,6 @@ impl CardType {
     }
 }
 
-#[derive(Debug, Clone)]
-pub struct Servant {
-    //servant stats
-    name: String,
-    level: u32,
-    max_hp: u32,
-    attack: u32,
-    card: CardType,
-    class: ClassType,
-    attribute: AttributeType,
-    noble_phantasm: NoblePhantasmType,
-    skill_1: SkillType,
-    skill_2: SkillType,
-    skill_3: SkillType,
-}
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum AttributeType {
@@ -77,77 +62,6 @@ impl AttributeType {
             _ => 1.0,
         }
     }
-}
-
-impl Servant {
-    pub fn new(
-        name: String,
-        level: u32,
-        max_hp: u32,
-        attack: u32,
-        card: CardType,
-        class: ClassType,
-        attribute: AttributeType,
-        noble_phantasm: NoblePhantasmType,
-        skill_1: SkillType,
-        skill_2: SkillType,
-        skill_3: SkillType,
-    ) -> Self {
-        Servant {
-            name,
-            level,
-            max_hp,
-            attack,
-            card,
-            class,
-            attribute,
-            noble_phantasm,
-            skill_1,
-            skill_2,
-            skill_3,
-        }
-    }
-
-    pub fn attack(&self) -> u32 {
-        self.attack
-    }
-
-    pub fn card(&self) -> CardType {
-        self.card
-    }
-
-    pub fn class(&self) -> ClassType {
-        self.class
-    }
-
-    pub fn attribute(&self) -> AttributeType {
-        self.attribute
-    }
-}
-#[derive(Debug, Clone)]
-pub struct NoblePhantasmType {
-    name: String,
-    level: u32,
-    damage_multiplier: f64,
-    card_type: CardType,
-}
-
-impl NoblePhantasmType {
-    pub fn new(name: String, level: u32, damage_multiplier: f64, card_type: CardType) -> Self {
-        NoblePhantasmType {
-            name,
-            level,
-            damage_multiplier,
-            card_type,
-        }
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct SkillType {
-    name: String,
-    level: u32,
-    effect: String,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
@@ -392,16 +306,6 @@ impl ClassType {
             Self::LoreGrandCaster => 0.9,
             Self::Pretender => 1.0,
             Self::Shielder => 1.0,
-        }
-    }
-}
-
-impl SkillType {
-    pub fn new(name: String, level: u32, effect: String) -> Self {
-        Self {
-            name,
-            level,
-            effect,
         }
     }
 }
