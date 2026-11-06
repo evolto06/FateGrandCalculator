@@ -454,7 +454,8 @@ fn check_supported_kind(
     let supported = match kind {
         // Only audited variants may use the verified consecutive component path.
         NpDamageKind::MultipleComponents => {
-            np_id.is_some_and(|id| np_mechanics::multi_import::is_verified_variant(servant_id, id))
+            np_id
+                .is_some_and(|id| np_mechanics::audited::is_multi_component_variant(servant_id, id))
                 && np_mechanics::multi_import::is_verified_shape(damage_functions)
         }
         NpDamageKind::HpRatioLow => is_supported_damage_shape(np, damage_functions[0].1),
@@ -483,7 +484,7 @@ fn import_status_condition(
     damage: &Value,
 ) -> Result<EnemyStatus, NpSkip> {
     let condition = np_id
-        .and_then(|id| verified_enemy_status(servant_id, id))
+        .and_then(|id| np_mechanics::audited::enemy_status(servant_id, id))
         .ok_or(NpSkip::Unsupported)?;
     let expected_target = if matches!(condition, EnemyStatus::Bind | EnemyStatus::Charm) {
         "enemyAll"
@@ -650,13 +651,10 @@ fn np_notes(servant_id: u32, shape: &NpShape<'_>) -> Vec<String> {
     if shape.missing_overcharge {
         notes.push("Some Overcharge rows are unavailable. Update servant data to fetch complete values; missing rows are never inferred.".into());
     }
-    if shape.kind == NpDamageKind::MultipleComponents {
-        match servant_id {
-            201300 => notes.push("Arash's self-sacrifice and its effects on later cards are not simulated.".into()),
-            504400 => notes.push("Chen Gong's NP assumes an eligible ally is available; ally sacrifice and its effects on later cards are not simulated.".into()),
-            305400 => notes.push("Bhima removes enemy buffs before damage; enter the resulting enemy Defense manually. Buff removal and later effects are not simulated.".into()),
-            _ => {}
-        }
+    if shape.kind == NpDamageKind::MultipleComponents
+        && let Some(note) = np_mechanics::audited::multi_component_note(servant_id)
+    {
+        notes.push(note.into());
     }
     notes
 }
@@ -874,19 +872,6 @@ fn import_trait_bonus(
 }
 
 /// Only these NA variants and their verified matching policies were audited.
-fn verified_enemy_status(servant_id: u32, np_id: u32) -> Option<EnemyStatus> {
-    match (servant_id, np_id) {
-        (200300, 200301) => Some(EnemyStatus::Poison),
-        (504800, 504801) => Some(EnemyStatus::SkillSeal),
-        (604900, 604901) => Some(EnemyStatus::Bind),
-        (704900, 704901) => Some(EnemyStatus::DefenseUp),
-        (1101100, 1101101) => Some(EnemyStatus::Charm),
-        (1101400, 1101401) => Some(EnemyStatus::Curse),
-        (2500400, 2500401) => Some(EnemyStatus::Burn),
-        _ => None,
-    }
-}
-
 /// Low-HP and status parameters are handled separately in the value rows.
 /// Additional function conditions, scripts and unsupported targeting must not
 /// become an apparently ordinary NP. Other effects remain manual notes.

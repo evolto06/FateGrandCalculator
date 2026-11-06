@@ -1,0 +1,58 @@
+{
+  "multi_component": [
+    {
+      "servant_id": 201300,
+      "np_ids": [201301, 201302],
+      "note": "Arash's self-sacrifice and its effects on later cards are not simulated."
+    },
+    {
+      "servant_id": 504400,
+      "np_ids": [504401],
+      "note": "Chen Gong's NP assumes an eligible ally is available; ally sacrifice and its effects on later cards are not simulated."
+    },
+    {
+      "servant_id": 305400,
+      "np_ids": [305401],
+      "note": "Bhima removes enemy buffs before damage; enter the resulting enemy Defense manually. Buff removal and later effects are not simulated."
+    }
+  ],
+  "enemy_status": [
+    { "servant_id": 200300, "np_id": 200301, "status": "poison" },
+    { "servant_id": 504800, "np_id": 504801, "status": "skill_seal" },
+    { "servant_id": 604900, "np_id": 604901, "status": "bind" },
+    { "servant_id": 704900, "np_id": 704901, "status": "defense_up" },
+    { "servant_id": 1101100, "np_id": 1101101, "status": "charm" },
+    { "servant_id": 1101400, "np_id": 1101401, "status": "curse" },
+    { "servant_id": 2500400, "np_id": 2500401, "status": "burn" }
+  ],
+  "trait_labels": {
+    "1": "Male",
+    "2": "Female",
+    "103": "Rider class",
+    "200": "Sky attribute",
+    "201": "Earth attribute",
+    "202": "Human attribute",
+    "300": "Lawful",
+    "301": "Chaotic",
+    "303": "Good",
+    "304": "Evil",
+    "1132": "Oni",
+    "1172": "Threat to Humanity",
+    "2000": "Divine",
+    "2002": "Dragon",
+    "2007": "Saberface",
+    "2008": "Weak to Enuma Elish",
+    "2009": "Riding",
+    "2010": "Arthur",
+    "2011": "Sky or Earth Servant",
+    "2012": "Brynhild's Beloved",
+    "2019": "Demonic",
+    "2075": "Saber class Servant",
+    "2076": "Super Giant",
+    "2113": "King",
+    "2666": "Giant",
+    "2858": "Standard class Servant",
+    "2467": "Weakness Detected",
+    "3103": "Non-Protectee of BB Dubai"
+  }
+}

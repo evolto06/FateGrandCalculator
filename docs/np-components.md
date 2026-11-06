@@ -43,6 +43,11 @@ validation of function order, target, rates, conditions, and numeric data:
 | Chen Gong | 504401 | 0, 2.25, 4.5, 6.75, 9 |
 | Bhīma | 305401 | 0, 2, 3, 4, 5 |
 
+The audited multi-component and enemy-status NP IDs, and the display names of
+audited traits, are listed in `data/audited_nps.json`. Adding an NP there
+enables it only after its Atlas data has been checked by hand; the importer's
+shape validation still applies.
+
 The first component scales with NP level. These additional components depend on
 Overcharge and retain the same values across NP levels. Bhīma's extra component is
 inactive at OC1; at OC2–5 its source data sets `CheckDead`.

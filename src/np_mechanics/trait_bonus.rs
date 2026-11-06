@@ -6,6 +6,8 @@
 
 use serde::{Deserialize, Serialize};
 
+use super::audited::trait_label;
+
 /// Signed Atlas Target identity. Only audited positive targets are supported;
 /// negative conditions have no samples in the audited NA catalog.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
@@ -43,41 +45,6 @@ impl TraitCondition {
             self.label()
         )
     }
-}
-
-/// Display names retain the exact primary Atlas individuality identity.
-fn trait_label(target: i32) -> Option<&'static str> {
-    Some(match target {
-        1 => "Male",
-        2 => "Female",
-        103 => "Rider class",
-        200 => "Sky attribute",
-        201 => "Earth attribute",
-        202 => "Human attribute",
-        300 => "Lawful",
-        301 => "Chaotic",
-        303 => "Good",
-        304 => "Evil",
-        1132 => "Oni",
-        1172 => "Threat to Humanity",
-        2000 => "Divine",
-        2002 => "Dragon",
-        2007 => "Saberface",
-        2008 => "Weak to Enuma Elish",
-        2009 => "Riding",
-        2010 => "Arthur",
-        2011 => "Sky or Earth Servant",
-        2012 => "Brynhild's Beloved",
-        2019 => "Demonic",
-        2075 => "Saber class Servant",
-        2076 => "Super Giant",
-        2113 => "King",
-        2666 => "Giant",
-        2858 => "Standard class Servant",
-        2467 => "Weakness Detected",
-        3103 => "Non-Protectee of BB Dubai",
-        _ => return None,
-    })
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
