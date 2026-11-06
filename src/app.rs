@@ -168,17 +168,13 @@ impl CalculatorApp {
                                     }
                                 };
                                 #[cfg(not(target_arch = "wasm32"))]
-                                let (portrait_texture, portrait_message, portrait_error) = (
-                                    self.portrait.texture(),
-                                    self.portrait.message(),
-                                    self.portrait.error(),
-                                );
+                                let portrait = ui::PortraitDisplay {
+                                    texture: self.portrait.texture(),
+                                    message: self.portrait.message(),
+                                    error: self.portrait.error(),
+                                };
                                 #[cfg(target_arch = "wasm32")]
-                    let (portrait_texture, portrait_message, portrait_error): (
-                        Option<&egui::TextureHandle>,
-                        &str,
-                        Option<&str>,
-                    ) = (None, "No portrait\navailable", None);
+                                let portrait = ui::PortraitDisplay::MISSING;
 
                                 let selected_servant_id = &mut self.selected_servant_id;
                                 let servant_search = &mut self.servant_search;
@@ -202,13 +198,13 @@ impl CalculatorApp {
                                                 ui::attack_panel(
                                                     ui,
                                                     data,
-                                                    selected_servant_id,
-                                                    servant_search,
-                                                    portrait_texture,
-                                                    portrait_message,
-                                                    portrait_error,
-                                                    turn_selection,
-                                                    active_attack_slot,
+                                                    portrait,
+                                                    ui::ServantPick {
+                                                        selected_id: selected_servant_id,
+                                                        search: servant_search,
+                                                        selection: turn_selection,
+                                                        active_slot: active_attack_slot,
+                                                    },
                                                     buffs,
                                                 )
                                             },
@@ -225,8 +221,7 @@ impl CalculatorApp {
                                                     *selected_servant_id,
                                                     turn_selection.as_ref(),
                                                     buffs.values(),
-                                                    *enemy_class,
-                                                    *enemy_attribute,
+                                                    (*enemy_class, *enemy_attribute),
                                                     !narrow_layout,
                                                 );
                                             },
@@ -236,13 +231,13 @@ impl CalculatorApp {
                                     ui::attack_panel(
                                         ui,
                                         data,
-                                        selected_servant_id,
-                                        servant_search,
-                                        portrait_texture,
-                                        portrait_message,
-                                        portrait_error,
-                                        turn_selection,
-                                        active_attack_slot,
+                                        portrait,
+                                        ui::ServantPick {
+                                            selected_id: selected_servant_id,
+                                            search: servant_search,
+                                            selection: turn_selection,
+                                            active_slot: active_attack_slot,
+                                        },
                                         buffs,
                                     );
                                     ui.add_space(10.0);
@@ -254,8 +249,7 @@ impl CalculatorApp {
                                         *selected_servant_id,
                                         turn_selection.as_ref(),
                                         buffs.values(),
-                                        *enemy_class,
-                                        *enemy_attribute,
+                                        (*enemy_class, *enemy_attribute),
                                         !narrow_layout,
                                     );
                                 }
@@ -411,8 +405,7 @@ fn show_result(
     servant_id: u32,
     selection: Option<&TurnSelection>,
     buffs: Result<TurnBuffs, String>,
-    enemy_class: ClassType,
-    enemy_attribute: AttributeType,
+    (enemy_class, enemy_attribute): (ClassType, AttributeType),
     announce_result: bool,
 ) {
     let buffs = match buffs {

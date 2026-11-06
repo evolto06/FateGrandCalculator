@@ -50,16 +50,38 @@ pub fn header(ui: &mut egui::Ui) {
     });
 }
 
+/// What the portrait window shows for the selected servant.
+#[derive(Clone, Copy)]
+pub struct PortraitDisplay<'a> {
+    pub texture: Option<&'a egui::TextureHandle>,
+    pub message: &'a str,
+    pub error: Option<&'a str>,
+}
+
+impl PortraitDisplay<'static> {
+    /// Shown by builds without portrait streaming, and by UI tests.
+    #[cfg(any(test, target_arch = "wasm32"))]
+    pub const MISSING: Self = Self {
+        texture: None,
+        message: "No portrait
+available",
+        error: None,
+    };
+}
+
+/// The servant choice and attack order that the attack panel edits together.
+pub struct ServantPick<'a> {
+    pub selected_id: &'a mut u32,
+    pub search: &'a mut String,
+    pub selection: &'a mut Option<TurnSelection>,
+    pub active_slot: &'a mut usize,
+}
+
 pub fn attack_panel(
     ui: &mut egui::Ui,
     data: &GameData,
-    selected_servant_id: &mut u32,
-    servant_search: &mut String,
-    portrait: Option<&egui::TextureHandle>,
-    portrait_message: &str,
-    portrait_error: Option<&str>,
-    selection: &mut Option<TurnSelection>,
-    active_slot: &mut usize,
+    portrait: PortraitDisplay<'_>,
+    mut pick: ServantPick<'_>,
     buffs: &mut TurnBuffInputs,
 ) {
     section_frame(ui, |ui| {
@@ -77,17 +99,7 @@ pub fn attack_panel(
                     egui::Layout::top_down(egui::Align::Min),
                     |ui| {
                         ui.set_width(servant_width);
-                        servant_setup(
-                            ui,
-                            data,
-                            selected_servant_id,
-                            servant_search,
-                            portrait,
-                            portrait_message,
-                            portrait_error,
-                            selection,
-                            active_slot,
-                        );
+                        servant_setup(ui, data, portrait, &mut pick);
                     },
                 );
                 ui.allocate_ui_with_layout(
@@ -95,8 +107,8 @@ pub fn attack_panel(
                     egui::Layout::top_down(egui::Align::Min),
                     |ui| {
                         ui.set_width(cards_width);
-                        if let Some(servant) = data.servant(*selected_servant_id) {
-                            turn_selector(ui, servant, selection, active_slot);
+                        if let Some(servant) = data.servant(*pick.selected_id) {
+                            turn_selector(ui, servant, pick.selection, pick.active_slot);
                         }
                     },
                 );
@@ -104,21 +116,11 @@ pub fn attack_panel(
         } else {
             ui.vertical_centered(|ui| {
                 ui.set_width(width.min(300.0));
-                servant_setup(
-                    ui,
-                    data,
-                    selected_servant_id,
-                    servant_search,
-                    portrait,
-                    portrait_message,
-                    portrait_error,
-                    selection,
-                    active_slot,
-                );
+                servant_setup(ui, data, portrait, &mut pick);
             });
             ui.add_space(12.0);
-            if let Some(servant) = data.servant(*selected_servant_id) {
-                turn_selector(ui, servant, selection, active_slot);
+            if let Some(servant) = data.servant(*pick.selected_id) {
+                turn_selector(ui, servant, pick.selection, pick.active_slot);
             }
         }
         ui.add_space(14.0);
@@ -143,33 +145,26 @@ pub fn attack_panel(
 fn servant_setup(
     ui: &mut egui::Ui,
     data: &GameData,
-    selected_id: &mut u32,
-    search: &mut String,
-    portrait: Option<&egui::TextureHandle>,
-    portrait_message: &str,
-    portrait_error: Option<&str>,
-    selection: &mut Option<TurnSelection>,
-    active_slot: &mut usize,
+    portrait: PortraitDisplay<'_>,
+    pick: &mut ServantPick<'_>,
 ) -> egui::Response {
-    let previous_id = *selected_id;
-    let response = servant_selector(
-        ui,
-        data,
+    let ServantPick {
         selected_id,
         search,
-        portrait,
-        portrait_message,
-        portrait_error,
-    );
-    if *selected_id != previous_id {
+        selection,
+        active_slot,
+    } = pick;
+    let previous_id = **selected_id;
+    let response = servant_selector(ui, data, selected_id, search, portrait);
+    if **selected_id != previous_id {
         clear_overcharge_feedback(ui.ctx(), previous_id);
-        clear_overcharge_feedback(ui.ctx(), *selected_id);
+        clear_overcharge_feedback(ui.ctx(), **selected_id);
         clear_hp_inputs(ui.ctx(), previous_id);
-        clear_hp_inputs(ui.ctx(), *selected_id);
-        *selection = data
-            .servant(*selected_id)
+        clear_hp_inputs(ui.ctx(), **selected_id);
+        **selection = data
+            .servant(**selected_id)
             .and_then(TurnSelection::default_for);
-        if let (Some(servant), Some(turn)) = (data.servant(*selected_id), selection.as_ref()) {
+        if let (Some(servant), Some(turn)) = (data.servant(**selected_id), selection.as_ref()) {
             let mut inputs = HpInputs::for_servant(servant, turn);
             inputs.reset_feedback = Some(if turn.attacker_hp.is_some() {
                 "HP reset to full HP for the selected servant.".into()
@@ -179,9 +174,9 @@ fn servant_setup(
             ui.ctx()
                 .data_mut(|data| data.insert_temp(hp_inputs_id(servant.id), inputs));
         }
-        *active_slot = 0;
+        **active_slot = 0;
         ui.ctx().request_repaint();
-    } else if portrait_error.is_some() {
+    } else if portrait.error.is_some() {
         let response =
             ui.colored_label(ERROR, "Portrait unavailable. Change servant to try again.");
         mark_live_status(ui.ctx(), response.id);
@@ -237,8 +232,8 @@ pub fn result_panel(
                     ))
                     .strong(),
                 );
-                if let SelectedCard::NoblePhantasm(np_index) = card {
-                    if let Some(np) = servant.noble_phantasms.get(*np_index) {
+                if let SelectedCard::NoblePhantasm(np_index) = card
+                    && let Some(np) = servant.noble_phantasms.get(*np_index) {
                         let multiplier =
                             np.base_multiplier(selection.np_level, selection.overcharge_level);
                         ui.label(
@@ -308,7 +303,6 @@ pub fn result_panel(
                             );
                         }
                     }
-                }
                 damage_result(ui, result.cards[index], announce_result);
                 if result.np_components[index].len() > 1 {
                     ui.label(
@@ -326,8 +320,8 @@ pub fn result_panel(
                                     component_index + 1,
                                     format_damage_range(*component)
                                 ));
-                                if let SelectedCard::NoblePhantasm(np_index) = card {
-                                    if let Some(multiplier) = servant
+                                if let SelectedCard::NoblePhantasm(np_index) = card
+                                    && let Some(multiplier) = servant
                                         .noble_phantasms
                                         .get(*np_index)
                                         .and_then(|np| np.components.get(component_index))
@@ -346,7 +340,6 @@ pub fn result_panel(
                                             .color(TEXT_MUTED),
                                         );
                                     }
-                                }
                                 breakdown(ui, *component);
                             });
                         }
@@ -722,13 +715,13 @@ impl HpInputs {
     }
 
     fn maximum_changed(&mut self) {
-        if let Ok(max) = Self::integer(&self.maximum, "maximum HP") {
-            if max > 0 {
-                self.current = max.to_string();
-                self.reset_feedback =
-                    Some("Current HP reset to full HP because maximum HP changed.".into());
-                return;
-            }
+        if let Ok(max) = Self::integer(&self.maximum, "maximum HP")
+            && max > 0
+        {
+            self.current = max.to_string();
+            self.reset_feedback =
+                Some("Current HP reset to full HP because maximum HP changed.".into());
+            return;
         }
         self.reset_feedback = None;
     }
@@ -1208,14 +1201,13 @@ fn card_tile(
         ui.ctx().data_mut(|data| {
             data.remove::<String>(overcharge_feedback_id(servant.id));
         });
-        if let SelectedCard::NoblePhantasm(index) = candidate {
-            if let Some(np) = servant.noble_phantasms.get(index) {
-                if !np.available_overcharges().contains(&turn.overcharge_level) {
-                    let previous = turn.overcharge_level;
-                    turn.overcharge_level = 1;
-                    ui.ctx().data_mut(|data| data.insert_temp(overcharge_feedback_id(servant.id), format!("Overcharge reset from {previous} to 1: this NP needs updated servant data for higher levels.")));
-                }
-            }
+        if let SelectedCard::NoblePhantasm(index) = candidate
+            && let Some(np) = servant.noble_phantasms.get(index)
+            && !np.available_overcharges().contains(&turn.overcharge_level)
+        {
+            let previous = turn.overcharge_level;
+            turn.overcharge_level = 1;
+            ui.ctx().data_mut(|data| data.insert_temp(overcharge_feedback_id(servant.id), format!("Overcharge reset from {previous} to 1: this NP needs updated servant data for higher levels.")));
         }
     }
     response
@@ -1367,16 +1359,14 @@ fn servant_selector(
     data: &GameData,
     selected_id: &mut u32,
     search: &mut String,
-    portrait: Option<&egui::TextureHandle>,
-    portrait_message: &str,
-    portrait_error: Option<&str>,
+    portrait: PortraitDisplay<'_>,
 ) -> egui::Response {
     let selected = data.servant(*selected_id).or_else(|| data.servants.first());
     let selected_name = selected.map_or("No servants loaded", |servant| servant.name.as_str());
 
     ui.label(RichText::new("SERVANT").size(13.0).color(TEXT_MUTED));
     ui.add_space(6.0);
-    portrait_window(ui, portrait, portrait_message, portrait_error);
+    portrait_window(ui, portrait);
     ui.add_space(6.0);
     ui.add(egui::Label::new(RichText::new(selected_name).strong()).wrap());
     if let Some(servant) = selected {
@@ -1442,17 +1432,12 @@ fn servant_selector(
     combo.response.labelled_by(label.id)
 }
 
-fn portrait_window(
-    ui: &mut egui::Ui,
-    portrait: Option<&egui::TextureHandle>,
-    message: &str,
-    error: Option<&str>,
-) {
+fn portrait_window(ui: &mut egui::Ui, portrait: PortraitDisplay<'_>) {
     let width = ui.available_width().min(220.0);
     let size = egui::vec2(width, width * (300.0 / 220.0));
     let (rect, response) = ui.allocate_exact_size(size, egui::Sense::hover());
     ui.painter().rect_filled(rect, 8.0, PANEL_MUTED);
-    if let Some(texture) = portrait {
+    if let Some(texture) = portrait.texture {
         let source_size = texture.size_vec2();
         let scale = (size.x / source_size.x).min(size.y / source_size.y);
         let image_rect = egui::Rect::from_center_size(rect.center(), source_size * scale);
@@ -1466,7 +1451,7 @@ fn portrait_window(
         ui.painter().text(
             rect.center(),
             egui::Align2::CENTER_CENTER,
-            message,
+            portrait.message,
             egui::FontId::proportional(11.0),
             TEXT_MUTED,
         );
@@ -1477,7 +1462,7 @@ fn portrait_window(
         egui::Stroke::new(1.0, Color32::from_rgb(59, 69, 91)),
         egui::StrokeKind::Inside,
     );
-    if let Some(error) = error {
+    if let Some(error) = portrait.error {
         response.on_hover_text(error);
     }
 }
