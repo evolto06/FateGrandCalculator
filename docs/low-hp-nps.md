@@ -63,4 +63,4 @@ Read (servant 202500)](https://api.atlasacademy.io/nice/NA/servant/202500?lang=e
 [Rider Anne Bonny & Mary Read (servant 400900)](https://api.atlasacademy.io/nice/NA/servant/400900?lang=en),
 and [Hijikata Toshizō (servant 702500)](https://api.atlasacademy.io/nice/NA/servant/702500?lang=en).
 Snapshot schema v4 stores the low-HP coefficients and optional maximum HP;
-schemas v1–v3 remain readable.
+schemas v1–v3 are now retired (see [Data](../README.md#data)).

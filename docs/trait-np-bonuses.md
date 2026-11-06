@@ -53,7 +53,7 @@ Changing one resets the checkbox and shows a notice. Changing NP level or
 Overcharge preserves it. A successful servant-data update resets the assumption;
 a failed update preserves it.
 
-Snapshot schema v6 stores audited trait correction rows and reads schemas v1–v6.
+Snapshot schema v6 stores audited trait correction rows and reads schemas v4–v6.
 Older snapshots have no trait metadata, so they keep base-only behavior until
 you choose **Update servant data**. The app does not infer a correction or copy a
 missing NP-level or Overcharge row.

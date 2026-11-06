@@ -97,13 +97,12 @@ stores an explicit OC row containing five NP-level values and execution metadata
 Missing OC rows remain unavailable rather than copying OC1.
 
 Snapshot format v6 retains component, optional low-HP, enemy-status, and trait
-bonus metadata. The app reads v1–v6 snapshots; older snapshots without trait
-metadata preserve their existing NP mechanics and apply no trait correction. Choose
-**Update servant data** to fetch newly supported NP profiles. Older records with
-five base multipliers migrate to a single OC1-only component, preserving
-affection, defense-piercing flags, and notes. Updating servant data loads
-explicitly available higher-OC values. An unsuccessful update preserves the
-prior snapshot.
+bonus metadata. The app reads v4–v6 snapshots; older snapshots without trait
+metadata preserve their existing NP mechanics and apply no trait correction.
+Snapshots in retired formats v1–v3 are ignored, and the app uses bundled data
+until you update. Choose **Update servant data** to fetch newly supported NP
+profiles and explicitly available higher-OC values. An unsuccessful update
+preserves the prior snapshot.
 
 Overcharge selection changes only imported damage values. It does not calculate
 NP gauge, chain-based Overcharge gain, automatic pre-damage buffs, unsupported

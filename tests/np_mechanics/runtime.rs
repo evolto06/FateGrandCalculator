@@ -1,6 +1,6 @@
 use fate_grand_calculator::{
     damage::{TurnBuffs, TurnDamageResult, calculate_turn},
-    loader::{GameData, NoblePhantasmRecord, ServantRecord},
+    loader::{GameData, ServantRecord},
     model::{AttributeType, ClassType, SelectedCard, TurnSelection},
 };
 
@@ -134,10 +134,4 @@ fn legacy_snapshot_defaults_to_non_piercing_and_new_metadata_round_trips() {
     let np = &restored.servants[0].noble_phantasms[0];
     assert!(np.defense_pierce);
     assert_eq!(np.affection.as_ref().unwrap().multiplier(10), 2.0);
-    let raw_np: NoblePhantasmRecord = serde_json::from_value(serde_json::json!({
-        "id":100101,"name":"legacy","card_type":"buster","multipliers":[3.0,4.0,4.5,4.75,5.0]
-    }))
-    .unwrap();
-    assert!(!raw_np.defense_pierce);
-    assert!(raw_np.affection.is_none());
 }

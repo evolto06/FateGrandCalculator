@@ -140,31 +140,10 @@ fn rejects_unverified_ids_mixed_targets_intervening_effects_and_unknown_conditio
 }
 
 #[test]
-fn legacy_np_data_migrates_to_oc1_only_and_serializes_only_components() {
-    let mut data = serde_json::to_value(GameData::bundled().unwrap()).unwrap();
-    for servant in data["servants"].as_array_mut().unwrap() {
-        for np in servant["noble_phantasms"].as_array_mut().unwrap() {
-            let multipliers = np["components"][0]["overcharge"][0]["multipliers"].clone();
-            np.as_object_mut().unwrap().remove("components");
-            np["multipliers"] = multipliers;
-        }
-    }
-    let migrated = GameData::from_json(&data.to_string()).unwrap();
-    for np in migrated.servants.iter().flat_map(|s| &s.noble_phantasms) {
-        assert_eq!(np.available_overcharges(), [1]);
-        assert_eq!(np.base_multiplier(1, 2), None);
-        let serialized = serde_json::to_value(np).unwrap();
-        assert!(serialized.get("multipliers").is_none());
-        assert!(serialized.get("components").is_some());
-    }
-}
-
-#[test]
-fn malformed_new_components_never_fall_back_to_legacy_multipliers() {
+fn malformed_components_are_rejected() {
     for invalid in [json!(null), json!([]), json!([{"overcharge":[]}])] {
         let mut data = serde_json::to_value(GameData::bundled().unwrap()).unwrap();
         let np = &mut data["servants"][0]["noble_phantasms"][0];
-        np["multipliers"] = json!([3.0, 4.0, 4.5, 4.75, 5.0]);
         np["components"] = invalid;
         assert!(GameData::from_json(&data.to_string()).is_err());
     }
