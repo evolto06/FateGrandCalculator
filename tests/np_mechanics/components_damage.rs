@@ -318,6 +318,13 @@ fn all_four_variants_match_independent_np_level_overcharge_ranges() {
 #[test]
 fn components_are_floored_separately_before_totaling() {
     let result = run(&servant(201301), 1, 2, 0, TurnBuffs::default());
+    assert_eq!(result.cards[0].flat_damage_addition, 0.0);
+    assert_eq!(result.cards[0].extra_attack_multiplier, 1.0);
+    assert!(
+        result.np_components[0].iter().all(|part| {
+            part.flat_damage_addition == 0.0 && part.extra_attack_multiplier == 1.0
+        })
+    );
     assert_eq!(
         result.np_components[0]
             .iter()

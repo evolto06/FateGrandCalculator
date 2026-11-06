@@ -372,21 +372,29 @@ pub fn result_panel(
 #[derive(Debug, Clone)]
 pub struct PercentInput {
     text: String,
-    value: f64,
 }
 
 impl Default for PercentInput {
     fn default() -> Self {
-        Self {
-            text: "0".into(),
-            value: 0.0,
-        }
+        Self { text: "0".into() }
     }
 }
 
 impl PercentInput {
-    pub fn value(&self) -> f64 {
-        self.value
+    pub fn value(&self) -> Result<f64, &'static str> {
+        let text = self.text.trim();
+        if text.is_empty() {
+            return Ok(0.0);
+        }
+        match text.parse::<f64>() {
+            Ok(value) if value.is_finite() && (-100.0..=999.0).contains(&value) => Ok(value),
+            _ => Err("Enter a number from −100 to 999."),
+        }
+    }
+
+    #[cfg(test)]
+    pub(crate) fn set_text(&mut self, text: &str) {
+        self.text = text.into();
     }
 }
 
@@ -401,15 +409,21 @@ pub struct TurnBuffInputs {
 }
 
 impl TurnBuffInputs {
-    pub fn values(&self) -> TurnBuffs {
-        TurnBuffs {
-            attack_buff: percent_to_modifier(self.attack.value()),
-            buster_buff: percent_to_modifier(self.buster.value()),
-            arts_buff: percent_to_modifier(self.arts.value()),
-            quick_buff: percent_to_modifier(self.quick.value()),
-            np_damage_buff: percent_to_modifier(self.np_damage.value()),
-            enemy_defense: percent_to_modifier(self.enemy_defense.value()),
-        }
+    pub fn values(&self) -> Result<TurnBuffs, String> {
+        let parse = |label: &str, input: &PercentInput| {
+            input
+                .value()
+                .map(percent_to_modifier)
+                .map_err(|error| format!("{label}: {error}"))
+        };
+        Ok(TurnBuffs {
+            attack_buff: parse("Attack buff", &self.attack)?,
+            buster_buff: parse("Buster buff", &self.buster)?,
+            arts_buff: parse("Arts buff", &self.arts)?,
+            quick_buff: parse("Quick buff", &self.quick)?,
+            np_damage_buff: parse("NP damage buff", &self.np_damage)?,
+            enemy_defense: parse("Enemy defense", &self.enemy_defense)?,
+        })
     }
 }
 
@@ -1338,26 +1352,13 @@ fn percent_input(ui: &mut egui::Ui, label: &str, value: &mut PercentInput) {
                     .inner_margin(egui::Margin::symmetric(10, 6)),
             ),
     );
-    let response = response.labelled_by(label_response.id);
+    response.labelled_by(label_response.id);
 
-    let trimmed = value.text.trim();
-    let invalid = if trimmed.is_empty() {
-        value.value = 0.0;
-        false
-    } else {
-        match trimmed.parse::<f64>() {
-            Ok(parsed) if parsed.is_finite() => {
-                value.value = parsed.clamp(-100.0, 999.0);
-                if response.lost_focus() {
-                    value.text = value.value.to_string();
-                }
-                false
-            }
-            _ => true,
-        }
-    };
-    if invalid {
-        ui.colored_label(ERROR, "Enter a number from −100 to 999.");
+    if let Err(error) = value.value() {
+        let error_response = ui.colored_label(ERROR, error);
+        mark_live_status(ui.ctx(), error_response.id);
+    } else if label == "NP damage buff (%)" && value.value().is_ok_and(|value| value > 500.0) {
+        ui.label(RichText::new("NP damage buff capped at 500%.").color(TEXT_MUTED));
     }
 }
 
@@ -1543,7 +1544,7 @@ fn damage_result(ui: &mut egui::Ui, result: DamageResult, announce_result: bool)
             }
             ui.label(
                 RichText::new(format!(
-                    "Damage before random variance: {}",
+                    "Damage subject to random variance: {}",
                     format_integer(result.damage_before_random.round() as u32)
                 ))
                 .size(13.0)
@@ -1577,9 +1578,18 @@ fn breakdown(ui: &mut egui::Ui, result: DamageResult) {
         ui.add_space(8.0);
         egui::Grid::new("damage_breakdown")
             .num_columns(2)
-            .spacing([40.0, 8.0])
+            .spacing([12.0, 8.0])
+            .max_col_width((ui.available_width() - 12.0) * 0.65)
             .show(ui, |ui| {
                 for (label, value) in [
+                    (
+                        "Extra attack factor",
+                        format!("×{:.2}", result.extra_attack_multiplier),
+                    ),
+                    (
+                        "Flat addition after random",
+                        format!("+{:.1}", result.flat_damage_addition),
+                    ),
                     ("Base card", format!("×{:.2}", result.base_card_multiplier)),
                     ("Card buff", format!("×{:.2}", result.card_buff_multiplier)),
                     (

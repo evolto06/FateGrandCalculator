@@ -73,6 +73,54 @@ fn np_damage_is_independent_of_position_and_receives_its_own_buff() {
 }
 
 #[test]
+fn np_damage_buff_cap_and_negative_floor_leave_normal_and_extra_damage_unchanged() {
+    let mut altria = servant();
+    altria.attack = 11_221;
+    let selection = TurnSelection::default_for(&altria).unwrap();
+    let calculate = |np_damage_buff| {
+        calculate_turn(
+            &altria,
+            &selection,
+            TurnBuffs {
+                np_damage_buff,
+                ..Default::default()
+            },
+            ClassType::Saber,
+            AttributeType::Earth,
+        )
+        .unwrap()
+    };
+    let baseline = calculate(0.0);
+    // Independent fixed endpoints: ATK11221, base Excalibur NP1/OC1,
+    // 1.5 card * 3 NP, neutral class/attribute, random .900 / 1.099.
+    for (buff, expected) in [
+        (4.99, (62_609, 76_453)),
+        (5.0, (62_714, 76_580)),
+        (9.99, (62_714, 76_580)),
+        (-1.0, (10, 12)),
+        (-2.0, (10, 12)),
+    ] {
+        let result = calculate(buff);
+        assert_eq!(
+            (
+                result.cards[0].minimum_damage,
+                result.cards[0].maximum_damage
+            ),
+            expected,
+            "NP damage buff {buff}"
+        );
+        for (actual, unchanged) in result.cards[1..]
+            .iter()
+            .chain(result.extra.iter())
+            .zip(baseline.cards[1..].iter().chain(baseline.extra.iter()))
+        {
+            assert_eq!(actual.minimum_damage, unchanged.minimum_damage);
+            assert_eq!(actual.maximum_damage, unchanged.maximum_damage);
+        }
+    }
+}
+
+#[test]
 fn mighty_chain_grants_buster_first_bonus_and_ordinary_extra_multiplier() {
     use SelectedCard::*;
     let result = run([Normal(0), Normal(1), Normal(3)], TurnBuffs::default());
@@ -80,6 +128,12 @@ fn mighty_chain_grants_buster_first_bonus_and_ordinary_extra_multiplier() {
     assert_eq!(result.cards[1].minimum_damage, 351);
     assert_eq!(result.cards[2].minimum_damage, 538);
     assert_eq!(result.extra.unwrap().minimum_damage, 621);
+    assert_eq!(result.extra.unwrap().extra_attack_multiplier, 2.0);
+    assert!(
+        result.cards.iter().all(|card| {
+            card.flat_damage_addition == 0.0 && card.extra_attack_multiplier == 1.0
+        })
+    );
 }
 
 #[test]
@@ -155,7 +209,14 @@ fn buster_chain_flat_damage_is_added_after_random_and_defense() {
         },
     );
     assert_eq!(result.cards[0].minimum_damage, 0);
+    assert_eq!(result.cards[0].flat_damage_addition, 0.0);
+    assert_eq!(result.cards[0].extra_attack_multiplier, 1.0);
+    assert_eq!(result.cards[1].damage_before_random, 0.0);
+    assert_eq!(result.cards[1].flat_damage_addition, 200.0);
+    assert_eq!(result.cards[1].extra_attack_multiplier, 1.0);
     assert_eq!(result.cards[1].minimum_damage, 200);
     assert_eq!(result.cards[1].maximum_damage, 200);
     assert_eq!(result.extra.unwrap().minimum_damage, 0);
+    assert_eq!(result.extra.unwrap().flat_damage_addition, 0.0);
+    assert_eq!(result.extra.unwrap().extra_attack_multiplier, 3.5);
 }

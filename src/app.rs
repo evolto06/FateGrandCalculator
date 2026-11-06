@@ -83,10 +83,17 @@ impl Default for CalculatorApp {
 
 impl eframe::App for CalculatorApp {
     fn ui(&mut self, ui: &mut egui::Ui, _: &mut eframe::Frame) {
+        self.show_ui(ui);
+    }
+}
+
+impl CalculatorApp {
+    fn show_ui(&mut self, ui: &mut egui::Ui) {
         #[cfg(not(target_arch = "wasm32"))]
         self.poll_update_result(ui.ctx());
 
-        #[cfg(not(target_arch = "wasm32"))]
+        // Headless UI regressions must not start portrait network workers.
+        #[cfg(all(not(target_arch = "wasm32"), not(test)))]
         {
             let selection = self.game_data.as_ref().ok().and_then(|data| {
                 data.servant(self.selected_servant_id)
@@ -268,7 +275,7 @@ impl eframe::App for CalculatorApp {
                 let result = calculate_turn(
                     servant,
                     selection,
-                    self.buffs.values(),
+                    self.buffs.values().ok()?,
                     self.enemy_class,
                     self.enemy_attribute,
                 )
@@ -403,11 +410,18 @@ fn show_result(
     data: &GameData,
     servant_id: u32,
     selection: Option<&TurnSelection>,
-    buffs: TurnBuffs,
+    buffs: Result<TurnBuffs, String>,
     enemy_class: ClassType,
     enemy_attribute: AttributeType,
     announce_result: bool,
 ) {
+    let buffs = match buffs {
+        Ok(buffs) => buffs,
+        Err(error) => {
+            ui::status_message(ui, &format!("Calculation paused: {error}"));
+            return;
+        }
+    };
     let Some(servant) = data.servant(servant_id) else {
         ui.colored_label(
             egui::Color32::LIGHT_RED,
@@ -613,6 +627,73 @@ mod tests {
                         Some((current_text.into(), "100".into()))
                     );
                     assert!(!app.data_status.contains("HP inputs reset"));
+                }
+            }
+        }
+    }
+    fn render_text(app: &mut CalculatorApp, context: &egui::Context, width: f32) -> Vec<String> {
+        fn collect(shape: &egui::epaint::Shape, texts: &mut Vec<String>) {
+            match shape {
+                egui::epaint::Shape::Text(shape) => texts.push(shape.galley.text().to_owned()),
+                egui::epaint::Shape::Vec(shapes) => {
+                    for shape in shapes {
+                        collect(shape, texts);
+                    }
+                }
+                _ => {}
+            }
+        }
+        let output = context.run_ui(
+            egui::RawInput {
+                screen_rect: Some(egui::Rect::from_min_size(
+                    egui::Pos2::ZERO,
+                    egui::vec2(width, 4000.0),
+                )),
+                ..Default::default()
+            },
+            |ui| app.show_ui(ui),
+        );
+        let mut texts = vec![];
+        for shape in &output.shapes {
+            collect(&shape.shape, &mut texts);
+        }
+        output.drop_without_applying_deltas();
+        texts
+    }
+
+    #[test]
+    fn all_buff_fields_pause_results_and_sticky_summary_then_recover_in_both_layouts() {
+        for width in [360.0, 1200.0] {
+            for field in 0..6 {
+                let mut app = app_with_bundled_data();
+                let context = egui::Context::default();
+                for text in ["20", "abc", "NaN", "1000", "-200", "30"] {
+                    let input = match field {
+                        0 => &mut app.buffs.attack,
+                        1 => &mut app.buffs.buster,
+                        2 => &mut app.buffs.arts,
+                        3 => &mut app.buffs.quick,
+                        4 => &mut app.buffs.np_damage,
+                        _ => &mut app.buffs.enemy_defense,
+                    };
+                    input.set_text(text);
+                    let texts = render_text(&mut app, &context, width);
+                    let valid = matches!(text, "20" | "30");
+                    assert_eq!(
+                        texts.iter().any(|text| text == "ESTIMATED DAMAGE"),
+                        valid,
+                        "width {width}, field {field}, input {text}: {texts:?}"
+                    );
+                    assert_eq!(
+                        texts
+                            .iter()
+                            .any(|text| text.starts_with("Calculation paused:")),
+                        !valid
+                    );
+                    assert_eq!(
+                        texts.iter().any(|text| text == "DAMAGE BY CARD"),
+                        valid && width < 820.0
+                    );
                 }
             }
         }
