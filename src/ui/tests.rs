@@ -212,6 +212,37 @@ fn attack_setup_fits_narrow_and_wide_columns_with_long_names() {
     }
 }
 
+/// Renders `draw`, clicks the collapsing header labelled `toggle`, and returns
+/// the output of a frame drawn with that section open.
+fn render_expanded(
+    ctx: &egui::Context,
+    width: f32,
+    toggle: &str,
+    mut draw: impl FnMut(&mut egui::Ui),
+) -> egui::FullOutput {
+    ctx.all_styles_mut(|style| style.animation_time = 0.0);
+    let mut frame = |events| {
+        ctx.run_ui(input(width, events), |ui| {
+            ui.style_mut().animation_time = 0.0;
+            draw(ui);
+        })
+    };
+    let first = frame(vec![]);
+    let position = first
+        .shapes
+        .iter()
+        .find_map(|shape| painted_text_rect(&shape.shape, toggle))
+        .unwrap_or_else(|| panic!("no {toggle} toggle"))
+        .center();
+    first.drop_without_applying_deltas();
+    frame(pointer(position, true)).drop_without_applying_deltas();
+    frame(pointer(position, false)).drop_without_applying_deltas();
+    for _ in 0..2 {
+        frame(vec![]).drop_without_applying_deltas();
+    }
+    frame(vec![])
+}
+
 fn painted_text_rect(shape: &egui::epaint::Shape, text: &str) -> Option<egui::Rect> {
     match shape {
         egui::epaint::Shape::Text(shape) if shape.galley.text() == text => {
@@ -264,7 +295,7 @@ fn searchable_dropdown_is_below_portrait_and_changing_servant_resets_attack_orde
     let search_field = output
         .shapes
         .iter()
-        .find_map(|shape| painted_text_rect(&shape.shape, "Type a servant name"))
+        .find_map(|shape| painted_text_rect(&shape.shape, "Type a servant name or class"))
         .expect("dropdown contains its search field");
     output.drop_without_applying_deltas();
     frame(pointer(search_field.center(), true))
@@ -578,7 +609,7 @@ fn damage_ranges_fit_inside_padded_result_panels() {
         let ctx = egui::Context::default();
         let output = ctx.run_ui(input(width, vec![]), |ui| {
             apply_canvas(ui);
-            damage_result(ui, damage, false);
+            damage_result(ui, damage);
             assert!(ui.min_rect().right() <= width + 1.0);
         });
         let range = output
@@ -586,7 +617,7 @@ fn damage_ranges_fit_inside_padded_result_panels() {
             .iter()
             .find_map(|shape| painted_text_rect(&shape.shape, &format_damage_range(damage)))
             .unwrap();
-        assert!(range.left() >= 18.0 && range.right() <= width - 18.0 + 1.0);
+        assert!(range.left() >= 14.0 && range.right() <= width - 14.0 + 1.0);
         output.drop_without_applying_deltas();
     }
 }
@@ -738,7 +769,7 @@ fn hp_controls_and_effective_breakdown_fit_narrow_panels() {
             AttributeType::Sky,
         )
         .unwrap();
-        let output = ctx.run_ui(input(width, vec![]), |ui| {
+        let output = render_expanded(&ctx, width, "NP details", |ui| {
             apply_canvas(ui);
             result_panel(ui, &servant, &turn, &result, false);
             assert!(ui.min_rect().right() <= width + 1.0);
@@ -951,7 +982,7 @@ fn status_breakdown_renders_base_correction_and_effective_multiplier_at_narrow_w
     )
     .unwrap();
     let ctx = egui::Context::default();
-    let output = ctx.run_ui(input(328.0, vec![]), |ui| {
+    let output = render_expanded(&ctx, 328.0, "NP details", |ui| {
         result_panel(ui, &servant, &turn, &result, false);
         assert!(ui.min_rect().right() <= 329.0);
     });
@@ -1074,7 +1105,7 @@ fn trait_breakdown_identifies_assumption_and_applied_correction_at_narrow_width(
     )
     .unwrap();
     let ctx = egui::Context::default();
-    let output = ctx.run_ui(input(328.0, vec![]), |ui| {
+    let output = render_expanded(&ctx, 328.0, "NP details", |ui| {
         result_panel(ui, &servant, &turn, &result, false);
         assert!(ui.min_rect().right() <= 329.0);
     });
@@ -1134,7 +1165,7 @@ fn percent_widget_shows_validation_and_np_cap_without_rewriting_text() {
 }
 
 #[test]
-fn expanded_breakdown_shows_flat_and_extra_factors_within_narrow_panel() {
+fn expanded_breakdown_shows_only_the_factors_that_apply_within_narrow_panel() {
     let servant = servant();
     let mut turn = TurnSelection::default_for(&servant).unwrap();
     turn.slots = [
@@ -1150,43 +1181,112 @@ fn expanded_breakdown_shows_flat_and_extra_factors_within_narrow_panel() {
         AttributeType::Sky,
     )
     .unwrap();
-    for (damage, expected_flat) in [
-        (result.cards[0], "+2244.2"),
-        (result.extra.unwrap(), "+0.0"),
+    let extra = result.extra.unwrap();
+    let extra_factor = format!("×{:.2}", extra.extra_attack_multiplier);
+    for (damage, shown, hidden) in [
+        (
+            result.cards[0],
+            ("Flat addition after random", "+2244.2"),
+            "Extra attack factor",
+        ),
+        (
+            extra,
+            ("Extra attack factor", extra_factor.as_str()),
+            "Flat addition after random",
+        ),
     ] {
         let ctx = egui::Context::default();
-        let frame = |events| {
-            ctx.run_ui(input(260.0, events), |ui| {
-                breakdown(ui, damage);
-                assert!(ui.min_rect().right() <= 261.0, "{:?}", ui.min_rect());
-            })
-        };
-        let first = frame(vec![]);
-        let position = first
-            .shapes
-            .iter()
-            .find_map(|shape| painted_text_rect(&shape.shape, "Calculation breakdown"))
-            .unwrap()
-            .center();
-        first.drop_without_applying_deltas();
-        frame(pointer(position, true)).drop_without_applying_deltas();
-        frame(pointer(position, false)).drop_without_applying_deltas();
-        let output = frame(vec![]);
-        for label in ["Flat addition after random", "Extra attack factor"] {
-            assert!(
-                output
-                    .shapes
-                    .iter()
-                    .any(|shape| painted_text_rect(&shape.shape, label).is_some()),
-                "{label}"
-            );
-        }
-        assert!(
+        let output = render_expanded(&ctx, 260.0, "Calculation breakdown", |ui| {
+            breakdown(ui, damage);
+            assert!(ui.min_rect().right() <= 261.0, "{:?}", ui.min_rect());
+        });
+        let painted = |text: &str| {
             output
                 .shapes
                 .iter()
-                .any(|shape| painted_text_rect(&shape.shape, expected_flat).is_some())
-        );
+                .any(|shape| painted_text_rect(&shape.shape, text).is_some())
+        };
+        assert!(painted(shown.0), "{}", shown.0);
+        assert!(painted(shown.1), "{}", shown.1);
+        assert!(!painted(hidden), "{hidden}");
         output.drop_without_applying_deltas();
+    }
+}
+
+#[test]
+fn breakdown_rows_follow_the_formula_order() {
+    let servant = servant();
+    let turn = TurnSelection::default_for(&servant).unwrap();
+    let result = fate_grand_calculator::damage::calculate_turn(
+        &servant,
+        &turn,
+        TurnBuffs::default(),
+        ClassType::Lancer,
+        AttributeType::Sky,
+    )
+    .unwrap();
+    let labels: Vec<_> = breakdown_rows(result.extra.unwrap())
+        .into_iter()
+        .map(|(label, _)| label)
+        .collect();
+    assert_eq!(
+        labels,
+        [
+            "Base card",
+            "Card buff",
+            "First card bonus",
+            "Card total",
+            "Class attack",
+            "Class affinity",
+            "Attribute affinity",
+            "Attack − defense",
+            "Extra attack factor",
+        ]
+    );
+}
+
+#[test]
+fn tile_states_use_one_vocabulary_and_name_np_variants() {
+    let servant = servant();
+    let turn = TurnSelection::default_for(&servant).unwrap();
+    // Default: NP in position 1, deck cards 1 and 2 in positions 2 and 3.
+    assert_eq!(
+        TileState::of(&turn, 0, SelectedCard::NoblePhantasm(0)),
+        TileState::Selected
+    );
+    assert_eq!(
+        TileState::of(&turn, 0, SelectedCard::NoblePhantasm(1)),
+        TileState::ReplacesNp
+    );
+    let used = TileState::of(&turn, 0, SelectedCard::Normal(0));
+    assert_eq!(used, TileState::InPosition(2));
+    assert_eq!(used.label(), "In position 2");
+    assert!(!used.can_choose());
+    assert_eq!(
+        TileState::of(&turn, 0, SelectedCard::Normal(3)).label(),
+        "Available"
+    );
+
+    let mut named = servant.clone();
+    named.noble_phantasms[0].name = "Excalibur (upgraded)".into();
+    assert_eq!(
+        tile_caption(&named, SelectedCard::NoblePhantasm(0)),
+        "Upgraded"
+    );
+    let unnamed = named.noble_phantasms.len() - 1;
+    assert_eq!(named.noble_phantasms[unnamed].name, "Alternative NP");
+    assert_eq!(
+        tile_caption(&named, SelectedCard::NoblePhantasm(unnamed)),
+        format!("Variant {}", unnamed + 1)
+    );
+    assert_eq!(tile_caption(&named, SelectedCard::Normal(2)), "Deck 3");
+}
+
+#[test]
+fn incomplete_numbers_count_as_zero_while_typing() {
+    let mut input = PercentInput::default();
+    for partial in ["-", "+", ".", "-."] {
+        input.text = partial.into();
+        assert_eq!(input.value(), Ok(0.0), "{partial}");
     }
 }

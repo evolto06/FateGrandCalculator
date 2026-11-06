@@ -113,7 +113,8 @@ impl CalculatorApp {
             .auto_shrink([false, false])
             .show(ui, |ui| {
                 let viewport_width = ui.available_width();
-                let content_width = viewport_width.min(1440.0);
+                // Keep at least a 16px gutter on each side.
+                let content_width = (viewport_width - 32.0).clamp(1.0, 1440.0);
                 let narrow_layout = content_width < 820.0;
                 ui.set_min_width(viewport_width);
                 ui.horizontal(|ui| {
@@ -212,7 +213,12 @@ impl CalculatorApp {
                                             egui::vec2(result_width, 0.0),
                                             egui::Layout::top_down(egui::Align::Min),
                                             |ui| {
-                                                ui::matchup_panel(ui, enemy_class, enemy_attribute);
+                                                ui::matchup_panel(
+                                                    ui,
+                                                    enemy_class,
+                                                    enemy_attribute,
+                                                    &mut buffs.enemy_defense,
+                                                );
                                                 ui.add_space(10.0);
                                                 show_result(
                                                     ui,
@@ -240,7 +246,12 @@ impl CalculatorApp {
                                         buffs,
                                     );
                                     ui.add_space(10.0);
-                                    ui::matchup_panel(ui, enemy_class, enemy_attribute);
+                                    ui::matchup_panel(
+                                        ui,
+                                        enemy_class,
+                                        enemy_attribute,
+                                        &mut buffs.enemy_defense,
+                                    );
                                     ui.add_space(10.0);
                                     show_result(
                                         ui,

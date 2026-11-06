@@ -8,7 +8,7 @@ pub(super) fn turn_selector(
     selection: &mut Option<TurnSelection>,
     active_slot: &mut usize,
 ) {
-    ui.label(RichText::new("ATTACK ORDER").size(13.0).color(TEXT_MUTED));
+    group_label(ui, "ATTACK ORDER");
     ui.add_space(6.0);
     if servant.deck.len() != 5 {
         ui.label(
@@ -21,17 +21,22 @@ pub(super) fn turn_selector(
     }
     match servant.np_status {
         NpStatus::Support => {
-            ui.label(
-                RichText::new("This servant's NP does no damage. Choose three command cards.")
-                    .size(12.0)
-                    .color(TEXT_MUTED),
+            note(
+                ui,
+                "This servant's NP does no damage. Choose three command cards.",
             );
         }
         NpStatus::Unavailable => {
-            ui.label(RichText::new("NP data is unavailable locally. Choose three command cards or update servant data.").size(12.0).color(TEXT_MUTED));
+            note(
+                ui,
+                "NP data is unavailable locally. Choose three command cards or update servant data.",
+            );
         }
         NpStatus::Unsupported => {
-            ui.label(RichText::new("This NP's damage cannot be estimated with the current data. Choose three command cards.").size(12.0).color(TEXT_MUTED));
+            note(
+                ui,
+                "This NP's damage cannot be estimated with the current data. Choose three command cards.",
+            );
         }
         NpStatus::Damaging => {}
     }
@@ -40,11 +45,6 @@ pub(super) fn turn_selector(
         return;
     };
     *active_slot = (*active_slot).min(2);
-    ui.label(
-        RichText::new("Select a card to edit")
-            .size(13.0)
-            .color(TEXT_MUTED),
-    );
     let gap = ui.spacing().item_spacing.x;
     let slot_width = ((ui.available_width() - gap * 2.0) / 3.0).max(1.0);
     ui.horizontal(|ui| {
@@ -63,8 +63,8 @@ pub(super) fn turn_selector(
                 response.rect.left_top() + egui::vec2(10.0, 8.0),
                 egui::Align2::LEFT_TOP,
                 (slot + 1).to_string(),
-                egui::FontId::proportional(12.0),
-                Color32::WHITE,
+                egui::FontId::proportional(TEXT_SMALL),
+                TEXT,
             );
             response.widget_info(|| {
                 egui::WidgetInfo::selected(
@@ -90,21 +90,16 @@ pub(super) fn turn_selector(
     ui.add_space(12.0);
     egui::Frame::new()
         .fill(PANEL_MUTED)
-        .stroke(egui::Stroke::new(1.0, Color32::from_rgb(59, 69, 91)))
+        .stroke(egui::Stroke::new(1.0, BORDER))
         .corner_radius(10)
         .inner_margin(12)
         .show(ui, |ui| {
             ui.set_width(ui.available_width());
             ui.label(
-                RichText::new(format!("Replace card {}", *active_slot + 1))
-                    .size(15.0)
+                RichText::new(format!("Card for position {}", *active_slot + 1))
+                    .size(TEXT_SUBHEADING)
                     .strong()
                     .color(ACCENT),
-            );
-            ui.label(
-                RichText::new("Choose a card below.")
-                    .size(12.0)
-                    .color(TEXT_MUTED),
             );
             let columns = if ui.available_width() >= 250.0 { 3 } else { 2 };
             let tile_width = ((ui.available_width() - gap * (columns - 1) as f32) / columns as f32)
@@ -145,11 +140,6 @@ pub(super) fn turn_selector(
                         }
                     }
                 });
-            ui.label(
-                RichText::new("Cards marked In 1, In 2 or In 3 are used in another position.")
-                    .size(12.0)
-                    .color(TEXT_MUTED),
-            );
         });
     ui.add_space(8.0);
     np_settings(ui, servant, turn);
@@ -164,6 +154,43 @@ pub(super) fn card_owner(turn: &TurnSelection, candidate: SelectedCard) -> Optio
         })
 }
 
+/// What choosing a tile would do for the position being edited. The badge,
+/// the hover text and the screen-reader label all use these words.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(super) enum TileState {
+    /// Already in the position being edited.
+    Selected,
+    /// Another NP variant is in this position; choosing swaps the variant.
+    ReplacesNp,
+    /// Used by another position, so it cannot be chosen here.
+    InPosition(usize),
+    Available,
+}
+
+impl TileState {
+    pub(super) fn of(turn: &TurnSelection, active_slot: usize, candidate: SelectedCard) -> Self {
+        match card_owner(turn, candidate) {
+            _ if turn.slots[active_slot] == candidate => Self::Selected,
+            Some(slot) if slot == active_slot => Self::ReplacesNp,
+            Some(slot) => Self::InPosition(slot + 1),
+            None => Self::Available,
+        }
+    }
+
+    pub(super) fn label(self) -> String {
+        match self {
+            Self::Selected => "Selected".into(),
+            Self::ReplacesNp => "Swap NP".into(),
+            Self::InPosition(position) => format!("In position {position}"),
+            Self::Available => "Available".into(),
+        }
+    }
+
+    pub(super) fn can_choose(self) -> bool {
+        !matches!(self, Self::InPosition(_))
+    }
+}
+
 pub(super) fn card_tile(
     ui: &mut egui::Ui,
     servant: &ServantRecord,
@@ -172,22 +199,9 @@ pub(super) fn card_tile(
     candidate: SelectedCard,
     width: f32,
 ) -> egui::Response {
-    let owner = card_owner(turn, candidate);
-    let available = owner.is_none_or(|slot| slot == active_slot);
-    let current = turn.slots[active_slot] == candidate;
-    let state = if current {
-        "Current".to_owned()
-    } else if owner == Some(active_slot) {
-        "Replace NP".to_owned()
-    } else if let Some(slot) = owner {
-        format!("In slot {}", slot + 1)
-    } else {
-        "Choose".to_owned()
-    };
-    let detail = match candidate {
-        SelectedCard::Normal(index) => format!("Deck {}", index + 1),
-        SelectedCard::NoblePhantasm(index) => format!("Variant {}", index + 1),
-    };
+    let state = TileState::of(turn, active_slot, candidate);
+    let available = state.can_choose();
+    let current = state == TileState::Selected;
     let full_label = selected_card_label(servant, candidate);
     let response = card_button(
         ui,
@@ -197,46 +211,42 @@ pub(super) fn card_tile(
         current,
         available,
     );
-    let badge = if current {
-        "Selected".to_owned()
-    } else if owner == Some(active_slot) {
-        "Replace".to_owned()
-    } else if let Some(slot) = owner {
-        format!("In {}", slot + 1)
-    } else {
-        "Use".to_owned()
-    };
-    let caption_color = if available {
-        Color32::WHITE
-    } else {
-        TEXT_MUTED
-    };
-    ui.painter().text(
-        response.rect.center_top() + egui::vec2(0.0, 10.0),
-        egui::Align2::CENTER_TOP,
-        badge,
-        egui::FontId::proportional(10.0),
-        caption_color,
-    );
-    ui.painter().text(
-        response.rect.center_bottom() - egui::vec2(0.0, 10.0),
-        egui::Align2::CENTER_BOTTOM,
-        detail,
-        egui::FontId::proportional(11.0),
-        caption_color,
-    );
+    let caption_color = if available { TEXT } else { TEXT_MUTED };
+    let caption_width = (response.rect.width() - 8.0).max(1.0);
+    for (text, anchor, offset) in [
+        (
+            state.label(),
+            egui::Align2::CENTER_TOP,
+            response.rect.center_top() + egui::vec2(0.0, 8.0),
+        ),
+        (
+            tile_caption(servant, candidate),
+            egui::Align2::CENTER_BOTTOM,
+            response.rect.center_bottom() - egui::vec2(0.0, 8.0),
+        ),
+    ] {
+        let galley = ui.painter().layout(
+            text,
+            egui::FontId::proportional(TEXT_SMALL),
+            caption_color,
+            caption_width,
+        );
+        let rect = anchor.anchor_size(offset, galley.size());
+        ui.painter().galley(rect.min, galley, caption_color);
+    }
     response.widget_info(|| {
         egui::WidgetInfo::selected(
             egui::WidgetType::Button,
             available && ui.is_enabled(),
             current,
             format!(
-                "{full_label}, {state}, for attack position {}",
+                "{full_label}, {}, for attack position {}",
+                state.label(),
                 active_slot + 1
             ),
         )
     });
-    let response = response.on_hover_text(format!("{full_label} · {state}"));
+    let response = response.on_hover_text(format!("{full_label} · {}", state.label()));
     if response.clicked() {
         turn.slots[active_slot] = candidate;
         ui.ctx().data_mut(|data| {
@@ -254,6 +264,23 @@ pub(super) fn card_tile(
     response
 }
 
+/// The line under a tile's symbol: the deck position, or which NP variant it is.
+pub(super) fn tile_caption(servant: &ServantRecord, card: SelectedCard) -> String {
+    match card {
+        SelectedCard::Normal(index) => format!("Deck {}", index + 1),
+        SelectedCard::NoblePhantasm(index) => servant
+            .noble_phantasms
+            .get(index)
+            .and_then(|np| {
+                let variant = np.name.rsplit_once(" (")?.1.strip_suffix(')')?;
+                let mut chars = variant.chars();
+                let first = chars.next()?;
+                Some(first.to_uppercase().chain(chars).collect())
+            })
+            .unwrap_or_else(|| format!("Variant {}", index + 1)),
+    }
+}
+
 pub(super) fn selected_card_symbol(servant: &ServantRecord, card: SelectedCard) -> &'static str {
     match card {
         SelectedCard::NoblePhantasm(_) => "NP",
@@ -266,9 +293,19 @@ pub(super) fn selected_card_symbol(servant: &ServantRecord, card: SelectedCard) 
     }
 }
 
-pub(super) fn selected_card_color(servant: &ServantRecord, card: SelectedCard) -> Color32 {
+/// A card's outline color and its fill when selected.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(super) struct CardColors {
+    pub(super) outline: Color32,
+    pub(super) fill: Color32,
+}
+
+pub(super) fn selected_card_color(servant: &ServantRecord, card: SelectedCard) -> CardColors {
     match card {
-        SelectedCard::NoblePhantasm(_) => Color32::from_rgb(85, 83, 148),
+        SelectedCard::NoblePhantasm(_) => CardColors {
+            outline: NP,
+            fill: NP_FILL,
+        },
         SelectedCard::Normal(index) => card_color(servant.deck[index]),
     }
 }
@@ -277,16 +314,19 @@ pub(super) fn card_button(
     ui: &mut egui::Ui,
     size: egui::Vec2,
     symbol: &str,
-    color: Color32,
+    colors: CardColors,
     selected: bool,
     enabled: bool,
 ) -> egui::Response {
-    let fill = if !enabled {
-        PANEL_MUTED
+    let (fill, stroke) = if !enabled {
+        (BACKGROUND, egui::Stroke::new(1.0, BORDER))
     } else if selected {
-        color
+        (colors.fill, egui::Stroke::new(3.0, ACCENT))
     } else {
-        color.gamma_multiply(0.45)
+        (
+            colors.fill.gamma_multiply(0.45),
+            egui::Stroke::new(1.0, colors.outline),
+        )
     };
     let response = ui
         .add_enabled_ui(enabled, |ui| {
@@ -295,10 +335,7 @@ pub(super) fn card_button(
                 egui::Button::new("")
                     .fill(fill)
                     .corner_radius(10)
-                    .stroke(egui::Stroke::new(
-                        if selected { 3.0 } else { 1.0 },
-                        if selected { ACCENT } else { color },
-                    ))
+                    .stroke(stroke)
                     .selected(selected),
             )
         })
@@ -307,8 +344,8 @@ pub(super) fn card_button(
         response.rect.center(),
         egui::Align2::CENTER_CENTER,
         symbol,
-        egui::FontId::proportional(28.0),
-        if enabled { Color32::WHITE } else { TEXT_MUTED },
+        egui::FontId::proportional(TEXT_CARD_SYMBOL),
+        if enabled { TEXT } else { TEXT_MUTED },
     );
     card_focus_outline(ui, &response);
     response
@@ -334,13 +371,14 @@ pub(super) fn card_name(card: CardType) -> &'static str {
     }
 }
 
-pub(super) fn card_color(card: CardType) -> Color32 {
-    match card {
-        CardType::Buster => BUSTER,
-        CardType::Arts => ARTS,
-        CardType::Quick => QUICK,
-        CardType::Extra => ACCENT,
-    }
+pub(super) fn card_color(card: CardType) -> CardColors {
+    let (outline, fill) = match card {
+        CardType::Buster => (BUSTER, BUSTER_FILL),
+        CardType::Arts => (ARTS, ARTS_FILL),
+        CardType::Quick => (QUICK, QUICK_FILL),
+        CardType::Extra => (ACCENT, RESULT_BORDER),
+    };
+    CardColors { outline, fill }
 }
 
 pub(super) fn selected_card_label(servant: &ServantRecord, card: SelectedCard) -> String {

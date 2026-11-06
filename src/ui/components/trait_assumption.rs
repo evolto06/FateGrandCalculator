@@ -96,15 +96,19 @@ pub(super) fn trait_bonus_settings(
             data.insert_temp(trait_bonus_ui_id(), state);
         });
     }
-    ui.label(
-        RichText::new(if matching {
+    note(
+        ui,
+        if matching {
             "Matching assumed: conditional NP multiplier applies."
         } else {
             "Matching not assumed: base NP damage applies."
-        })
-        .size(12.0)
-        .color(TEXT_MUTED),
+        },
     );
-    ui.label(RichText::new("Set the condition at damage time, including any traits granted before damage. Trait-granting effects are not simulated; enemy class and attribute do not set this assumption.").size(12.0).color(TEXT_MUTED));
+    ui.collapsing(
+        RichText::new("About the trait assumption").size(TEXT_SMALL),
+        |ui| {
+            note(ui, "Set the condition at damage time, including any traits granted before damage. Trait-granting effects are not simulated; enemy class and attribute do not set this assumption.");
+        },
+    );
     Some(response)
 }
