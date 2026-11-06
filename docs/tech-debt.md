@@ -2,7 +2,20 @@
 
 Audit date: 2026-11-06 (version 0.1.6).
 
-## Current health
+## Progress
+
+Phases 1 and 2 are done (2026-11-07):
+
+- #1: `scripts/check.sh` runs formatting, clippy, tests and the wasm32 build check; `.githooks/pre-push` calls it. Cargo aliases cannot chain commands, so there is no `cargo ci` alias; use `scripts/check.sh --audit` instead.
+- #2: the web client now has a real entry point (`src/main.rs`, `index.html`, `Trunk.toml`).
+- #3 and #6: `card_damage` is the only formula implementation; `calculate` wraps it, and `calculate_turn` is split into normal-card, NP and Extra helpers. `TurnSelection::check` returns resolved card data, so the `expect` calls are gone.
+- #4: clippy passes with `-D warnings`.
+- #5 (partly): portrait streaming takes an injectable fetcher and has unit tests. The `cfg(not(test))` guard in `app.rs` stays so UI tests never start network workers.
+- #10: the old model types and `tests/servant_model.rs` are removed.
+
+Phase 3 and the ongoing items are still open.
+
+## Current health (at audit time)
 
 - All tests pass (about 140; 3 network-dependent tests are ignored on purpose).
 - `cargo fmt --check` is clean.
