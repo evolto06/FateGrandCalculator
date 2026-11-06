@@ -29,21 +29,6 @@ impl CardType {
     }
 }
 
-#[derive(Debug, Clone)]
-pub struct Servant {
-    //servant stats
-    name: String,
-    level: u32,
-    max_hp: u32,
-    attack: u32,
-    card: CardType,
-    class: ClassType,
-    attribute: AttributeType,
-    noble_phantasm: NoblePhantasmType,
-    skill_1: SkillType,
-    skill_2: SkillType,
-    skill_3: SkillType,
-}
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum AttributeType {
@@ -77,77 +62,6 @@ impl AttributeType {
             _ => 1.0,
         }
     }
-}
-
-impl Servant {
-    pub fn new(
-        name: String,
-        level: u32,
-        max_hp: u32,
-        attack: u32,
-        card: CardType,
-        class: ClassType,
-        attribute: AttributeType,
-        noble_phantasm: NoblePhantasmType,
-        skill_1: SkillType,
-        skill_2: SkillType,
-        skill_3: SkillType,
-    ) -> Self {
-        Servant {
-            name,
-            level,
-            max_hp,
-            attack,
-            card,
-            class,
-            attribute,
-            noble_phantasm,
-            skill_1,
-            skill_2,
-            skill_3,
-        }
-    }
-
-    pub fn attack(&self) -> u32 {
-        self.attack
-    }
-
-    pub fn card(&self) -> CardType {
-        self.card
-    }
-
-    pub fn class(&self) -> ClassType {
-        self.class
-    }
-
-    pub fn attribute(&self) -> AttributeType {
-        self.attribute
-    }
-}
-#[derive(Debug, Clone)]
-pub struct NoblePhantasmType {
-    name: String,
-    level: u32,
-    damage_multiplier: f64,
-    card_type: CardType,
-}
-
-impl NoblePhantasmType {
-    pub fn new(name: String, level: u32, damage_multiplier: f64, card_type: CardType) -> Self {
-        NoblePhantasmType {
-            name,
-            level,
-            damage_multiplier,
-            card_type,
-        }
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct SkillType {
-    name: String,
-    level: u32,
-    effect: String,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
@@ -396,16 +310,6 @@ impl ClassType {
     }
 }
 
-impl SkillType {
-    pub fn new(name: String, level: u32, effect: String) -> Self {
-        Self {
-            name,
-            level,
-            effect,
-        }
-    }
-}
-
 /// A physical normal card or one of the servant's supported NP variants.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SelectedCard {
@@ -562,4 +466,108 @@ impl TurnSelection {
         }
         Ok(())
     }
+
+    /// Validates the selection and resolves everything the damage formula reads,
+    /// so the calculation itself never has to assume validation succeeded.
+    pub fn check<'a>(
+        &self,
+        servant: &'a crate::loader::ServantRecord,
+    ) -> Result<CheckedTurn<'a>, String> {
+        self.validate(servant)?;
+        let mut cards = Vec::with_capacity(3);
+        for slot in self.slots {
+            cards.push(match slot {
+                SelectedCard::Normal(index) => CheckedCard::Normal(
+                    *servant
+                        .deck
+                        .get(index)
+                        .ok_or("Select three distinct available cards.")?,
+                ),
+                SelectedCard::NoblePhantasm(index) => {
+                    let np = servant
+                        .noble_phantasms
+                        .get(index)
+                        .ok_or("Select at most one supported damaging NP.")?;
+                    CheckedCard::NoblePhantasm {
+                        np,
+                        components: self.np_component_factors(np)?,
+                    }
+                }
+            });
+        }
+        let cards = cards
+            .try_into()
+            .map_err(|_| "Select exactly three cards.".to_owned())?;
+        Ok(CheckedTurn { cards })
+    }
+
+    fn np_component_factors(
+        &self,
+        np: &crate::loader::NoblePhantasmRecord,
+    ) -> Result<Vec<NpComponentFactors>, String> {
+        const MISSING: &str =
+            "This NP has no damage data for the selected settings. Update servant data.";
+        np.components
+            .iter()
+            .map(|component| {
+                Ok(NpComponentFactors {
+                    multiplier: component
+                        .effective_multiplier(
+                            self.np_level,
+                            self.overcharge_level,
+                            self.attacker_hp,
+                        )
+                        .ok_or(MISSING)?,
+                    enemy_status: component
+                        .enemy_status_multiplier(
+                            self.np_level,
+                            self.overcharge_level,
+                            self.enemy_status,
+                        )
+                        .ok_or(MISSING)?,
+                    trait_bonus: component
+                        .trait_bonus_multiplier(
+                            self.np_level,
+                            self.overcharge_level,
+                            self.trait_bonus,
+                        )
+                        .ok_or(MISSING)?,
+                })
+            })
+            .collect()
+    }
+}
+
+/// A turn selection that passed validation, with each card's data resolved.
+#[derive(Debug, Clone)]
+pub struct CheckedTurn<'a> {
+    pub cards: [CheckedCard<'a>; 3],
+}
+
+#[derive(Debug, Clone)]
+pub enum CheckedCard<'a> {
+    Normal(CardType),
+    NoblePhantasm {
+        np: &'a crate::loader::NoblePhantasmRecord,
+        /// One entry per NP damage function, in order.
+        components: Vec<NpComponentFactors>,
+    },
+}
+
+impl CheckedCard<'_> {
+    pub fn card_type(&self) -> CardType {
+        match self {
+            Self::Normal(card_type) => *card_type,
+            Self::NoblePhantasm { np, .. } => np.card_type,
+        }
+    }
+}
+
+/// The multipliers of one NP damage function at the selected level, Overcharge,
+/// attacker HP and enemy assumptions.
+#[derive(Debug, Clone, Copy)]
+pub struct NpComponentFactors {
+    pub multiplier: f64,
+    pub enemy_status: f64,
+    pub trait_bonus: f64,
 }

@@ -2,7 +2,23 @@
 
 Audit date: 2026-11-06 (version 0.1.6).
 
-## Current health
+## Progress
+
+All twelve items are done (2026-11-07):
+
+- #1: `scripts/check.sh` runs formatting, clippy, tests and the wasm32 build check; `.githooks/pre-push` calls it. Cargo aliases cannot chain commands, so there is no `cargo ci` alias; use `scripts/check.sh --audit` instead.
+- #2: the web client has a real entry point (`src/main.rs`, `index.html`, `Trunk.toml`).
+- #3 and #6: `card_damage` is the only formula implementation; `calculate` wraps it, and `calculate_turn` is split into normal-card, NP and Extra helpers. `TurnSelection::check` returns resolved card data, so the `expect` calls are gone.
+- #4: clippy passes with `-D warnings`.
+- #5: portrait streaming takes an injectable fetcher. Test builds use an offline fetcher, so the whole app streams portraits in tests without network access.
+- #7: `ui/components.rs` is split into nine per-panel modules under `ui/components/`.
+- #8: `enrich_servant` is split into import steps (`import_np`, `import_components`, `keep_complete_overcharge_rows`, `import_affection`, `np_notes`, …) with unit tests.
+- #9: snapshots are read only in the three newest formats (currently v4–v6); see `OLDEST_READABLE_SCHEMA_VERSION` in `servant_data/store.rs` for the rule.
+- #10: the old model types and `tests/servant_model.rs` are removed.
+- #11: audited NP IDs, notes and trait labels live in `data/audited_nps.json`.
+- #12: integration tests are four binaries: `damage`, `import`, `np_mechanics` and `live`.
+
+## Current health (at audit time)
 
 - All tests pass (about 140; 3 network-dependent tests are ignored on purpose).
 - `cargo fmt --check` is clean.

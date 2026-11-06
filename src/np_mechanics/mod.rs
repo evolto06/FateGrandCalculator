@@ -2,6 +2,7 @@
 //!
 //! Known but unsupported mechanics stay distinct from ordinary base NP damage.
 
+pub mod audited;
 pub mod components;
 pub mod defense_pierce;
 pub mod enemy_status;

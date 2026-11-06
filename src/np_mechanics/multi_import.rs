@@ -2,13 +2,6 @@
 
 use serde_json::Value;
 
-pub fn is_verified_variant(servant_id: u32, np_id: u32) -> bool {
-    matches!(
-        (servant_id, np_id),
-        (201300, 201301 | 201302) | (504400, 504401) | (305400, 305401)
-    )
-}
-
 pub fn is_verified_shape(functions: &[(usize, &Value)]) -> bool {
     let [(first_position, first), (second_position, second)] = functions else {
         return false;

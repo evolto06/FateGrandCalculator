@@ -9,10 +9,20 @@ use serde::{Deserialize, Serialize};
 use crate::loader::GameData;
 
 const SNAPSHOT_SCHEMA_VERSION: u32 = 6;
+/// Retirement rule: read only the three newest snapshot formats. When
+/// `SNAPSHOT_SCHEMA_VERSION` goes up, raise this too and delete the code and
+/// tests that only served the retired format. A retired snapshot is ignored:
+/// the app falls back to bundled data until the user updates servant data.
+const OLDEST_READABLE_SCHEMA_VERSION: u32 = SNAPSHOT_SCHEMA_VERSION - 2;
 const MAX_SNAPSHOT_BYTES: u64 = 64 * 1024 * 1024;
 
 pub struct SnapshotStore {
     path: PathBuf,
+}
+
+#[derive(Deserialize)]
+struct VersionOnly {
+    schema_version: u32,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -60,9 +70,20 @@ impl SnapshotStore {
                 "The local servant snapshot grew beyond the allowed size while being read.".into(),
             );
         }
+        let version = serde_json::from_str::<VersionOnly>(&json)
+            .map_err(|error| format!("The local servant snapshot is malformed: {error}"))?
+            .schema_version;
+        if (1..OLDEST_READABLE_SCHEMA_VERSION).contains(&version) {
+            return Err(format!(
+                "it uses retired format version {version}; choose Update servant data to download it again"
+            ));
+        }
         let envelope: SnapshotEnvelope = serde_json::from_str(&json)
             .map_err(|error| format!("The local servant snapshot is malformed: {error}"))?;
-        if !matches!(envelope.schema_version, 1..=SNAPSHOT_SCHEMA_VERSION) {
+        if !matches!(
+            envelope.schema_version,
+            OLDEST_READABLE_SCHEMA_VERSION..=SNAPSHOT_SCHEMA_VERSION
+        ) {
             return Err(format!(
                 "The local servant snapshot uses unsupported format version {}.",
                 envelope.schema_version
@@ -160,26 +181,18 @@ mod tests {
         }
     }
     #[test]
-    fn reads_v1_without_fabricating_new_gameplay_data() {
+    fn retired_formats_are_rejected_without_overwriting() {
         let store = test_store();
-        let mut data = serde_json::to_value(GameData::bundled().unwrap()).unwrap();
-        for servant in data["servants"].as_array_mut().unwrap() {
-            for field in ["deck", "np_status", "noble_phantasms", "max_hp"] {
-                servant.as_object_mut().unwrap().remove(field);
-            }
+        for version in 1..OLDEST_READABLE_SCHEMA_VERSION {
+            let original = serde_json::to_vec(
+                &serde_json::json!({"schema_version":version,"game_data":GameData::bundled().unwrap()}),
+            )
+            .unwrap();
+            fs::write(&store.path, &original).unwrap();
+            let error = store.load().unwrap_err();
+            assert!(error.contains("retired format version"), "{error}");
+            assert_eq!(fs::read(&store.path).unwrap(), original);
         }
-        fs::write(
-            &store.path,
-            serde_json::to_vec(&serde_json::json!({"schema_version":1,"game_data":data})).unwrap(),
-        )
-        .unwrap();
-        let migrated = store.load().unwrap().unwrap();
-        assert!(migrated.servants[0].deck.is_empty());
-        assert_eq!(migrated.servants[0].max_hp, None);
-        assert_eq!(
-            migrated.servants[0].np_status,
-            crate::loader::NpStatus::Unavailable
-        );
         fs::remove_file(&store.path).unwrap();
     }
     #[test]
@@ -197,48 +210,6 @@ mod tests {
         fs::remove_file(&store.path).unwrap();
     }
     #[test]
-    fn v2_np_snapshot_migrates_without_inventing_overcharge_and_saves_v6() {
-        let store = test_store();
-        let mut data = serde_json::to_value(GameData::bundled().unwrap()).unwrap();
-        for servant in data["servants"].as_array_mut().unwrap() {
-            for np in servant["noble_phantasms"].as_array_mut().unwrap() {
-                let multipliers = np["components"][0]["overcharge"][0]["multipliers"].clone();
-                np.as_object_mut().unwrap().remove("components");
-                np["multipliers"] = multipliers;
-            }
-        }
-        fs::write(
-            &store.path,
-            serde_json::to_vec(&serde_json::json!({"schema_version":2,"game_data":data})).unwrap(),
-        )
-        .unwrap();
-        let original = fs::read(&store.path).unwrap();
-        let migrated = store.load().unwrap().unwrap();
-        assert_eq!(fs::read(&store.path).unwrap(), original);
-        for np in migrated
-            .servants
-            .iter()
-            .flat_map(|servant| &servant.noble_phantasms)
-        {
-            assert_eq!(np.available_overcharges(), [1]);
-            assert_eq!(np.base_multiplier(5, 2), None);
-        }
-        store.save(&migrated).unwrap();
-        let saved: serde_json::Value =
-            serde_json::from_slice(&fs::read(&store.path).unwrap()).unwrap();
-        assert_eq!(saved["schema_version"], 6);
-        assert!(
-            saved["game_data"]["servants"][0]["noble_phantasms"][0]
-                .get("multipliers")
-                .is_none()
-        );
-        assert_eq!(
-            store.load().unwrap().unwrap().servants[0].noble_phantasms[0].available_overcharges(),
-            [1]
-        );
-        fs::remove_file(&store.path).unwrap();
-    }
-    #[test]
     fn rejects_unknown_snapshot_versions_without_overwriting() {
         let store = test_store();
         let original = serde_json::to_vec(
@@ -248,46 +219,6 @@ mod tests {
         fs::write(&store.path, &original).unwrap();
         assert!(store.load().unwrap_err().contains("unsupported format"));
         assert_eq!(fs::read(&store.path).unwrap(), original);
-        fs::remove_file(&store.path).unwrap();
-    }
-
-    #[test]
-    fn legacy_v3_defaults_to_ordinary_damage_without_rewriting_the_cache() {
-        let store = test_store();
-        let mut data = serde_json::to_value(GameData::bundled().unwrap()).unwrap();
-        for servant in data["servants"].as_array_mut().unwrap() {
-            servant.as_object_mut().unwrap().remove("max_hp");
-            for np in servant["noble_phantasms"].as_array_mut().unwrap() {
-                for component in np["components"].as_array_mut().unwrap() {
-                    for row in component["overcharge"]
-                        .as_array_mut()
-                        .unwrap()
-                        .iter_mut()
-                        .filter(|row| !row.is_null())
-                    {
-                        row.as_object_mut().unwrap().remove("low_hp");
-                    }
-                }
-            }
-        }
-        let bytes =
-            serde_json::to_vec(&serde_json::json!({"schema_version":3,"game_data":data})).unwrap();
-        fs::write(&store.path, &bytes).unwrap();
-        let loaded = store.load().unwrap().unwrap();
-        assert!(
-            loaded
-                .servants
-                .iter()
-                .all(|servant| servant.max_hp.is_none())
-        );
-        assert!(
-            loaded
-                .servants
-                .iter()
-                .flat_map(|servant| &servant.noble_phantasms)
-                .all(|np| !np.requires_attacker_hp())
-        );
-        assert_eq!(fs::read(&store.path).unwrap(), bytes);
         fs::remove_file(&store.path).unwrap();
     }
 
@@ -477,7 +408,7 @@ mod tests {
                 }
             }
         }
-        for version in 1..=5 {
+        for version in OLDEST_READABLE_SCHEMA_VERSION..SNAPSHOT_SCHEMA_VERSION {
             let bytes = serde_json::to_vec(
                 &serde_json::json!({"schema_version":version,"game_data":legacy}),
             )

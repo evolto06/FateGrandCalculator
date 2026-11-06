@@ -96,7 +96,10 @@ fn run(
 // each component at random .900 / 1.099. Controlled ATK1003, Saber vs Saber,
 // Earth vs Earth; rows OC1-5 and columns NP1-5. Actual servant stats are replaced
 // deliberately so rounding and component mechanics have independent constants.
-const GOLD: [(u32, [[(u32, u32); 5]; 5]); 4] = [
+/// Damage range (min, max) for each overcharge row and NP level column.
+type RangeGrid = [[(u32, u32); 5]; 5];
+
+const GOLD: [(u32, RangeGrid); 4] = [
     (
         201301,
         [

@@ -11,7 +11,7 @@ use serde_json::{Value, json};
 
 fn rows() -> Vec<Value> {
     let fixture: Value =
-        serde_json::from_str(include_str!("fixtures/np_mechanics_enemy_status.json")).unwrap();
+        serde_json::from_str(include_str!("../fixtures/np_mechanics_enemy_status.json")).unwrap();
     fixture["servants"].as_array().unwrap().clone()
 }
 
@@ -94,7 +94,7 @@ fn imports_seven_verified_conditions_source_units_and_matching_policies() {
 #[test]
 fn imported_variants_match_350_independent_fixed_rates_and_damage_endpoints() {
     let fixture: Value = serde_json::from_str(include_str!(
-        "fixtures/np_mechanics_enemy_status_golden.json"
+        "../fixtures/np_mechanics_enemy_status_golden.json"
     ))
     .unwrap();
     let cases = fixture["cases"].as_array().unwrap();

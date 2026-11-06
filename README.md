@@ -27,7 +27,7 @@ Atlas Academy export -- user-triggered import --> local servant snapshot
                                               eframe/egui        WebAssembly
 ```
 
-The calculation core has no GUI, network, or platform-specific dependencies. It accepts the attack inputs and returns each multiplier with the damage range. The desktop client loads the last locally saved servant snapshot, falling back to a bundled seed. Servant data updates happen only when the user chooses **Update servant data**. The selected servant's portrait streams separately from Atlas Academy.
+The calculation core has no GUI, network, or platform-specific dependencies. It accepts the attack inputs and returns each multiplier with the damage range. The desktop client loads the last locally saved servant snapshot, falling back to a bundled seed. Servant data updates happen only when the user chooses **Update servant data**. The selected servant's portrait streams separately from Atlas Academy. The web client runs the same UI in the browser with the bundled seed only; it has no servant data updates or portrait streaming.
 
 ```rust
 pub fn calculate(input: DamageInput) -> DamageResult;
@@ -49,7 +49,7 @@ The calculator imports multi-component damage for Arash's base and upgraded NPs,
 
 ## Data
 
-The bundled seed is in `data/game_data.json`. Snapshot schema v6 stores ordered NP damage components, explicitly available Overcharge values, low-HP scaling, enemy-status metadata, and audited trait corrections; schema versions 1–6 remain readable. Legacy NP data establishes OC1 only (schema v1 snapshots may not include NP data), so update servant data to fetch other available values. After an explicit update, the app downloads Atlas Academy's lightweight NA servant export, then fetches the selected gameplay fields for each included servant from the NA nice-servant endpoint. It stores the five-card deck and NP damage metadata, including defense piercing, supported component data, optional maximum HP, and audited status and trait corrections, with the existing attack, class, and attribute data. The complete result is validated and saved in the operating system's application data directory. The snapshot is staged and atomically replaced; an unavailable network, invalid response, or failed write leaves the previous snapshot in place. If you already have a saved catalog, choose **Update servant data** to import newly supported NP cards and metadata.
+The bundled seed is in `data/game_data.json`. Snapshot schema v6 stores ordered NP damage components, explicitly available Overcharge values, low-HP scaling, enemy-status metadata, and audited trait corrections. The app reads only the three newest snapshot formats (currently v4–v6); a snapshot in an older format is ignored and the bundled seed is used until you choose **Update servant data**. Older NP data that establishes only OC1 stays that way until you update servant data. After an explicit update, the app downloads Atlas Academy's lightweight NA servant export, then fetches the selected gameplay fields for each included servant from the NA nice-servant endpoint. It stores the five-card deck and NP damage metadata, including defense piercing, supported component data, optional maximum HP, and audited status and trait corrections, with the existing attack, class, and attribute data. The complete result is validated and saved in the operating system's application data directory. The snapshot is staged and atomically replaced; an unavailable network, invalid response, or failed write leaves the previous snapshot in place. If you already have a saved catalog, choose **Update servant data** to import newly supported NP cards and metadata.
 
 The update includes the ten additional Atlas NA servant classes previously skipped: seven Beast variants, Solomon's lore Grand Caster form, and both Olga Marie collection forms. It reports incomplete basic-export entries and keeps the rest of the valid servant list when no more than one in five rows must be skipped. A malformed export, empty usable result, duplicate servant ID, higher skip ratio, or invalid required deck data rejects the whole update. The data requests have bounded concurrency, retries, timeouts, and response-size limits. NP data can be marked as supported, non-damaging, unavailable, or unsupported without discarding a valid servant deck. Beast IV's special card type has no Buster, Arts, or Quick mapping, so the servant remains listed but turn damage is unavailable.
 
@@ -65,10 +65,17 @@ The desktop milestone supports three-card sequences, explicitly imported NP-leve
 
 ## Development
 
-Run the console example:
+Run the desktop app:
 
 ```sh
 cargo run
+```
+
+Run the web client (needs the `wasm32-unknown-unknown` target and [Trunk](https://trunkrs.dev/), installed with `cargo install trunk`):
+
+```sh
+trunk serve            # development server at http://127.0.0.1:8080
+trunk build --release  # static files in dist/
 ```
 
 Run the calculation tests:
@@ -77,7 +84,13 @@ Run the calculation tests:
 cargo test
 ```
 
-Integration tests are grouped by purpose under `tests/`, including NP mechanics tests for runtime behavior, NP import, and Space Ereshkigal; face-card and turn damage, card selection, class affinity, attribute affinity, game-data loading, percent input, servant damage, and servant model construction have their own suites.
+Run every check (formatting, clippy, tests and the web build) with `scripts/check.sh`; add `--audit` to include `cargo audit`. To run the checks before each push, enable the tracked hook once per clone:
+
+```sh
+git config core.hooksPath .githooks
+```
+
+Integration tests are grouped into four test binaries under `tests/`: `damage` (formula, affinity and turn calculation), `import` (bundled data and offline Atlas fixtures), `np_mechanics` (NP mechanic runtime and import), and `live` (ignored by default; run with `cargo test --test live -- --ignored`). Fixtures live in `tests/fixtures/`.
 
 ## License
 

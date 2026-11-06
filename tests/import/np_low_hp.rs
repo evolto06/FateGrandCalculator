@@ -10,7 +10,7 @@ use serde_json::{Value, json};
 
 fn rows() -> Vec<Value> {
     let fixture: Value =
-        serde_json::from_str(include_str!("fixtures/np_mechanics_low_hp.json")).unwrap();
+        serde_json::from_str(include_str!("../fixtures/np_mechanics_low_hp.json")).unwrap();
     fixture["servants"].as_array().unwrap().clone()
 }
 
@@ -108,7 +108,7 @@ fn imports_all_six_variants_with_explicit_source_units_and_manual_effect_notes()
 #[test]
 fn imported_variants_match_450_fixed_hp_rates_and_damage_ranges() {
     let fixture: Value =
-        serde_json::from_str(include_str!("fixtures/np_mechanics_low_hp_golden.json")).unwrap();
+        serde_json::from_str(include_str!("../fixtures/np_mechanics_low_hp_golden.json")).unwrap();
     let cases = fixture["cases"].as_array().unwrap();
     assert_eq!(cases.len(), 450);
     let mut servants: Vec<_> = rows().iter().map(import).collect();

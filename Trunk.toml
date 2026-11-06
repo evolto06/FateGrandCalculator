@@ -1,0 +1,4 @@
+# Web build: `trunk serve` for development, `trunk build --release` for dist/.
+[build]
+target = "index.html"
+dist = "dist"

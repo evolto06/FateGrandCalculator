@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
-use crate::np_mechanics::components::{NpDamageComponent, NpDamageValues};
-use serde::{Deserialize, Deserializer, Serialize};
+use crate::np_mechanics::components::NpDamageComponent;
+use serde::{Deserialize, Serialize};
 
 use crate::damage::DamageInput;
 use crate::model::{AttributeType, CardType, ClassType};
@@ -49,72 +49,18 @@ pub enum NpStatus {
     Unsupported,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NoblePhantasmRecord {
     pub id: u32,
     pub name: String,
     pub card_type: CardType,
     pub components: Vec<NpDamageComponent>,
+    #[serde(default)]
     pub defense_pierce: bool,
+    #[serde(default)]
     pub affection: Option<AffectionScaling>,
+    #[serde(default)]
     pub notes: Vec<String>,
-}
-
-impl<'de> Deserialize<'de> for NoblePhantasmRecord {
-    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        #[derive(Deserialize)]
-        struct Record {
-            id: u32,
-            name: String,
-            card_type: CardType,
-            #[serde(default)]
-            defense_pierce: bool,
-            #[serde(default)]
-            affection: Option<AffectionScaling>,
-            #[serde(default)]
-            notes: Vec<String>,
-        }
-        let value = serde_json::Value::deserialize(deserializer)?;
-        let metadata: Record =
-            serde_json::from_value(value.clone()).map_err(serde::de::Error::custom)?;
-        // Presence of the new field is authoritative, even when it is malformed.
-        let components =
-            if let Some(components) = value.get("components") {
-                serde_json::from_value(components.clone()).map_err(serde::de::Error::custom)?
-            } else {
-                let multipliers: [f64; 5] =
-                    serde_json::from_value(value.get("multipliers").cloned().ok_or_else(|| {
-                        serde::de::Error::custom("NP is missing damage components")
-                    })?)
-                    .map_err(serde::de::Error::custom)?;
-                vec![NpDamageComponent {
-                    target: None,
-                    overcharge: [
-                        Some(NpDamageValues {
-                            multipliers,
-                            low_hp: None,
-                            enemy_status: None,
-                            trait_bonus: None,
-                            rates: [1000; 5],
-                            check_dead: [false; 5],
-                        }),
-                        None,
-                        None,
-                        None,
-                        None,
-                    ],
-                }]
-            };
-        Ok(Self {
-            id: metadata.id,
-            name: metadata.name,
-            card_type: metadata.card_type,
-            components,
-            defense_pierce: metadata.defense_pierce,
-            affection: metadata.affection,
-            notes: metadata.notes,
-        })
-    }
 }
 
 impl NoblePhantasmRecord {

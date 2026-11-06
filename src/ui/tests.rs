@@ -192,13 +192,13 @@ fn attack_setup_fits_narrow_and_wide_columns_with_long_names() {
                 attack_panel(
                     ui,
                     &data,
-                    &mut id,
-                    &mut search,
-                    None,
-                    "No portrait available",
-                    None,
-                    &mut selection,
-                    &mut active_slot,
+                    PortraitDisplay::MISSING,
+                    ServantPick {
+                        selected_id: &mut id,
+                        search: &mut search,
+                        selection: &mut selection,
+                        active_slot: &mut active_slot,
+                    },
                     &mut buffs,
                 );
                 assert!(
@@ -243,13 +243,13 @@ fn searchable_dropdown_is_below_portrait_and_changing_servant_resets_attack_orde
             response = Some(servant_setup(
                 ui,
                 &data,
-                &mut id,
-                &mut search,
-                None,
-                "No portrait available",
-                None,
-                &mut selection,
-                &mut active_slot,
+                PortraitDisplay::MISSING,
+                &mut ServantPick {
+                    selected_id: &mut id,
+                    search: &mut search,
+                    selection: &mut selection,
+                    active_slot: &mut active_slot,
+                },
             ));
         });
         (response.clone().unwrap(), output)
@@ -1156,11 +1156,10 @@ fn expanded_breakdown_shows_flat_and_extra_factors_within_narrow_panel() {
     ] {
         let ctx = egui::Context::default();
         let frame = |events| {
-            let output = ctx.run_ui(input(260.0, events), |ui| {
+            ctx.run_ui(input(260.0, events), |ui| {
                 breakdown(ui, damage);
                 assert!(ui.min_rect().right() <= 261.0, "{:?}", ui.min_rect());
-            });
-            output
+            })
         };
         let first = frame(vec![]);
         let position = first

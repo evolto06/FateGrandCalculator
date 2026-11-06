@@ -66,7 +66,7 @@ successful catalog refresh also resets the assumption and displays a notice; a
 failed refresh preserves the existing assumption. Changing NP level or
 Overcharge preserves the status assumption while the same NP remains selected.
 
-Snapshot schema v5 stores the audited correction rows. Schemas v1–v5 are
+Snapshot schema v5 stores the audited correction rows. Schemas v4–v5 are
 readable; snapshots without status metadata preserve their existing NP
 mechanics, and no status bonus is inferred. Choose **Update servant data** to
 fetch newly supported NP profiles. The app does not invent a status correction

@@ -1083,6 +1083,7 @@ dependencies = [
  "reqwest",
  "serde",
  "serde_json",
+ "wasm-bindgen-futures",
  "windows-sys 0.61.2",
 ]
 
