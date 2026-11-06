@@ -57,8 +57,17 @@ struct AtlasCharaGraph {
 
 impl Default for PortraitStream {
     fn default() -> Self {
+        // Test builds never reach the network, even through the whole app.
+        #[cfg(test)]
+        return Self::with_fetcher(offline_fetch);
+        #[cfg(not(test))]
         Self::with_fetcher(fetch_portrait)
     }
+}
+
+#[cfg(test)]
+fn offline_fetch(_region: &str, _id: u32) -> Result<ColorImage, String> {
+    Ok(ColorImage::new([1, 1], vec![egui::Color32::BLACK]))
 }
 
 impl PortraitStream {

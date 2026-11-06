@@ -92,8 +92,7 @@ impl CalculatorApp {
         #[cfg(not(target_arch = "wasm32"))]
         self.poll_update_result(ui.ctx());
 
-        // Headless UI regressions must not start portrait network workers.
-        #[cfg(all(not(target_arch = "wasm32"), not(test)))]
+        #[cfg(not(target_arch = "wasm32"))]
         {
             let selection = self.game_data.as_ref().ok().and_then(|data| {
                 data.servant(self.selected_servant_id)
@@ -652,6 +651,22 @@ mod tests {
         }
         output.drop_without_applying_deltas();
         texts
+    }
+
+    #[test]
+    fn rendering_the_app_streams_the_selected_servant_portrait() {
+        let mut app = app_with_bundled_data();
+        let context = egui::Context::default();
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(5);
+        while app.portrait.texture().is_none() {
+            assert!(
+                std::time::Instant::now() < deadline,
+                "portrait never loaded"
+            );
+            render_text(&mut app, &context, 1200.0);
+            std::thread::sleep(std::time::Duration::from_millis(5));
+        }
+        assert_eq!(app.portrait.error(), None);
     }
 
     #[test]
