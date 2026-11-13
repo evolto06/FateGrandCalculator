@@ -101,27 +101,33 @@ pub(super) fn enemy_status_settings(
             data.insert_temp(enemy_status_ui_id(), state);
         });
     }
-    ui.label(
-        RichText::new(if present {
+    note(
+        ui,
+        if present {
             "Condition present: conditional NP multiplier applies."
         } else {
             "Condition absent: base NP damage applies."
-        })
-        .size(12.0)
-        .color(TEXT_MUTED),
-    );
-    ui.label(RichText::new("Set present only if the status actually landed before damage. Status application and success probability are not simulated; effects after damage do not activate this bonus.").size(12.0).color(TEXT_MUTED));
-    ui.label(
-        RichText::new(if condition.includes_ignored_individuality() {
-            "Also counts effects excluded from normal trait matching."
-        } else {
-            "Effects excluded from trait matching do not count."
-        })
-        .size(12.0)
-        .color(TEXT_MUTED),
+        },
     );
     if condition == EnemyStatus::DefenseUp {
-        ui.label(RichText::new("Defense Up presence is separate from Enemy defense (%). This checkbox does not change the numeric defense value; enter it separately.").size(12.0).color(TEXT_MUTED));
+        note(
+            ui,
+            "Defense Up presence is separate from Enemy defense (%). This checkbox does not change the numeric defense value; enter it separately.",
+        );
     }
+    ui.collapsing(
+        RichText::new("About the status assumption").size(TEXT_SMALL),
+        |ui| {
+            note(ui, "Set present only if the status actually landed before damage. Status application and success probability are not simulated; effects after damage do not activate this bonus.");
+            note(
+                ui,
+                if condition.includes_ignored_individuality() {
+                    "Also counts effects excluded from normal trait matching."
+                } else {
+                    "Effects excluded from trait matching do not count."
+                },
+            );
+        },
+    );
     Some(response)
 }
